@@ -29,3 +29,18 @@ class Editorial(models.Model):
     
     def __str__(self):
         return self.nombre
+class Categoria(models.Model):
+    """Categorías para clasificar los libros"""
+    nombre = models.CharField(
+        max_length=100, 
+        unique=True,
+        verbose_name="Nombre de la categoría"
+    )
+    
+    class Meta:
+        verbose_name = "Categoría"
+        verbose_name_plural = "Categorías"
+        ordering = ['nombre']  # Orden alfabético
+    
+    def __str__(self):
+        return self.nombre
