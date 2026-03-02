@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% block title %}Eliminar Socio{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        Confirmar Eliminación
+                    </h4>
+                </div>
+                <div class="card-body text-center py-4">
+                    <i class="bi bi-person-slash text-danger" style="font-size: 4rem;"></i>
+                    <h5>¿Está seguro que desea eliminar este socio?</h5>
+                    <p class="lead mb-3">
+                        <strong>{{ socio.nombre_completo }}</strong><br>
+                        <span class="badge bg-secondary">{{ socio.cedula }}</span>
+                    </p>
+                    <p class="text-muted">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Esta acción marcará al socio como <strong>inhabilitado</strong> y no podrá realizar préstamos.
+                    </p>
+
+                    <form method="post" class="mt-4">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-center gap-2">
+                            <a href="{% url 'detalle_socio' socio.pk %}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left me-1"></i>Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-danger">
+                                <i class="bi bi-trash me-1"></i>Sí, inhabilitar socio
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

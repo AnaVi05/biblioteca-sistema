@@ -1,0 +1,141 @@
+
+{% extends 'base.html' %}
+
+{% block title %}{% if socio %}Editar{% else %}Nuevo{% endif %} Socio{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Mostrar mensajes de error -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="bi {% if socio %}bi-pencil-square{% else %}bi-person-plus{% endif %} me-2"></i>
+                        {% if socio %}Editar Socio{% else %}Nuevo Socio{% endif %}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+                        
+                        <h5 class="text-primary mb-3">Datos Personales</h5>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="cedula" class="form-label">Cédula *</label>
+                                <input type="text" class="form-control" id="cedula" name="cedula" 
+                                       value="{{ socio.cedula|default:'' }}" required 
+                                       {% if socio %}readonly{% endif %}>
+                                {% if socio %}
+                                <small class="text-muted">La cédula no se puede modificar</small>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="email" class="form-label">Email *</label>
+                                <input type="email" class="form-control" id="email" name="email" 
+                                       value="{{ socio.user.email|default:'' }}" required>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="nombre" class="form-label">Nombre *</label>
+                                <input type="text" class="form-control" id="nombre" name="nombre" 
+                                       value="{{ socio.user.first_name|default:'' }}" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="apellido" class="form-label">Apellido *</label>
+                                <input type="text" class="form-control" id="apellido" name="apellido" 
+                                       value="{{ socio.user.last_name|default:'' }}" required>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="telefono" class="form-label">Teléfono</label>
+                                <input type="text" class="form-control" id="telefono" name="telefono" 
+                                       value="{{ socio.telefono|default:'' }}">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="direccion" class="form-label">Dirección</label>
+                                <input type="text" class="form-control" id="direccion" name="direccion" 
+                                       value="{{ socio.direccion|default:'' }}">
+                            </div>
+                        </div>
+
+                        <h5 class="text-primary mb-3 mt-4">Información Académica</h5>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="carrera" class="form-label">Carrera/Profesión</label>
+                                <input type="text" class="form-control" id="carrera" name="carrera" 
+                                       value="{{ socio.carrera|default:'' }}">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="tipo_usuario" class="form-label">Tipo de usuario *</label>
+                                <select class="form-select" id="tipo_usuario" name="tipo_usuario" required>
+                                    <option value="">Seleccione...</option>
+                                    {% for valor, etiqueta in tipos_usuario %}
+                                    <option value="{{ valor }}" {% if socio.tipo_usuario == valor %}selected{% endif %}>
+                                        {{ etiqueta }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <h5 class="text-primary mb-3 mt-4">Control de Acceso</h5>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="estado_socio" class="form-label">Estado *</label>
+                                <select class="form-select" id="estado_socio" name="estado_socio" required>
+                                    {% for valor, etiqueta in estados %}
+                                    <option value="{{ valor }}" {% if socio.estado_socio == valor %}selected{% endif %}>
+                                        {{ etiqueta }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="nivel_acceso" class="form-label">Nivel de acceso *</label>
+                                <select class="form-select" id="nivel_acceso" name="nivel_acceso" required>
+                                    <option value="">Seleccione...</option>
+                                    {% for nivel in niveles %}
+                                    <option value="{{ nivel.id }}" {% if socio.nivel_acceso_id == nivel.id %}selected{% endif %}>
+                                        {{ nivel.nombre }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        {% if not socio %}
+                        <div class="alert alert-info mt-3">
+                            <i class="bi bi-info-circle me-2"></i>
+                            La contraseña por defecto será: <strong>biblioteca2025</strong>
+                        </div>
+                        {% endif %}
+
+                        <div class="d-flex justify-content-end mt-4">
+                            <a href="{% url 'lista_socios' %}" class="btn btn-secondary me-2">
+                                <i class="bi bi-x me-1"></i>Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save me-1"></i>
+                                {% if socio %}Guardar cambios{% else %}Crear socio{% endif %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

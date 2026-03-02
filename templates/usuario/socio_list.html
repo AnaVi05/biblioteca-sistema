@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Lista de Socios{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>
+            <i class="bi bi-people-fill text-primary me-2"></i>
+            Gestión de Socios
+        </h1>
+        <div>
+            <a href="{% url 'buscar_socios' %}" class="btn btn-outline-primary me-2">
+                <i class="bi bi-search me-1"></i>Buscar
+            </a>
+            <a href="{% url 'crear_socio' %}" class="btn btn-primary">
+                <i class="bi bi-person-plus-fill me-1"></i>Nuevo Socio
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0"><i class="bi bi-funnel me-2"></i>Filtros</h5>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-5">
+                    <label for="estado" class="form-label">Estado</label>
+                    <select name="estado" id="estado" class="form-select">
+                        <option value="">Todos los estados</option>
+                        {% for valor, etiqueta in estados %}
+                        <option value="{{ valor }}" {% if request.GET.estado == valor %}selected{% endif %}>
+                            {{ etiqueta }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-5">
+                    <label for="tipo" class="form-label">Tipo de usuario</label>
+                    <select name="tipo" id="tipo" class="form-select">
+                        <option value="">Todos los tipos</option>
+                        {% for valor, etiqueta in tipos %}
+                        <option value="{{ valor }}" {% if request.GET.tipo == valor %}selected{% endif %}>
+                            {{ etiqueta }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-funnel me-1"></i>Filtrar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabla de socios -->
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Cédula</th>
+                            <th>Nombre completo</th>
+                            <th>Tipo</th>
+                            <th>Estado</th>
+                            <th>Email</th>
+                            <th>Teléfono</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for socio in socios %}
+                        <tr>
+                            <td><span class="badge bg-secondary">{{ socio.cedula }}</span></td>
+                            <td>
+                                <i class="bi bi-person-circle me-1 text-primary"></i>
+                                {{ socio.nombre_completo }}
+                            </td>
+                            <td>
+                                <span class="badge bg-info">{{ socio.get_tipo_usuario_display }}</span>
+                            </td>
+                            <td>
+                                {% if socio.estado_socio == 'activo' %}
+                                    <span class="badge bg-success">Activo</span>
+                                {% elif socio.estado_socio == 'moroso' %}
+                                    <span class="badge bg-warning text-dark">Moroso</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Inhabilitado</span>
+                                {% endif %}
+                            </td>
+                            <td><i class="bi bi-envelope me-1 text-muted"></i>{{ socio.user.email }}</td>
+                            <td><i class="bi bi-telephone me-1 text-muted"></i>{{ socio.telefono|default:"-" }}</td>
+                            <td>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a href="{% url 'detalle_socio' socio.pk %}" class="btn btn-outline-info" title="Ver detalle">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a href="{% url 'editar_socio' socio.pk %}" class="btn btn-outline-warning" title="Editar">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a href="{% url 'eliminar_socio' socio.pk %}" class="btn btn-outline-danger" title="Eliminar">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center py-4">
+                                <i class="bi bi-people-slash text-muted" style="font-size: 3rem;"></i>
+                                <p class="lead mb-0">No hay socios registrados</p>
+                                <a href="{% url 'crear_socio' %}" class="btn btn-primary mt-3">
+                                    <i class="bi bi-person-plus-fill me-1"></i>Crear primer socio
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
