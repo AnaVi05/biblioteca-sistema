@@ -1,0 +1,141 @@
+{% extends 'base/base.html' %}
+
+{% block content %}
+<style>
+    * {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+    }
+    body, html, .container-fluid {
+        background-color: white !important;
+    }
+    .card-login {
+        border: none;
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    }
+    .btn-primary {
+        background-color: #2c5aa0 !important;
+        border: none !important;
+    }
+    .btn-primary:hover {
+        background-color: #244a87 !important;
+    }
+    .header-azul {
+        background-color: #2c5aa0;
+        color: white;
+        padding: 25px 30px;
+        text-align: center;
+        border-radius: 16px 16px 0 0;
+        margin: -1.5rem -1.5rem 1.5rem -1.5rem;
+    }
+    .header-azul h2 {
+        color: white !important;
+        font-size: 28px;
+        font-weight: 600;
+    }
+</style>
+
+<div class="container-fluid min-vh-100 d-flex align-items-center justify-content-center">
+    <div class="row w-100 justify-content-center">
+        <div class="col-md-5">
+            <div class="card card-login p-4">
+                
+                <div class="header-azul">
+                    <h2>Biblioteca Institucional</h2>
+                    <p>Accede al sistema para gestionar tus préstamos, reservas y consultar el catálogo de libros disponibles.</p>
+                </div>
+
+                <h4 class="mb-3">Crear Cuenta</h4>
+                <p class="text-muted small mb-4">Regístrate para acceder a todos los servicios de la biblioteca</p>
+
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}success{% endif %}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Nombre Completo</label>
+                        <input type="text" name="nombre_completo" class="form-control form-control-lg" placeholder="Ingresa tu nombre completo" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Correo Electrónico</label>
+                        <input type="email" name="email" class="form-control form-control-lg" placeholder="ejemplo@email.com" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Usuario</label>
+                        <input type="text" name="username" class="form-control form-control-lg" placeholder="Elige un nombre de usuario" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Cédula</label>
+                        <input type="text" name="cedula" class="form-control form-control-lg" placeholder="Número de cédula" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Tipo de Usuario</label>
+                        <select name="tipo_usuario" class="form-control form-control-lg" required>
+                            <option value="">Selecciona tu tipo</option>
+                            <option value="estudiante">Estudiante</option>
+                            <option value="docente">Docente</option>
+                        </select>
+                        <small class="text-muted">¿Eres personal administrativo? Contacta al administrador para crear tu cuenta.</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Contraseña</label>
+                        <div class="input-group">
+                            <input type="password" name="password1" class="form-control form-control-lg" placeholder="Crea una contraseña segura" required>
+                            <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('password1')">
+                                <i class="bi bi-eye" id="togglePassword1Icon"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Confirmar Contraseña</label>
+                        <div class="input-group">
+                            <input type="password" name="password2" class="form-control form-control-lg" placeholder="Repite tu contraseña" required>
+                            <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('password2')">
+                                <i class="bi bi-eye" id="togglePassword2Icon"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 btn-lg mb-3">
+                        Registrarse
+                    </button>
+
+                    <p class="text-center mb-0">
+                        ¿Ya tienes una cuenta? <a href="{% url 'login' %}" class="text-decoration-none">Inicia Sesión</a>
+                    </p>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function togglePassword(fieldId) {
+        var passwordInput = document.getElementsByName(fieldId)[0];
+        var icon = document.getElementById('togglePassword' + fieldId.slice(-1) + 'Icon');
+        
+        if (passwordInput.type === 'password') {
+            passwordInput.type = 'text';
+            icon.classList.remove('bi-eye');
+            icon.classList.add('bi-eye-slash');
+        } else {
+            passwordInput.type = 'password';
+            icon.classList.remove('bi-eye-slash');
+            icon.classList.add('bi-eye');
+        }
+    }
+</script>
+{% endblock %}

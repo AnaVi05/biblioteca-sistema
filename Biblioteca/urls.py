@@ -20,6 +20,7 @@ from django.contrib.auth import views as auth_views
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
+from usuario import views
 
 @login_required
 def menu_principal(request):
@@ -34,6 +35,7 @@ urlpatterns = [
     path('login/', auth_views.LoginView.as_view(template_name='registration/login.html'), name='login'),
     path('logout/', cerrar_sesion, name='logout'),
     path('', menu_principal, name='home'),
+    path('registro/', views.registrar_usuario, name='registro'),
 ]
 
 LOGIN_URL = 'login'

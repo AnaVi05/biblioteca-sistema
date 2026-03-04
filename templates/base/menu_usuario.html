@@ -502,7 +502,13 @@
     <div class="main-content">
         <div class="header">
             <div class="page-title">
-                <h1>Bienvenida, {{ user.first_name }}</h1>
+                <h1>
+                {% if user.first_name|slice:"-1:" == "a" and user.first_name|lower != "elias" and user.first_name|lower != "lucas" %}
+                    Bienvenida, {{ user.first_name }}
+                {% else %}
+                    Bienvenido, {{ user.first_name }}
+                {% endif %}
+                </h1>   
                 <p>Tu espacio personal en la biblioteca</p>
             </div>
             
