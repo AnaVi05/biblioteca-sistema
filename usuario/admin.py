@@ -33,3 +33,5 @@ class SocioAdmin(admin.ModelAdmin):
     list_filter = ('tipo_usuario', 'estado_socio', 'nivel_acceso')
     search_fields = ('cedula', 'user__username', 'user__email')
     raw_id_fields = ('user',)
+
+    
