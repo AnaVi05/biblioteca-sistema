@@ -21,6 +21,9 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
 from usuario import views
+from django.conf import settings
+from django.conf.urls.static import static
+
 
 @login_required
 def menu_principal(request):
@@ -37,6 +40,9 @@ urlpatterns = [
     path('', menu_principal, name='home'),
     path('registro/', views.registrar_usuario, name='registro'),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'home'

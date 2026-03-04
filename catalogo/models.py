@@ -44,3 +44,106 @@ class Categoria(models.Model):
     
     def __str__(self):
         return self.nombre
+    
+
+
+class Libro(models.Model):
+    """Libros del catálogo"""
+    isbn = models.CharField(
+        max_length=20, 
+        unique=True, 
+        verbose_name="ISBN"
+    )
+    titulo = models.CharField(
+        max_length=200, 
+        verbose_name="Título"
+    )
+    anio_publicacion = models.IntegerField(
+        blank=True, 
+        null=True, 
+        verbose_name="Año de publicación"
+    )
+    descripcion = models.TextField(
+        blank=True, 
+        null=True,
+        verbose_name="Descripción / Sinopsis",
+        help_text="Breve descripción o sinopsis del libro"
+    )
+    editorial = models.ForeignKey(
+        Editorial, 
+        on_delete=models.PROTECT, 
+        verbose_name="Editorial"
+    )
+    categoria = models.ForeignKey(
+        Categoria, 
+        on_delete=models.PROTECT, 
+        verbose_name="Categoría"
+    )
+    autores = models.ManyToManyField(
+        Autor, 
+        through='LibroAutor', 
+        verbose_name="Autores"
+    )
+
+    imagen = models.ImageField(
+        upload_to='libros/', 
+        blank=True, 
+        null=True,
+        verbose_name="Imagen de tapa"
+    )
+    cantidad_total = models.IntegerField(
+        default=0, 
+        verbose_name="Total de ejemplares"
+    )
+    inventario_disponible = models.IntegerField(
+        default=0, 
+        verbose_name="Ejemplares disponibles"
+    )
+    
+    class Meta:
+        verbose_name = "Libro"
+        verbose_name_plural = "Libros"
+    
+    def __str__(self):
+        return f"{self.titulo} ({self.isbn})"
+    
+
+class LibroAutor(models.Model):
+    """Relación entre libros y autores"""
+    ROL_CHOICES = [
+        ('principal', 'Autor Principal'),
+        ('coautor', 'Coautor'),
+        ('colaborador', 'Colaborador'),
+    ]
+    
+    libro = models.ForeignKey(
+        Libro, 
+        on_delete=models.CASCADE,
+        verbose_name="Libro"
+    )
+    autor = models.ForeignKey(
+        Autor, 
+        on_delete=models.CASCADE,
+        verbose_name="Autor"
+    )
+    rol_autor = models.CharField(
+        max_length=50, 
+        choices=ROL_CHOICES, 
+        blank=True, 
+        null=True,
+        verbose_name="Rol del autor"
+    )
+    observacion = models.CharField(
+        max_length=200, 
+        blank=True, 
+        null=True,
+        verbose_name="Observaciones"
+    )
+    
+    class Meta:
+        verbose_name = "Relación Libro-Autor"
+        verbose_name_plural = "Relaciones Libro-Autores"
+        unique_together = ['libro', 'autor']  
+    
+    def __str__(self):
+        return f"{self.libro.titulo} - {self.autor.nombre_completo}"
