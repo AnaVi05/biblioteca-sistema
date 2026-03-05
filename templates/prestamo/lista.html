@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+
+{% block title %}Lista de Préstamos{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>
+            <i class="bi bi-arrow-left-right text-primary me-2"></i>
+            Préstamos
+        </h1>
+        <a href="{% url 'crear_prestamo' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle me-1"></i>Nuevo Préstamo
+        </a>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <label for="estado" class="form-label">Filtrar por estado</label>
+                    <select name="estado" id="estado" class="form-select">
+                        <option value="">Todos</option>
+                        {% for valor, etiqueta in estados %}
+                        <option value="{{ valor }}" {% if request.GET.estado == valor %}selected{% endif %}>
+                            {{ etiqueta }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-funnel me-1"></i>Filtrar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabla de préstamos -->
+    <div class="card shadow">
+        <div class="card-body">
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle me-2"></i>
+                Módulo en desarrollo - Funcionalidad completa cuando Ejemplar esté disponible
+            </div>
+
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Socio</th>
+                        <th>Cédula</th>
+                        <th>Fecha préstamo</th>
+                        <th>Vencimiento</th>
+                        <th>Estado</th>
+                        <th>Días atraso</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for prestamo in prestamos %}
+                    <tr>
+                        <td>#{{ prestamo.id }}</td>
+                        <td>{{ prestamo.socio.nombre_completo }}</td>
+                        <td>{{ prestamo.socio.cedula }}</td>
+                        <td>{{ prestamo.fecha_prestamo|date:"d/m/Y" }}</td>
+                        <td>{{ prestamo.fecha_vencimiento|date:"d/m/Y" }}</td>
+                        <td>
+                            {% if prestamo.estado == 'ACTIVO' %}
+                                <span class="badge bg-success">Activo</span>
+                            {% elif prestamo.estado == 'VENCIDO' %}
+                                <span class="badge bg-danger">Vencido</span>
+                            {% elif prestamo.estado == 'DEVUELTO' %}
+                                <span class="badge bg-secondary">Devuelto</span>
+                            {% else %}
+                                <span class="badge bg-warning">Extraviado</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if prestamo.dias_atraso > 0 %}
+                                <span class="badge bg-danger">{{ prestamo.dias_atraso }} días</span>
+                            {% else %}
+                                <span class="badge bg-success">0</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{% url 'detalle_prestamo' prestamo.id %}" class="btn btn-sm btn-outline-info">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            {% if prestamo.estado == 'ACTIVO' or prestamo.estado == 'VENCIDO' %}
+                            <a href="{% url 'devolver_prestamo' prestamo.id %}" class="btn btn-sm btn-outline-success">
+                                <i class="bi bi-arrow-return-left"></i>
+                            </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center py-4">
+                            <i class="bi bi-arrow-left-right text-muted" style="font-size: 3rem;"></i>
+                            <p class="lead mt-2">No hay préstamos registrados</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
