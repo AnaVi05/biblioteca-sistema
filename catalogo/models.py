@@ -147,3 +147,60 @@ class LibroAutor(models.Model):
     
     def __str__(self):
         return f"{self.libro.titulo} - {self.autor.nombre_completo}"
+
+
+
+class Ejemplar(models.Model):
+    """Ejemplares físicos de los libros"""
+    
+    ESTADO_FISICO_CHOICES = [
+        ('BUENO', 'Bueno'),
+        ('REGULAR', 'Regular'),
+        ('MALO', 'Malo'),
+        ('DANADO', 'Dañado'),
+        ('PERDIDO', 'Perdido'),
+    ]
+    
+    DISPONIBILIDAD_CHOICES = [
+        ('DISPONIBLE', 'Disponible'),
+        ('PRESTADO', 'Prestado'),
+        ('RESERVADO', 'Reservado'),
+        ('EN_REPARACION', 'En reparación'),
+    ]
+    
+    libro = models.ForeignKey(
+        'Libro',  # Relación con Libro
+        on_delete=models.PROTECT,
+        related_name='ejemplares',
+        verbose_name="Libro",
+        db_column='isbn_libro'  # Para que coincida con tu DER
+    )
+    codigo_inventario = models.CharField(
+        max_length=50,
+        unique=True,
+        verbose_name="Código de inventario"
+    )
+    estado_fisico = models.CharField(
+        max_length=20,
+        choices=ESTADO_FISICO_CHOICES,
+        default='BUENO',
+        verbose_name="Estado físico"
+    )
+    disponibilidad = models.CharField(
+        max_length=20,
+        choices=DISPONIBILIDAD_CHOICES,
+        default='DISPONIBLE',
+        verbose_name="Disponibilidad"
+    )
+    
+    class Meta:
+        db_table = 'Ejemplar'  # Para que coincida con tu DER
+        verbose_name = "Ejemplar"
+        verbose_name_plural = "Ejemplares"
+        indexes = [
+            models.Index(fields=['codigo_inventario']),
+            models.Index(fields=['disponibilidad']),
+        ]
+    
+    def __str__(self):
+        return f"{self.libro.titulo} - {self.codigo_inventario}"

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Autor,Editorial
+from .models import Autor,Editorial,Ejemplar
 
 @admin.register(Autor)
 class AutorAdmin(admin.ModelAdmin):
@@ -35,3 +35,9 @@ class LibroAdmin(admin.ModelAdmin):
     search_fields = ('titulo', 'isbn')
     inlines = [LibroAutorInline]
    
+@admin.register(Ejemplar)
+class EjemplarAdmin(admin.ModelAdmin):
+    list_display = ('codigo_inventario', 'libro', 'estado_fisico', 'disponibilidad')
+    list_filter = ('estado_fisico', 'disponibilidad')
+    search_fields = ('codigo_inventario', 'libro__titulo')
+    autocomplete_fields = ['libro']
