@@ -1,6 +1,6 @@
 from django.db import models
 from usuario.models import Socio
-# from catalogo.models import Ejemplar  # COMENTADO hasta que feature/ejemplar se fusione
+from catalogo.models import Ejemplar  # COMENTADO hasta que feature/ejemplar se fusione
 
 class Prestamo(models.Model):
     """Préstamos de ejemplares a socios"""
@@ -20,12 +20,12 @@ class Prestamo(models.Model):
     )
     
     # ⚠️ COMENTADO hasta que feature/ejemplar se fusione a main
-    # ejemplar = models.ForeignKey(
-    #     Ejemplar, 
-    #     on_delete=models.PROTECT,
-    #     related_name='prestamos',
-    #     verbose_name="Ejemplar"
-    # )
+    ejemplar = models.ForeignKey(
+        Ejemplar, 
+         on_delete=models.PROTECT,
+        related_name='prestamos',
+        verbose_name="Ejemplar"
+     )
     
     fecha_prestamo = models.DateTimeField(
         auto_now_add=True,
