@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Prestamo
+from .models import Prestamo,Multa
 
 @admin.register(Prestamo)
 class PrestamoAdmin(admin.ModelAdmin):
@@ -67,3 +67,20 @@ class PrestamoAdmin(admin.ModelAdmin):
         return "-"
     codigo_ejemplar.short_description = "Código ejemplar"
     codigo_ejemplar.admin_order_field = 'ejemplar__codigo_inventario'  # Permitir ordenar
+
+@admin.register(Multa)
+class MultaAdmin(admin.ModelAdmin):
+    list_display = ('id', 'prestamo', 'monto_total', 'dias_atraso', 'estado', 'fecha_generacion', 'fecha_pago')
+    list_filter = ('estado', 'fecha_generacion')
+    search_fields = ('prestamo__socio__cedula', 'prestamo__socio__user__first_name', 'prestamo__ejemplar__codigo_inventario')
+    list_editable = ('estado',)
+    readonly_fields = ('fecha_generacion', 'monto_total')
+    
+    fieldsets = (
+        ('Datos de la multa', {
+            'fields': ('prestamo', 'dias_atraso', 'monto_base', 'monto_por_dia', 'monto_total')
+        }),
+        ('Estado y pago', {
+            'fields': ('estado', 'fecha_pago', 'comprobante_pago')
+        }),
+    )
