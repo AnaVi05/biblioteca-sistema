@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Prestamo
+from .models import Prestamo,Reserva
 
 @admin.register(Prestamo)
 class PrestamoAdmin(admin.ModelAdmin):
@@ -67,3 +67,20 @@ class PrestamoAdmin(admin.ModelAdmin):
         return "-"
     codigo_ejemplar.short_description = "Código ejemplar"
     codigo_ejemplar.admin_order_field = 'ejemplar__codigo_inventario'  # Permitir ordenar
+
+@admin.register(Reserva)
+class ReservaAdmin(admin.ModelAdmin):
+    list_display = ('id', 'socio', 'libro', 'fecha_reserva', 'fecha_expiracion', 'estado', 'orden_prioridad')
+    list_filter = ('estado', 'fecha_reserva')
+    search_fields = ('socio__cedula', 'socio__user__first_name', 'libro__titulo')
+    list_editable = ('estado', 'orden_prioridad')
+    readonly_fields = ('fecha_reserva',)
+    
+    fieldsets = (
+        ('Datos de la reserva', {
+            'fields': ('socio', 'libro', 'fecha_reserva', 'fecha_expiracion')
+        }),
+        ('Estado y prioridad', {
+            'fields': ('estado', 'orden_prioridad', 'ejemplar_asignado')
+        }),
+    )

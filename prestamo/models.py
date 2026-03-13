@@ -104,3 +104,61 @@ class Prestamo(models.Model):
         """Marca el préstamo como extraviado"""
         self.estado = 'EXTRAVIADO'
         self.save()
+
+class Reserva(models.Model):
+    """Reservas de libros por socios"""
+    
+    ESTADO_RESERVA_CHOICES = [
+        ('PENDIENTE', 'Pendiente'),
+        ('ACTIVA', 'Activa'),
+        ('CANCELADA', 'Cancelada'),
+        ('COMPLETADA', 'Completada'),
+        ('EXPIRADA', 'Expirada'),
+    ]
+    
+    socio = models.ForeignKey(
+        'usuario.Socio',
+        on_delete=models.PROTECT,
+        related_name='reservas',
+        verbose_name="Socio"
+    )
+    libro = models.ForeignKey(
+        'catalogo.Libro',
+        on_delete=models.PROTECT,
+        related_name='reservas',
+        verbose_name="Libro"
+    )
+    fecha_reserva = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Fecha de reserva"
+    )
+    fecha_expiracion = models.DateTimeField(
+        verbose_name="Fecha de expiración"
+    )
+    orden_prioridad = models.IntegerField(
+        default=1,
+        verbose_name="Orden de prioridad"
+    )
+    estado = models.CharField(
+        max_length=20,
+        choices=ESTADO_RESERVA_CHOICES,
+        default='PENDIENTE',
+        verbose_name="Estado"
+    )
+    ejemplar_asignado = models.ForeignKey(
+        'catalogo.Ejemplar',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='reservas',
+        verbose_name="Ejemplar asignado"
+    )
+    
+    class Meta:
+        verbose_name = "Reserva"
+        verbose_name_plural = "Reservas"
+        ordering = ['estado', 'orden_prioridad', 'fecha_reserva']
+        unique_together = ['socio', 'libro', 'estado']  # Evita reservas duplicadas activas
+    
+    def __str__(self):
+        return f"Reserva {self.id} - {self.socio} - {self.libro.titulo}"
