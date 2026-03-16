@@ -40,7 +40,7 @@ class Categoria(models.Model):
     class Meta:
         verbose_name = "Categoría"
         verbose_name_plural = "Categorías"
-        ordering = ['nombre']  # Orden alfabético
+        ordering = ['nombre']  
     
     def __str__(self):
         return self.nombre
@@ -169,11 +169,11 @@ class Ejemplar(models.Model):
     ]
     
     libro = models.ForeignKey(
-        'Libro',  # Relación con Libro
+        'Libro',  
         on_delete=models.PROTECT,
         related_name='ejemplares',
         verbose_name="Libro",
-        db_column='isbn_libro'  # Para que coincida con tu DER
+        db_column='isbn_libro'  
     )
     codigo_inventario = models.CharField(
         max_length=50,
@@ -193,8 +193,17 @@ class Ejemplar(models.Model):
         verbose_name="Disponibilidad"
     )
     
+    ubicacion = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        verbose_name="Ubicación física",
+        help_text="Ej: Estante A3, Sección 5, Sala 2, etc."
+    )
+
+
     class Meta:
-        db_table = 'Ejemplar'  # Para que coincida con tu DER
+        db_table = 'Ejemplar' 
         verbose_name = "Ejemplar"
         verbose_name_plural = "Ejemplares"
         indexes = [
