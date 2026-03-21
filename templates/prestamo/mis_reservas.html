@@ -1,0 +1,243 @@
+{% extends 'base/menu_usuario.html' %}
+{% load static %}
+
+{% block main_content %}
+<style>
+    .reservas-header {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        margin-bottom: 25px;
+    }
+    
+    .tab-reservas {
+        display: flex;
+        gap: 20px;
+        border-bottom: 1px solid #e2e8f0;
+        margin-bottom: 25px;
+    }
+    
+    .tab-item {
+        padding: 10px 0;
+        cursor: pointer;
+        color: #64748b;
+        border-bottom: 2px solid transparent;
+        transition: all 0.3s;
+    }
+    
+    .tab-item.active {
+        color: var(--primary-blue);
+        border-bottom-color: var(--primary-blue);
+    }
+    
+    .reserva-card {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 15px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        border-left: 4px solid var(--primary-blue);
+        transition: all 0.3s;
+    }
+    
+    .reserva-card:hover {
+        box-shadow: 0 4px 12px rgba(44, 90, 160, 0.15);
+    }
+    
+    .reserva-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+    
+    .reserva-titulo {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--primary-blue);
+    }
+    
+    .estado-badge {
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+    
+    .estado-pendiente {
+        background: #fff3cd;
+        color: #856404;
+    }
+    
+    .estado-activa {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .posicion-badge {
+        background: var(--primary-blue);
+        color: white;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        margin-left: 10px;
+    }
+    
+    .reserva-detalles {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin: 15px 0;
+    }
+    
+    .detalle-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #475569;
+    }
+    
+    .detalle-item i {
+        color: var(--primary-blue);
+        width: 20px;
+    }
+    
+    .btn-cancelar {
+        background: #fee2e2;
+        color: #dc2626;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 8px;
+        text-decoration: none;
+        display: inline-block;
+        transition: all 0.3s;
+    }
+    
+    .btn-cancelar:hover {
+        background: #fecaca;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        background: white;
+        border-radius: 12px;
+    }
+    
+    .empty-state i {
+        font-size: 4rem;
+        color: #cbd5e1;
+        margin-bottom: 1rem;
+    }
+</style>
+
+<div class="container py-4">
+    <div class="reservas-header">
+        <h1 style="color: var(--primary-blue);">📌 Mis Reservas</h1>
+        <p class="text-muted">Gestioná tus reservas de libros</p>
+    </div>
+    
+    <!-- Pestañas -->
+    <div class="tab-reservas">
+        <div class="tab-item active" onclick="cambiarTab('activas')">Activas ({{ reservas_activas|length }})</div>
+        <div class="tab-item" onclick="cambiarTab('historial')">Historial</div>
+    </div>
+    
+    <!-- Reservas activas -->
+    <div id="reservas-activas">
+        {% for reserva in reservas_activas %}
+            <div class="reserva-card">
+                <div class="reserva-header">
+                    <span class="reserva-titulo">{{ reserva.libro.titulo }}</span>
+                    <div>
+                        <span class="posicion-badge">#{{ reserva.orden_prioridad }} en cola</span>
+                        {% if reserva.estado == 'PENDIENTE' %}
+                            <span class="estado-badge estado-pendiente">⏳ Pendiente</span>
+                        {% elif reserva.estado == 'ACTIVA' %}
+                            <span class="estado-badge estado-activa">✅ Lista para retirar</span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="reserva-detalles">
+                    <div class="detalle-item">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span>Reservado: {{ reserva.fecha_reserva|date:"d/m/Y" }}</span>
+                    </div>
+                    <div class="detalle-item">
+                        <i class="fas fa-hourglass-end"></i>
+                        <span>Espera hasta: {{ reserva.fecha_expiracion|date:"d/m/Y" }}</span>
+                        {% if reserva.fecha_expiracion < hoy %}
+                            <span class="estado-badge estado-pendiente" style="margin-left: 8px;">⚠️ Por expirar</span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                {% if reserva.estado == 'PENDIENTE' %}
+                    <div style="text-align: right;">
+                        <a href="{% url 'cancelar_reserva' reserva.id %}" class="btn-cancelar" 
+                           onclick="return confirm('¿Cancelar esta reserva?')">
+                            <i class="fas fa-times"></i> Cancelar reserva
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        {% empty %}
+            <div class="empty-state">
+                <i class="fas fa-bookmark"></i>
+                <h3>No tenés reservas activas</h3>
+                <p class="text-muted">Explorá el catálogo y reservá los libros que te interesen</p>
+                <a href="{% url 'catalogo_lista' %}" class="btn btn-primary">Ir al catálogo</a>
+            </div>
+        {% endfor %}
+    </div>
+    
+    <!-- Historial (oculto por defecto) -->
+    <div id="reservas-historial" style="display: none;">
+        {% for reserva in historial %}
+            <div class="reserva-card">
+                <div class="reserva-header">
+                    <span class="reserva-titulo">{{ reserva.libro.titulo }}</span>
+                    <span class="estado-badge estado-pendiente">
+                        {% if reserva.estado == 'CANCELADA' %}✖ Cancelada{% endif %}
+                        {% if reserva.estado == 'EXPIRADA' %}⏰ Expirada{% endif %}
+                        {% if reserva.estado == 'COMPLETADA' %}✓ Retirada{% endif %}
+                    </span>
+                </div>
+                <div class="reserva-detalles">
+                    <div class="detalle-item">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span>{{ reserva.fecha_reserva|date:"d/m/Y" }}</span>
+                    </div>
+                </div>
+            </div>
+        {% empty %}
+            <div class="empty-state">
+                <i class="fas fa-history"></i>
+                <h3>No hay historial de reservas</h3>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+    function cambiarTab(tab) {
+        const tabs = document.querySelectorAll('.tab-item');
+        const activas = document.getElementById('reservas-activas');
+        const historial = document.getElementById('reservas-historial');
+        
+        tabs.forEach(t => t.classList.remove('active'));
+        
+        if (tab === 'activas') {
+            tabs[0].classList.add('active');
+            activas.style.display = 'block';
+            historial.style.display = 'none';
+        } else {
+            tabs[1].classList.add('active');
+            activas.style.display = 'none';
+            historial.style.display = 'block';
+        }
+    }
+</script>
+{% endblock %}

@@ -3,7 +3,7 @@
 
 {% block main_content %}
 <style>
-    /* Estilos específicos del catálogo */
+    
     .search-box {
         max-width: 400px;
     }
@@ -222,17 +222,18 @@
     {% for libro in libros %}
         <div class="card-libro">
             {% if libro.imagen %}
-                <img src="{{ libro.imagen.url }}" alt="{{ libro.titulo }}">
+                <img src="{{ libro.imagen.url }}" class="card-img-top" alt="{{ libro.titulo }}">
             {% else %}
-                <img src="https://via.placeholder.com/300x220?text=Sin+imagen" alt="Sin imagen">
+                <img src="https://via.placeholder.com/300x220?text=Sin+imagen" class="card-img-top" alt="Sin imagen">
             {% endif %}
+            
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start mb-2">
                     <span class="categoria-badge">{{ libro.categoria.nombre }}</span>
                     {% if libro.inventario_disponible > 0 %}
                         <span class="disponible-badge">{{ libro.inventario_disponible }} disp.</span>
                     {% else %}
-                        <span class="badge bg-secondary">No disponible</span>
+                        <span class="badge bg-secondary">0 disp.</span>
                     {% endif %}
                 </div>
                 
@@ -256,20 +257,32 @@
                 {% if libro.descripcion %}
                     <p class="card-autores">{{ libro.descripcion|truncatechars:80 }}</p>
                 {% endif %}
-                
+    
+           <!-- BOTONES DE ACCIÓN -->
                 <div class="d-flex justify-content-between align-items-center mt-3">
                     <a href="#" class="btn-detalles">
                         <i class="fas fa-info-circle me-1"></i>Ver detalles
                     </a>
+                    
+                    {# PRÉSTAMO: si hay ejemplares disponibles #}
                     {% if libro.inventario_disponible > 0 %}
-                        <small class="text-success">
-                            <i class="fas fa-check-circle"></i> Disponible
-                        </small>
+                        {# Tomamos el primer ejemplar (el de menor ID) #}
+                        {% with primer_ejemplar=libro.ejemplares.all|dictsort:"id"|first %}
+                            <a href="{% url 'registrar_prestamo_usuario' primer_ejemplar.id %}" class="btn-detalles" style="background: #28a745; color: white; border-color: #28a745;">
+                                <i class="fas fa-hand-holding-heart"></i> Prestar
+                            </a>
+                        {% endwith %}
+                    {% else %}
+                        {# RESERVA: si no hay ejemplares disponibles #}
+                        <a href="{% url 'reservar_libro' libro.id %}" class="btn-detalles" style="background: #ffc107; color: #000; border-color: #ffc107;">
+                            <i class="fas fa-bookmark"></i> Reservar
+                        </a>
                     {% endif %}
                 </div>
             </div>
         </div>
     {% empty %}
+       
         <div class="text-center py-5" style="grid-column: 1/-1;">
             <i class="fas fa-book-open" style="font-size: 4rem; color: #ccc;"></i>
             <h3 class="mt-3">No se encontraron libros</h3>

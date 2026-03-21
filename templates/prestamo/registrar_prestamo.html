@@ -1,0 +1,35 @@
+
+
+{% extends 'base/menu_usuario.html' %}
+{% load static %}
+
+{% block main_content %}
+<div style="padding: 20px; max-width: 600px; margin: 0 auto;">
+    <h1 style="color: #2c5aa0;">Registrar Préstamo</h1>
+    
+    <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+        <h3>{{ ejemplar.libro.titulo }}</h3>
+        <p>ID del ejemplar: {{ ejemplar.id }}</p>
+        <p>Código: {{ ejemplar.codigo_inventario }}</p>
+    </div>
+    
+    <form method="post">
+        {% csrf_token %}
+        
+        <div style="margin: 20px 0;">
+            <label style="display: block; margin-bottom: 10px;">📅 ¿Por cuántos días?</label>
+            <select name="dias_solicitados" required style="width: 100%; padding: 10px;">
+                <option value="1">1 día</option>
+                <option value="2">2 días</option>
+                <option value="3">3 días</option>
+                <option value="4">4 días</option>
+                <option value="5">5 días</option>
+            </select>
+        </div>
+        
+        <button type="submit" style="background: #28a745; color: white; padding: 15px 30px; border: none; border-radius: 8px; cursor: pointer;">
+            Confirmar Préstamo
+        </button>
+    </form>
+</div>
+{% endblock %}

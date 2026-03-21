@@ -37,7 +37,7 @@ class LibroAdmin(admin.ModelAdmin):
    
 @admin.register(Ejemplar)
 class EjemplarAdmin(admin.ModelAdmin):
-    list_display = ('codigo_inventario', 'libro', 'estado_fisico', 'disponibilidad', 'ubicacion')
+    list_display = ('id', 'codigo_inventario', 'libro', 'estado_fisico', 'disponibilidad', 'ubicacion')
     list_filter = ('estado_fisico', 'disponibilidad')
     search_fields = ('codigo_inventario', 'libro__titulo', 'ubicacion')
     autocomplete_fields = ['libro']
