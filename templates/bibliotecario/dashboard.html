@@ -1,0 +1,192 @@
+{% extends 'base/menu_bibliotecario.html' %}
+
+{% block main_content %}
+<!-- Header dentro del contenido -->
+<div class="content-header">
+    <div class="page-title">
+        <h1>Bienvenida, {{ user.get_full_name|default:user.username }}</h1>
+        <p>Panel de control de bibliotecaria</p>
+    </div>
+    
+    <div class="header-actions">
+        <div class="btn-notification">
+            <i class="fas fa-bell"></i>
+            <div class="notification-badge"></div>
+        </div>
+        
+        <div class="user-menu">
+            <img src="https://ui-avatars.com/api/?name={{ user.first_name }}+{{ user.last_name }}&background=2563eb&color=fff" alt="{{ user.first_name }}">
+            <span>{{ user.first_name }}</span>
+        </div>
+    </div>
+</div>
+
+<!-- Dashboard Cards -->
+<div class="dashboard-cards">
+    <div class="card card-1">
+        <div class="card-icon">
+            <i class="fas fa-book"></i>
+        </div>
+        <h3>Préstamos del Día</h3>
+        <p>Total registrados hoy</p>
+        <div class="number">{{ prestamos_hoy|default:"0" }}</div>
+        <p>{{ prestamos_activos|default:"0" }} préstamos activos</p>
+    </div>
+    
+    <div class="card card-2">
+        <div class="card-icon">
+            <i class="fas fa-arrow-left"></i>
+        </div>
+        <h3>Devoluciones Pendientes</h3>
+        <p>Por procesar</p>
+        <div class="number">{{ devoluciones_pendientes|default:"0" }}</div>
+        <p>{{ prestamos_vencidos|default:"0" }} devoluciones hoy</p>
+    </div>
+    
+    <div class="card card-3">
+        <div class="card-icon">
+            <i class="fas fa-calendar-check"></i>
+        </div>
+        <h3>Reservas Activas</h3>
+        <p>Total en sistema</p>
+        <div class="number">{{ reservas_pendientes|default:"0" }}</div>
+        <p>{{ reservas_activas|default:"0" }} reservas pendientes</p>
+    </div>
+    
+    <div class="card card-4">
+        <div class="card-icon">
+            <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <h3>Usuarios Morosos</h3>
+        <p>Con préstamos vencidos</p>
+        <div class="number">{{ usuarios_morosos|default:"0" }}</div>
+        <p>{{ total_morosos|default:"0" }} usuarios registrados</p>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<h2 class="section-title">Acciones Rápidas</h2>
+<div class="quick-actions">
+    <a href="{% url 'prestamo_nuevo_bibliotecario' %}" class="action-btn">
+        <i class="fas fa-plus-circle"></i>
+        <span>Nuevo Préstamo</span>
+    </a>
+    <a href="{% url 'registrar_devolucion' %}" class="action-btn">
+        <i class="fas fa-arrow-left"></i>
+        <span>Registrar Devolución</span>
+    </a>
+    <a href="{% url 'gestionar_reservas' %}" class="action-btn">
+        <i class="fas fa-calendar-check"></i>
+        <span>Gestionar Reservas</span>
+    </a>
+    <a href="{% url 'gestionar_multas' %}" class="action-btn">
+        <i class="fas fa-exclamation-triangle"></i>
+        <span>Ver Morosos</span>
+    </a>
+    <a href="#" class="action-btn">
+        <i class="fas fa-file-alt"></i>
+        <span>Generar Reporte</span>
+    </a>
+    <a href="#" class="action-btn">
+        <i class="fas fa-search"></i>
+        <span>Buscar Usuario</span>
+    </a>
+</div>
+
+<!-- Tareas Pendientes y Actividad Reciente en dos columnas -->
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <h2 class="section-title">⚠️ Tareas Pendientes</h2>
+        <div class="activity-list">
+            {% for tarea in tareas_pendientes %}
+            <div class="activity-item activity-1">
+                <div class="activity-icon">
+                    <i class="fas {% if 'Devolución' in tarea.titulo %}fa-clock{% elif 'multa' in tarea.titulo %}fa-cash{% else %}fa-calendar{% endif %}"></i>
+                </div>
+                <div class="activity-details">
+                    <h4>{{ tarea.titulo }}</h4>
+                    <p>{{ tarea.descripcion }}</p>
+                </div>
+            </div>
+            {% empty %}
+            <div class="activity-item activity-1">
+                <div class="activity-icon">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="activity-details">
+                    <h4>Devolución atrasada</h4>
+                    <p>Carlos Rodríguez - "Cien años de soledad"</p>
+                </div>
+            </div>
+            <div class="activity-item activity-2">
+                <div class="activity-icon">
+                    <i class="fas fa-cash"></i>
+                </div>
+                <div class="activity-details">
+                    <h4>Usuario con multa</h4>
+                    <p>María González - Gs. 6.000 pendientes</p>
+                </div>
+            </div>
+            <div class="activity-item activity-3">
+                <div class="activity-icon">
+                    <i class="fas fa-calendar"></i>
+                </div>
+                <div class="activity-details">
+                    <h4>Reserva por confirmar</h4>
+                    <p>Ana Peña - "Pedagogía del optimismo"</p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <div class="col-md-6 mb-4">
+        <h2 class="section-title">📋 Actividad Reciente</h2>
+        <div class="activity-list">
+            {% for actividad in actividades_recientes %}
+            <div class="activity-item activity-1">
+                <div class="activity-icon">
+                    <i class="fas {% if 'Préstamo' in actividad.titulo %}fa-book{% elif 'Devolución' in actividad.titulo %}fa-undo{% else %}fa-check-circle{% endif %}"></i>
+                </div>
+                <div class="activity-details">
+                    <h4>{{ actividad.titulo }}</h4>
+                    <p>{{ actividad.descripcion }}</p>
+                </div>
+                <div class="activity-time">Hoy</div>
+            </div>
+            {% empty %}
+            <div class="activity-item activity-1">
+                <div class="activity-icon">
+                    <i class="fas fa-book"></i>
+                </div>
+                <div class="activity-details">
+                    <h4>Préstamo registrado</h4>
+                    <p>Laura Martínez - "El amor en los tiempos del cólera"</p>
+                </div>
+                <div class="activity-time">Hace 2 horas</div>
+            </div>
+            <div class="activity-item activity-2">
+                <div class="activity-icon">
+                    <i class="fas fa-undo"></i>
+                </div>
+                <div class="activity-details">
+                    <h4>Devolución procesada</h4>
+                    <p>Juan Pérez - "Rayuela" de Cortázar</p>
+                </div>
+                <div class="activity-time">Hace 1 día</div>
+            </div>
+            <div class="activity-item activity-3">
+                <div class="activity-icon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="activity-details">
+                    <h4>Reserva confirmada</h4>
+                    <p>Pedro Sánchez - "1984" de Orwell</p>
+                </div>
+                <div class="activity-time">Hace 2 días</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

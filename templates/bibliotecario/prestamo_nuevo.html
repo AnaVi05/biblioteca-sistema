@@ -1,0 +1,275 @@
+{% extends 'base/menu_bibliotecario.html' %}
+
+{% block main_content %}
+<div class="content-header">
+    <div class="page-title">
+        <h1>Registrar Nuevo Préstamo</h1>
+        <p>Selecciona socio, ejemplar y días de préstamo</p>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Columna izquierda: Selección de Socio -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header bg-white" style="border-bottom: 1px solid #e2e8f0;">
+                <h5 class="mb-0">
+                    <i class="fas fa-user me-2" style="color: #2563eb;"></i>
+                    Seleccionar Socio
+                </h5>
+            </div>
+            <div class="card-body">
+                <!-- Formulario de búsqueda de socio -->
+                <form method="get" class="mb-3">
+                    <div class="row g-2">
+                        <div class="col-md-5">
+                            <input type="text" name="socio_cedula" class="form-control" 
+                                   placeholder="Cédula" value="{{ socio_cedula }}">
+                        </div>
+                        <div class="col-md-5">
+                            <input type="text" name="socio_nombre" class="form-control" 
+                                   placeholder="Nombre o apellido" value="{{ socio_nombre }}">
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <!-- Mantener otros parámetros de búsqueda -->
+                    <input type="hidden" name="ejemplar_codigo" value="{{ ejemplar_codigo }}">
+                    <input type="hidden" name="ejemplar_titulo" value="{{ ejemplar_titulo }}">
+                    <input type="hidden" name="ejemplar_id" value="{{ ejemplar_seleccionado.id|default:'' }}">
+                </form>
+                
+                <!-- Lista de resultados de socios -->
+                {% if socios %}
+                <div class="list-group">
+                    {% for socio in socios %}
+                    <a href="?socio_id={{ socio.id }}&ejemplar_codigo={{ ejemplar_codigo }}&ejemplar_titulo={{ ejemplar_titulo }}&ejemplar_id={{ ejemplar_seleccionado.id|default:'' }}"
+                       class="list-group-item list-group-item-action {% if socio_seleccionado.id == socio.id %}active{% endif %}">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>{{ socio.user.get_full_name }}</strong><br>
+                                <small>Cédula: {{ socio.cedula }} | {{ socio.tipo_usuario|title }}</small>
+                            </div>
+                            <i class="fas fa-chevron-right"></i>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% elif socio_cedula or socio_nombre %}
+                <p class="text-muted text-center">No se encontraron socios</p>
+                {% else %}
+                <p class="text-muted text-center">Busca un socio por cédula o nombre</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Información del socio seleccionado -->
+        {% if socio_seleccionado %}
+        <div class="card mt-3 bg-light">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="user-avatar me-3" style="background: #2563eb20; width: 50px; height: 50px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-user-check" style="color: #2563eb; font-size: 24px;"></i>
+                    </div>
+                    <div>
+                        <h6 class="mb-0">{{ socio_seleccionado.user.get_full_name }}</h6>
+                        <small class="text-muted">Cédula: {{ socio_seleccionado.cedula }} | {{ socio_seleccionado.tipo_usuario|title }}</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Columna derecha: Selección de Ejemplar -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header bg-white" style="border-bottom: 1px solid #e2e8f0;">
+                <h5 class="mb-0">
+                    <i class="fas fa-book me-2" style="color: #10b981;"></i>
+                    Seleccionar Ejemplar
+                </h5>
+            </div>
+            <div class="card-body">
+                <!-- Formulario de búsqueda de ejemplar -->
+                <form method="get" class="mb-3">
+                    <div class="row g-2">
+                        <div class="col-md-5">
+                            <input type="text" name="ejemplar_codigo" class="form-control" 
+                                   placeholder="Código inventario" value="{{ ejemplar_codigo }}">
+                        </div>
+                        <div class="col-md-5">
+                            <input type="text" name="ejemplar_titulo" class="form-control" 
+                                   placeholder="Título del libro" value="{{ ejemplar_titulo }}">
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <!-- Mantener otros parámetros de búsqueda -->
+                    <input type="hidden" name="socio_cedula" value="{{ socio_cedula }}">
+                    <input type="hidden" name="socio_nombre" value="{{ socio_nombre }}">
+                    <input type="hidden" name="socio_id" value="{{ socio_seleccionado.id|default:'' }}">
+                </form>
+                
+                <!-- Lista de resultados de ejemplares -->
+                {% if ejemplares %}
+                <div class="list-group">
+                    {% for ejemplar in ejemplares %}
+                    <a href="?ejemplar_id={{ ejemplar.id }}&socio_cedula={{ socio_cedula }}&socio_nombre={{ socio_nombre }}&socio_id={{ socio_seleccionado.id|default:'' }}"
+                       class="list-group-item list-group-item-action {% if ejemplar_seleccionado.id == ejemplar.id %}active{% endif %}">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>{{ ejemplar.libro.titulo }}</strong><br>
+                                <small>Código: {{ ejemplar.codigo_inventario }} | Estado: {{ ejemplar.estado_fisico }}</small>
+                            </div>
+                            <i class="fas fa-chevron-right"></i>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% elif ejemplar_codigo or ejemplar_titulo %}
+                <p class="text-muted text-center">No se encontraron ejemplares disponibles</p>
+                {% else %}
+                <p class="text-muted text-center">Busca un ejemplar por código o título</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Información del ejemplar seleccionado -->
+        {% if ejemplar_seleccionado %}
+        <div class="card mt-3 bg-light">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="me-3" style="background: #10b98120; width: 50px; height: 50px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-book" style="color: #10b981; font-size: 24px;"></i>
+                    </div>
+                    <div>
+                        <h6 class="mb-0">{{ ejemplar_seleccionado.libro.titulo }}</h6>
+                        <small class="text-muted">Código: {{ ejemplar_seleccionado.codigo_inventario }}</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Formulario de confirmación -->
+{% if socio_seleccionado and ejemplar_seleccionado %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-white" style="border-bottom: 1px solid #e2e8f0;">
+                <h5 class="mb-0">
+                    <i class="fas fa-check-circle me-2" style="color: #27ae60;"></i>
+                    Confirmar Préstamo
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="socio_id" value="{{ socio_seleccionado.id }}">
+                    <input type="hidden" name="ejemplar_id" value="{{ ejemplar_seleccionado.id }}">
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Socio</label>
+                                <p class="form-control-static">{{ socio_seleccionado.user.get_full_name }}</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Ejemplar</label>
+                                <p class="form-control-static">{{ ejemplar_seleccionado.libro.titulo }} ({{ ejemplar_seleccionado.codigo_inventario }})</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="dias_solicitados" class="form-label fw-bold">Días de préstamo</label>
+                                <select name="dias_solicitados" id="dias_solicitados" class="form-select" required>
+                                    <option value="1">1 día</option>
+                                    <option value="2">2 días</option>
+                                    <option value="3" selected>3 días</option>
+                                    <option value="4">4 días</option>
+                                    <option value="5">5 días</option>
+                                </select>
+                                <small class="text-muted">Máximo 5 días por préstamo</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Fecha de préstamo</label>
+                                <p class="form-control-static">{% now "d/m/Y" %}</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Fecha de vencimiento</label>
+                                <p class="form-control-static" id="fecha_vencimiento_preview">
+                                    {% now "d/m/Y" %} + 3 días
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        Al confirmar, el ejemplar quedará marcado como <strong>PRESTADO</strong> y no estará disponible para otros usuarios hasta su devolución.
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Confirmar Préstamo
+                        </button>
+                        <a href="{% url 'dashboard_bibliotecario' %}" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Cancelar
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<script>
+    // Actualizar vista previa de fecha de vencimiento
+    const diasSelect = document.getElementById('dias_solicitados');
+    const fechaPreview = document.getElementById('fecha_vencimiento_preview');
+    
+    if (diasSelect) {
+        diasSelect.addEventListener('change', function() {
+            const dias = parseInt(this.value);
+            const hoy = new Date();
+            const fechaVencimiento = new Date(hoy);
+            fechaVencimiento.setDate(hoy.getDate() + dias);
+            
+            const dia = fechaVencimiento.getDate().toString().padStart(2, '0');
+            const mes = (fechaVencimiento.getMonth() + 1).toString().padStart(2, '0');
+            const anio = fechaVencimiento.getFullYear();
+            
+            fechaPreview.textContent = `${dia}/${mes}/${anio}`;
+        });
+    }
+</script>
+
+<style>
+    .list-group-item.active {
+        background-color: #2563eb;
+        border-color: #2563eb;
+    }
+    .list-group-item.active small {
+        color: rgba(255,255,255,0.8);
+    }
+</style>
+{% endblock %}

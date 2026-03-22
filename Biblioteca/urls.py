@@ -40,7 +40,7 @@ urlpatterns = [
     path('', menu_principal, name='home'),
     path('registro/', views.registrar_usuario, name='registro'),
     path('catalogo/', include('catalogo.urls')),
-    path('prestamo/', include('prestamo.urls')),
+    path('', include('prestamo.urls'))
 ]
 
 if settings.DEBUG:
