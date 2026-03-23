@@ -1,0 +1,170 @@
+{% extends 'base/menu_bibliotecario.html' %}
+
+{% block main_content %}
+<div class="content-header">
+    <div class="page-title">
+        <h1>Registrar Devolución</h1>
+        <p>Selecciona un préstamo activo para registrar la devolución</p>
+    </div>
+</div>
+
+<!-- Buscador -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-10">
+                <input type="text" name="search" class="form-control" 
+                       placeholder="Buscar por socio, título del libro o código de inventario..." 
+                       value="{{ search }}">
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-search"></i> Buscar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Lista de préstamos activos -->
+<div class="card">
+    <div class="card-header bg-white" style="border-bottom: 1px solid #e2e8f0;">
+        <h5 class="mb-0">
+            <i class="fas fa-hand-holding-heart me-2" style="color: #2563eb;"></i>
+            Préstamos Activos
+            <span class="badge bg-primary ms-2">{{ prestamos_activos|length }}</span>
+        </h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>Socio</th>
+                        <th>Libro</th>
+                        <th>Código</th>
+                        <th>Fecha Préstamo</th>
+                        <th>Fecha Vencimiento</th>
+                        <th>Estado</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for prestamo in prestamos_activos %}
+                    <tr>
+                        <td>{{ prestamo.id }}</td>
+                        <td>{{ prestamo.socio.user.get_full_name }}</td>
+                        <td>{{ prestamo.ejemplar.libro.titulo }}</td>
+                        <td><code>{{ prestamo.ejemplar.codigo_inventario }}</code></td>
+                        <td>{{ prestamo.fecha_prestamo|date:"d/m/Y" }}</td>
+                        <td>
+                            {{ prestamo.fecha_vencimiento|date:"d/m/Y" }}
+                            {% if prestamo.fecha_vencimiento < hoy %}
+                                <span class="badge bg-danger ms-1">Vencido</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge bg-success">{{ prestamo.estado }}</span>
+                        </td>
+                        <td>
+                            <a href="?devolver_id={{ prestamo.id }}{% if search %}&search={{ search }}{% endif %}" 
+                               class="btn btn-sm btn-primary">
+                                <i class="fas fa-arrow-left"></i> Devolver
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center py-4">
+                            <i class="fas fa-inbox fa-2x text-muted mb-2 d-block"></i>
+                            <p class="text-muted mb-0">No hay préstamos activos</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de confirmación de devolución -->
+{% if prestamo_seleccionado %}
+<div class="modal show d-block" style="background: rgba(0,0,0,0.5);" id="modalConfirmacion">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-arrow-left me-2" style="color: #2563eb;"></i>
+                    Confirmar Devolución
+                </h5>
+                <a href="?{% if search %}search={{ search }}{% endif %}" class="btn-close"></a>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="fw-bold">Préstamo #{{ prestamo_seleccionado.id }}</label>
+                    <p class="mb-2">{{ prestamo_seleccionado.socio.user.get_full_name }}</p>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="fw-bold">Libro</label>
+                    <p class="mb-2">{{ prestamo_seleccionado.ejemplar.libro.titulo }}</p>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="fw-bold">Código de inventario</label>
+                    <p class="mb-2"><code>{{ prestamo_seleccionado.ejemplar.codigo_inventario }}</code></p>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <label class="fw-bold">Fecha préstamo</label>
+                        <p>{{ prestamo_seleccionado.fecha_prestamo|date:"d/m/Y" }}</p>
+                    </div>
+                    <div class="col-6">
+                        <label class="fw-bold">Fecha vencimiento</label>
+                        <p>{{ prestamo_seleccionado.fecha_vencimiento|date:"d/m/Y" }}</p>
+                    </div>
+                </div>
+                
+                {% if multa_calculada %}
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>Préstamo vencido</strong><br>
+                    Días de atraso: {{ multa_calculada.dias_atraso }} días<br>
+                    Multa: <strong>Gs. {{ multa_calculada.monto_total|floatformat:0 }}</strong>
+                </div>
+                {% else %}
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle"></i>
+                    <strong>Préstamo en fecha</strong><br>
+                    No se generará ninguna multa.
+                </div>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <a href="?{% if search %}search={{ search }}{% endif %}" class="btn btn-secondary">
+                    Cancelar
+                </a>
+                <form method="post" style="display: inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="prestamo_id" value="{{ prestamo_seleccionado.id }}">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-check"></i> Confirmar Devolución
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<style>
+    .table tbody tr:hover {
+        background-color: #f8fafc;
+    }
+    .modal.show {
+        display: block;
+    }
+</style>
+{% endblock %}

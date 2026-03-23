@@ -677,8 +677,405 @@ def gestionar_multas(request):
     })
 
 
+@staff_member_required
+def registrar_devolucion(request):
+    """
+    Registrar devolución de un préstamo
+    """
+    from django.contrib import messages
+    from django.db import transaction
+    from django.utils import timezone
+    from decimal import Decimal
+    
+    # Obtener préstamos activos
+    prestamos_activos = Prestamo.objects.filter(
+        estado='ACTIVO'
+    ).select_related(
+        'socio__user', 'ejemplar__libro'
+    ).order_by('fecha_vencimiento')
+    
+    # Obtener parámetros de búsqueda
+    search = request.GET.get('search', '')
+    if search:
+        prestamos_activos = prestamos_activos.filter(
+            socio__user__first_name__icontains=search
+        ) | prestamos_activos.filter(
+            socio__user__last_name__icontains=search
+        ) | prestamos_activos.filter(
+            ejemplar__libro__titulo__icontains=search
+        ) | prestamos_activos.filter(
+            ejemplar__codigo_inventario__icontains=search
+        )
+    
+    # Si se selecciona un préstamo para devolver
+    prestamo_id = request.GET.get('devolver_id')
+    prestamo_seleccionado = None
+    multa_calculada = None
+    
+    if prestamo_id:
+        try:
+            prestamo_seleccionado = Prestamo.objects.select_related(
+                'socio__user', 'ejemplar__libro'
+            ).get(id=prestamo_id, estado='ACTIVO')
+            
+            # Calcular días de atraso
+            hoy = timezone.now().date()
+            if prestamo_seleccionado.fecha_vencimiento < hoy:
+                dias_atraso = (hoy - prestamo_seleccionado.fecha_vencimiento).days
+                # Calcular multa (ejemplo: 1000 Gs por día)
+                monto_por_dia = Decimal('1000')
+                monto_total = dias_atraso * monto_por_dia
+                multa_calculada = {
+                    'dias_atraso': dias_atraso,
+                    'monto_por_dia': monto_por_dia,
+                    'monto_total': monto_total
+                }
+        except Prestamo.DoesNotExist:
+            pass
+    
+    # Procesar devolución
+    if request.method == 'POST':
+        prestamo_id = request.POST.get('prestamo_id')
+        
+        try:
+            with transaction.atomic():
+                prestamo = Prestamo.objects.select_related(
+                    'socio', 'ejemplar'
+                ).get(id=prestamo_id, estado='ACTIVO')
+                
+                hoy = timezone.now().date()
+                fecha_devolucion = hoy
+                dias_atraso = 0
+                monto_multa = Decimal('0')
+                
+                # Calcular atraso si corresponde
+                if prestamo.fecha_vencimiento < hoy:
+                    dias_atraso = (hoy - prestamo.fecha_vencimiento).days
+                    monto_por_dia = Decimal('1000')  # Gs por día
+                    monto_multa = dias_atraso * monto_por_dia
+                
+                # Registrar fecha de devolución
+                prestamo.fecha_devolucion_real = fecha_devolucion
+                prestamo.estado = 'DEVUELTO'
+                prestamo.save()
+                
+                # Actualizar disponibilidad del ejemplar
+                prestamo.ejemplar.disponibilidad = 'DISPONIBLE'
+                prestamo.ejemplar.save()
+                
+                # Crear multa si hay atraso
+                if dias_atraso > 0:
+                    multa = Multa.objects.create(
+                        prestamo=prestamo,
+                        dias_atraso=dias_atraso,
+                        monto_base=monto_por_dia,
+                        monto_por_dia=monto_por_dia,
+                        monto_total=monto_multa,
+                        fecha_generacion=hoy,
+                        estado='PENDIENTE'
+                    )
+                    messages.warning(request, f'Devolución registrada. Multa generada: Gs. {monto_multa:,.0f} por {dias_atraso} días de atraso.')
+                else:
+                    messages.success(request, f'Devolución registrada exitosamente. Préstamo #{prestamo.id} completado.')
+                
+                return redirect('registrar_devolucion')
+                
+        except Prestamo.DoesNotExist:
+            messages.error(request, 'Préstamo no encontrado')
+        except Exception as e:
+            messages.error(request, f'Error al procesar devolución: {str(e)}')
+    
+    context = {
+        'prestamos_activos': prestamos_activos,
+        'search': search,
+        'prestamo_seleccionado': prestamo_seleccionado,
+        'multa_calculada': multa_calculada,
+        'hoy': timezone.now().date(),
+    }
+    
+    return render(request, 'bibliotecario/devolucion.html', context)
+    
+@staff_member_required
+def gestionar_reservas(request):
+    """
+    Gestionar reservas de libros
+    """
+    from django.contrib import messages
+    from django.db import transaction
+    from django.utils import timezone
+    from django.http import HttpResponse
+    
+    # DEBUG: Verificar que la vista se ejecuta
+    print("=== LLEGÓ A GESTIONAR RESERVAS ===")
+    
+    try:
+        # Obtener parámetros
+        accion = request.GET.get('accion')
+        reserva_id = request.GET.get('reserva_id')
+        search = request.GET.get('search', '')
+        
+        print(f"Acción: {accion}, Reserva ID: {reserva_id}, Search: {search}")
+        
+        # Procesar acciones (confirmar o cancelar)
+        if accion and reserva_id:
+            try:
+                reserva = Reserva.objects.select_related('socio', 'libro', 'ejemplar_asignado').get(id=reserva_id)
+                
+                if accion == 'confirmar':
+                    with transaction.atomic():
+                        ejemplar_disponible = Ejemplar.objects.filter(
+                            libro=reserva.libro,
+                            disponibilidad='DISPONIBLE'
+                        ).first()
+                        
+                        if ejemplar_disponible:
+                            reserva.estado = 'ACTIVA'
+                            reserva.ejemplar_asignado = ejemplar_disponible
+                            reserva.save()
+                            
+                            ejemplar_disponible.disponibilidad = 'RESERVADO'
+                            ejemplar_disponible.save()
+                            
+                            messages.success(request, f'Reserva #{reserva.id} confirmada.')
+                        else:
+                            messages.warning(request, f'No hay ejemplares disponibles')
+                            
+                elif accion == 'cancelar':
+                    reserva.estado = 'CANCELADA'
+                    reserva.save()
+                    messages.success(request, f'Reserva #{reserva.id} cancelada.')
+                    
+                elif accion == 'completar':
+                    reserva.estado = 'COMPLETADA'
+                    reserva.save()
+                    
+                    if reserva.ejemplar_asignado:
+                        reserva.ejemplar_asignado.disponibilidad = 'PRESTADO'
+                        reserva.ejemplar_asignado.save()
+                        
+                    messages.success(request, f'Reserva #{reserva.id} completada.')
+                    
+            except Reserva.DoesNotExist:
+                messages.error(request, 'Reserva no encontrada')
+            
+            return redirect('gestionar_reservas')
+        
+        # Obtener reservas
+        reservas = Reserva.objects.select_related(
+            'socio__user', 'libro', 'ejemplar_asignado'
+        ).order_by('-fecha_reserva')
+        
+        print(f"Total reservas encontradas: {reservas.count()}")
+        
+        # Filtrar por búsqueda
+        if search:
+            reservas = reservas.filter(
+                socio__user__first_name__icontains=search
+            ) | reservas.filter(
+                socio__user__last_name__icontains=search
+            ) | reservas.filter(
+                libro__titulo__icontains=search
+            )
+        
+        # Separar por estados
+        reservas_pendientes = reservas.filter(estado='PENDIENTE')
+        reservas_activas = reservas.filter(estado='ACTIVA')
+        reservas_completadas = reservas.filter(estado='COMPLETADA')[:5]
+        reservas_canceladas = reservas.filter(estado='CANCELADA')[:5]
+        reservas_expiradas = reservas.filter(estado='EXPIRADA')[:5]
+        
+        print(f"Pendientes: {reservas_pendientes.count()}, Activas: {reservas_activas.count()}")
+        
+        context = {
+            'reservas_pendientes': reservas_pendientes,
+            'reservas_activas': reservas_activas,
+            'reservas_completadas': reservas_completadas,
+            'reservas_canceladas': reservas_canceladas,
+            'reservas_expiradas': reservas_expiradas,
+            'search': search,
+            'hoy': timezone.now().date(),
+        }
+        
+        return render(request, 'bibliotecario/reservas.html', context)
+        
+    except Exception as e:
+        print(f"ERROR: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return HttpResponse(f"Error: {str(e)}")
 
+@staff_member_required
+def gestionar_multas(request):
+    """
+    Gestionar usuarios morosos y multas pendientes
+    """
+    from django.contrib import messages
+    from django.db import transaction
+    from django.utils import timezone
+    from decimal import Decimal
     
+    # Obtener parámetros
+    accion = request.GET.get('accion')
+    multa_id = request.GET.get('multa_id')
+    socio_id = request.GET.get('socio_id')
+    search = request.GET.get('search', '')
     
-   
-       
+    # Procesar pago de multa
+    if accion == 'pagar' and multa_id:
+        try:
+            with transaction.atomic():
+                multa = Multa.objects.select_related('prestamo__socio__user').get(id=multa_id, estado='PENDIENTE')
+                
+                # Registrar pago
+                multa.estado = 'PAGADA'
+                multa.fecha_pago = timezone.now().date()
+                
+                # Comprobante (opcional)
+                if request.GET.get('comprobante'):
+                    multa.comprobante_pago = request.GET.get('comprobante')
+                
+                multa.save()
+                
+                # Verificar si el socio ya no tiene más multas pendientes
+                otras_multas = Multa.objects.filter(
+                    prestamo__socio=multa.prestamo.socio,
+                    estado='PENDIENTE'
+                ).exclude(id=multa.id).count()
+                
+                if otras_multas == 0:
+                    # Si el socio estaba como moroso, actualizar su estado
+                    socio = multa.prestamo.socio
+                    if socio.estado_socio == 'moroso':
+                        socio.estado_socio = 'activo'
+                        socio.save()
+                
+                messages.success(request, f'Multa #{multa.id} pagada correctamente. Monto: Gs. {multa.monto_total:,.0f}')
+                
+        except Multa.DoesNotExist:
+            messages.error(request, 'Multa no encontrada')
+        
+        return redirect('gestionar_multas')
+    
+    # Ver detalle de multas de un socio específico
+    multas_detalle = None
+    socio_seleccionado = None
+    total_multas_socio = 0 
+    if socio_id:
+        try:
+            socio_seleccionado = Socio.objects.get(id=socio_id)
+            multas_detalle = Multa.objects.filter(
+                prestamo__socio=socio_seleccionado,
+                estado='PENDIENTE'
+            ).select_related('prestamo__ejemplar__libro').order_by('fecha_generacion')
+            # Calcular el total de multas para este socio
+            total_multas_socio = multas_detalle.aggregate(total=Sum('monto_total'))['total'] or 0
+        except Socio.DoesNotExist:
+            pass
+    # Obtener todos los socios con multas pendientes - CORREGIDO
+    socios_morosos = Socio.objects.filter(
+        prestamos__multas__estado='PENDIENTE'
+    ).distinct().select_related('user')
+    
+    # Aplicar búsqueda
+    if search:
+        socios_morosos = socios_morosos.filter(
+            user__first_name__icontains=search
+        ) | socios_morosos.filter(
+            user__last_name__icontains=search
+        ) | socios_morosos.filter(
+            cedula__icontains=search
+        )
+    
+    # Calcular total de multas por socio
+    socios_con_total = []
+    for socio in socios_morosos:
+        total_multas = Multa.objects.filter(
+            prestamo__socio=socio,
+            estado='PENDIENTE'
+        ).aggregate(total=Sum('monto_total'))['total'] or 0
+        
+        cantidad_multas = Multa.objects.filter(
+            prestamo__socio=socio,
+            estado='PENDIENTE'
+        ).count()
+        
+        socios_con_total.append({
+            'socio': socio,
+            'total_multas': total_multas,
+            'cantidad_multas': cantidad_multas
+        })
+    
+    # Ordenar por mayor deuda
+    socios_con_total.sort(key=lambda x: x['total_multas'], reverse=True)
+    
+    context = {
+        'socios_morosos': socios_con_total,
+        'multas_detalle': multas_detalle,
+        'socio_seleccionado': socio_seleccionado,
+        'total_multas_socio': total_multas_socio,
+        'search': search,
+        'hoy': timezone.now().date(),
+    }
+    
+    return render(request, 'bibliotecario/morosos.html', context)
+    
+    # Ver detalle de multas de un socio específico
+    multas_detalle = None
+    socio_seleccionado = None
+    
+    if socio_id:
+        try:
+            socio_seleccionado = Socio.objects.get(id=socio_id)
+            multas_detalle = Multa.objects.filter(
+                prestamo__socio=socio_seleccionado,
+                estado='PENDIENTE'
+            ).select_related('prestamo__ejemplar__libro').order_by('fecha_generacion')
+        except Socio.DoesNotExist:
+            pass
+    
+    # Obtener todos los socios con multas pendientes
+    socios_morosos = Socio.objects.filter(
+    prestamos__multas__estado='PENDIENTE'
+    ).distinct().select_related('user')
+    
+    # Aplicar búsqueda
+    if search:
+        socios_morosos = socios_morosos.filter(
+            user__first_name__icontains=search
+        ) | socios_morosos.filter(
+            user__last_name__icontains=search
+        ) | socios_morosos.filter(
+            cedula__icontains=search
+        )
+    
+    # Calcular total de multas por socio
+    socios_con_total = []
+    for socio in socios_morosos:
+        total_multas = Multa.objects.filter(
+            prestamo__socio=socio,
+            estado='PENDIENTE'
+        ).aggregate(total=Sum('monto_total'))['total'] or 0
+        
+        cantidad_multas = Multa.objects.filter(
+            prestamo__socio=socio,
+            estado='PENDIENTE'
+        ).count()
+        
+        socios_con_total.append({
+            'socio': socio,
+            'total_multas': total_multas,
+            'cantidad_multas': cantidad_multas
+        })
+    
+    # Ordenar por mayor deuda
+    socios_con_total.sort(key=lambda x: x['total_multas'], reverse=True)
+    
+    context = {
+        'socios_morosos': socios_con_total,
+        'multas_detalle': multas_detalle,
+        'socio_seleccionado': socio_seleccionado,
+        'search': search,
+        'hoy': timezone.now().date(),
+    }
+    
+    return render(request, 'bibliotecario/morosos.html', context)

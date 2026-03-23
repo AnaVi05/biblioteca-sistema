@@ -1,0 +1,185 @@
+{% extends 'base/menu_bibliotecario.html' %}
+
+{% block main_content %}
+<div class="content-header">
+    <div class="page-title">
+        <h1>Usuarios Morosos</h1>
+        <p>Gestión de multas pendientes y registro de pagos</p>
+    </div>
+</div>
+
+<!-- Buscador -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-10">
+                <input type="text" name="search" class="form-control" 
+                       placeholder="Buscar por nombre, apellido o cédula..." 
+                       value="{{ search }}">
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-search"></i> Buscar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Lista de socios morosos -->
+    <div class="col-md-{% if socio_seleccionado %}6{% else %}12{% endif %}">
+        <div class="card">
+            <div class="card-header bg-white" style="border-bottom: 1px solid #e2e8f0;">
+                <h5 class="mb-0">
+                    <i class="fas fa-exclamation-triangle me-2" style="color: #ef4444;"></i>
+                    Socios con Multas Pendientes
+                    <span class="badge bg-danger ms-2">{{ socios_morosos|length }}</span>
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Socio</th>
+                                <th>Cédula</th>
+                                <th>Multas</th>
+                                <th>Total Deuda</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in socios_morosos %}
+                            <tr>
+                                <td>
+                                    <strong>{{ item.socio.user.get_full_name }}</strong><br>
+                                    <small class="text-muted">{{ item.socio.tipo_usuario|title }}</small>
+                                </td>
+                                <td>{{ item.socio.cedula }}</td>
+                                <td>
+                                    <span class="badge bg-warning">{{ item.cantidad_multas }}</span>
+                                </td>
+                                <td class="text-danger fw-bold">
+                                    Gs. {{ item.total_multas|floatformat:0 }}
+                                </td>
+                                <td>
+                                    <a href="?socio_id={{ item.socio.id }}{% if search %}&search={{ search }}{% endif %}" 
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-eye"></i> Ver Detalle
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center py-4">
+                                    <i class="fas fa-check-circle fa-2x text-success mb-2 d-block"></i>
+                                    <p class="text-muted mb-0">No hay usuarios con multas pendientes</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Detalle de multas del socio seleccionado -->
+    {% if socio_seleccionado %}
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center" style="border-bottom: 1px solid #e2e8f0;">
+                <h5 class="mb-0">
+                    <i class="fas fa-receipt me-2" style="color: #2563eb;"></i>
+                    Detalle de Multas
+                </h5>
+                <a href="?{% if search %}search={{ search }}{% endif %}" class="btn btn-sm btn-secondary">
+                    <i class="fas fa-times"></i> Cerrar
+                </a>
+            </div>
+            <div class="card-body">
+                <div class="mb-3 p-3 bg-light rounded">
+                    <div class="d-flex align-items-center">
+                        <div class="me-3">
+                            <i class="fas fa-user-circle fa-3x text-primary"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-1">{{ socio_seleccionado.user.get_full_name }}</h6>
+                            <small class="text-muted">Cédula: {{ socio_seleccionado.cedula }}</small><br>
+                            <small class="text-muted">Teléfono: {{ socio_seleccionado.telefono|default:"No registrado" }}</small>
+                        </div>
+                    </div>
+                </div>
+                
+                {% if multas_detalle %}
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>ID Multa</th>
+                                <th>Libro</th>
+                                <th>Días atraso</th>
+                                <th>Monto</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for multa in multas_detalle %}
+                            <tr>
+                                <td>#{{ multa.id }}</td>
+                                <td>
+                                    <small>{{ multa.prestamo.ejemplar.libro.titulo|truncatechars:30 }}</small>
+                                </td>
+                                <td>{{ multa.dias_atraso }} días</td>
+                                <td class="text-danger fw-bold">Gs. {{ multa.monto_total|floatformat:0 }}</td>
+                                <td>
+                                    <a href="?accion=pagar&multa_id={{ multa.id }}{% if search %}&search={{ search }}{% endif %}&socio_id={{ socio_seleccionado.id }}" 
+                                       class="btn btn-sm btn-success"
+                                       onclick="return confirm('¿Registrar pago de Gs. {{ multa.monto_total|floatformat:0 }}?')">
+                                        <i class="fas fa-money-bill"></i> Pagar
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot class="table-light">
+                            <tr>
+                                <td colspan="3" class="fw-bold">Total a pagar:</td>
+                                <td class="fw-bold text-danger">
+                                    Gs. {{ total_multas_socio|floatformat:0 }}
+                                </td>
+                                <td>
+                                    {% if multas_detalle %}
+                                    <button class="btn btn-sm btn-primary" 
+                                            onclick="if(confirm('¿Pagar todas las multas?')) { 
+                                                {% for multa in multas_detalle %}
+                                                    window.location.href='?accion=pagar&multa_id={{ multa.id }}{% if search %}&search={{ search }}{% endif %}&socio_id={{ socio_seleccionado.id }}';
+                                                {% endfor %}
+                                            }">
+                                        <i class="fas fa-check-circle"></i> Pagar Todo
+                                    </button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle"></i>
+                    Este socio no tiene multas pendientes.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    .table tbody tr:hover {
+        background-color: #f8fafc;
+    }
+</style>
+{% endblock %}

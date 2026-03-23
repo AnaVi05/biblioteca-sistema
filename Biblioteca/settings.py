@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'catalogo',
     'prestamo',
     'reporte',
+    'mathfilters',
 ]
 
 MIDDLEWARE = [

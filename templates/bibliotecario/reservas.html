@@ -1,0 +1,263 @@
+{% extends 'base/menu_bibliotecario.html' %}
+
+{% block main_content %}
+<div class="content-header">
+    <div class="page-title">
+        <h1>Gestionar Reservas</h1>
+        <p>Administra las reservas de libros de los socios</p>
+    </div>
+</div>
+
+<!-- Buscador -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-10">
+                <input type="text" name="search" class="form-control" 
+                       placeholder="Buscar por socio o título del libro..." 
+                       value="{{ search }}">
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-search"></i> Buscar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Tabs de reservas -->
+<ul class="nav nav-tabs mb-4" id="reservasTab" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="pendientes-tab" data-bs-toggle="tab" data-bs-target="#pendientes" type="button" role="tab">
+            <i class="fas fa-clock"></i> Pendientes 
+            <span class="badge bg-warning ms-1">{{ reservas_pendientes|length }}</span>
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="activas-tab" data-bs-toggle="tab" data-bs-target="#activas" type="button" role="tab">
+            <i class="fas fa-check-circle"></i> Activas
+            <span class="badge bg-success ms-1">{{ reservas_activas|length }}</span>
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="completadas-tab" data-bs-toggle="tab" data-bs-target="#completadas" type="button" role="tab">
+            <i class="fas fa-history"></i> Completadas
+            <span class="badge bg-secondary ms-1">{{ reservas_completadas|length }}</span>
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="canceladas-tab" data-bs-toggle="tab" data-bs-target="#canceladas" type="button" role="tab">
+            <i class="fas fa-times-circle"></i> Canceladas
+            <span class="badge bg-danger ms-1">{{ reservas_canceladas|length }}</span>
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content">
+    <!-- Reservas Pendientes -->
+    <div class="tab-pane fade show active" id="pendientes" role="tabpanel">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Reservas Pendientes</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>Socio</th>
+                                <th>Libro</th>
+                                <th>Fecha Reserva</th>
+                                <th>Expira</th>
+                                <th>Prioridad</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for reserva in reservas_pendientes %}
+                            <tr>
+                                <td>{{ reserva.id }}</td>
+                                <td>{{ reserva.socio.user.get_full_name }}</td>
+                                <td>{{ reserva.libro.titulo }}</td>
+                                <td>{{ reserva.fecha_reserva|date:"d/m/Y" }}</td>
+                                <td>
+                                    {{ reserva.fecha_expiracion|date:"d/m/Y" }}
+                                    {% if reserva.fecha_expiracion.date < hoy %}
+                                    <span class="badge bg-danger">Expirada</span>
+                                    {% endif %}
+                                </td>
+                                <td><span class="badge bg-info">{{ reserva.orden_prioridad }}</span></td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="?accion=confirmar&reserva_id={{ reserva.id }}{% if search %}&search={{ search }}{% endif %}" 
+                                           class="btn btn-success" onclick="return confirm('¿Confirmar esta reserva?')">
+                                            <i class="fas fa-check"></i> Confirmar
+                                        </a>
+                                        <a href="?accion=cancelar&reserva_id={{ reserva.id }}{% if search %}&search={{ search }}{% endif %}" 
+                                           class="btn btn-danger" onclick="return confirm('¿Cancelar esta reserva?')">
+                                            <i class="fas fa-times"></i> Cancelar
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" class="text-center py-4">
+                                    <i class="fas fa-inbox fa-2x text-muted mb-2 d-block"></i>
+                                    <p class="text-muted mb-0">No hay reservas pendientes</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Reservas Activas -->
+    <div class="tab-pane fade" id="activas" role="tabpanel">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Reservas Activas (Listas para retirar)</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>Socio</th>
+                                <th>Libro</th>
+                                <th>Ejemplar</th>
+                                <th>Expira</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for reserva in reservas_activas %}
+                            <tr>
+                                <td>{{ reserva.id }}</td>
+                                <td>{{ reserva.socio.user.get_full_name }}</td>
+                                <td>{{ reserva.libro.titulo }}</td>
+                                <td><code>{{ reserva.ejemplar_asignado.codigo_inventario }}</code></td>
+                                <td>{{ reserva.fecha_expiracion|date:"d/m/Y" }}</td>
+                                <td>
+                                    <a href="?accion=completar&reserva_id={{ reserva.id }}{% if search %}&search={{ search }}{% endif %}" 
+                                       class="btn btn-sm btn-primary" onclick="return confirm('Marcar como retirado?')">
+                                        <i class="fas fa-check"></i> Marcar Retirado
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center py-4">
+                                    <p class="text-muted mb-0">No hay reservas activas</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Reservas Completadas -->
+    <div class="tab-pane fade" id="completadas" role="tabpanel">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Últimas Reservas Completadas</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>Socio</th>
+                                <th>Libro</th>
+                                <th>Fecha Reserva</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for reserva in reservas_completadas %}
+                            <tr>
+                                <td>{{ reserva.id }}</td>
+                                <td>{{ reserva.socio.user.get_full_name }}</td>
+                                <td>{{ reserva.libro.titulo }}</td>
+                                <td>{{ reserva.fecha_reserva|date:"d/m/Y" }}</td>
+                                <td><span class="badge bg-success">Completada</span></td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center py-4">
+                                    <p class="text-muted mb-0">No hay reservas completadas</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Reservas Canceladas -->
+    <div class="tab-pane fade" id="canceladas" role="tabpanel">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Últimas Reservas Canceladas</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>Socio</th>
+                                <th>Libro</th>
+                                <th>Fecha Reserva</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for reserva in reservas_canceladas %}
+                            <tr>
+                                <td>{{ reserva.id }}</td>
+                                <td>{{ reserva.socio.user.get_full_name }}</td>
+                                <td>{{ reserva.libro.titulo }}</td>
+                                <td>{{ reserva.fecha_reserva|date:"d/m/Y" }}</td>
+                                <td><span class="badge bg-danger">Cancelada</span></td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center py-4">
+                                    <p class="text-muted mb-0">No hay reservas canceladas</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .nav-tabs .nav-link {
+        color: #1e293b;
+    }
+    .nav-tabs .nav-link.active {
+        color: #2563eb;
+        font-weight: 500;
+    }
+    .table tbody tr:hover {
+        background-color: #f8fafc;
+    }
+</style>
+{% endblock %}
