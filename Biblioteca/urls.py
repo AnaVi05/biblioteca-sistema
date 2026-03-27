@@ -27,7 +27,11 @@ from django.conf.urls.static import static
 
 @login_required
 def menu_principal(request):
-    return render(request, 'base/menu_usuario.html')
+    # para diferenciar el menu_bibliotecario y del usuario 
+    if request.user.is_staff:
+        return render(request, 'base/menu_bibliotecario.html')
+    else:
+        return render(request, 'base/menu_usuario.html')
 
 def cerrar_sesion(request):
     logout(request)

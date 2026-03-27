@@ -8,6 +8,7 @@ class Prestamo(models.Model):
     """Préstamos de ejemplares a socios"""
     
     ESTADO_PRESTAMO_CHOICES = [
+        ('SOLICITADO', 'Solicitado'),
         ('ACTIVO', 'Activo'),
         ('VENCIDO', 'Vencido'),
         ('DEVUELTO', 'Devuelto'),

@@ -139,17 +139,18 @@
     <!-- Pestañas -->
     <div class="tab-prestamos">
         <div class="tab-item active" onclick="cambiarTab('activos')">Activos ({{ activos|length }})</div>
+        <div class="tab-item" onclick="cambiarTab('solicitados')">Solicitados ({{ solicitados|length }})</div>
         <div class="tab-item" onclick="cambiarTab('historial')">Historial</div>
     </div>
     
-    <!-- Préstamos activos -->
+    <!-- Préstamos activos (ya retirados) -->
     <div id="prestamos-activos">
         {% for prestamo in activos %}
-            <div class="prestamo-card {% if prestamo.fecha_devolucion_estimada < today %}vencido{% endif %}">
+            <div class="prestamo-card {% if prestamo.fecha_vencimiento < hoy %}vencido{% endif %}">
                 <div class="prestamo-header">
                     <span class="prestamo-titulo">{{ prestamo.ejemplar.libro.titulo }}</span>
                     <span class="estado-badge estado-activo">
-                        {% if prestamo.fecha_devolucion_estimada < today %}
+                        {% if prestamo.fecha_vencimiento < hoy %}
                             ⚠️ Vencido
                         {% else %}
                             ✅ Activo
@@ -164,10 +165,10 @@
                     </div>
                     <div class="detalle-item">
                         <i class="fas fa-hourglass-end"></i>
-                        <span>Devolver: {{ prestamo.fecha_devolucion_estimada|date:"d/m/Y" }}</span>
-                        {% if prestamo.fecha_devolucion_estimada < today %}
+                        <span>Devolver: {{ prestamo.fecha_vencimiento|date:"d/m/Y" }}</span>
+                        {% if prestamo.fecha_vencimiento < hoy %}
                             <span class="multa-badge">
-                                {{ prestamo.calcular_dias_atraso }} días de atraso
+                                {{ prestamo.dias_atraso }} días de atraso
                             </span>
                         {% endif %}
                     </div>
@@ -176,12 +177,12 @@
                         <span>Solicitaste: {{ prestamo.dias_solicitados }} días</span>
                     </div>
                 </div>
-                
+                <!--  
                 <div style="text-align: right;">
                     <a href="{% url 'devolver_prestamo_usuario' prestamo.id %}" class="btn-devolver">
                         <i class="fas fa-undo-alt"></i> Devolver Libro
                     </a>
-                </div>
+                </div>-->
             </div>
         {% empty %}
             <div class="text-center py-5">
@@ -193,14 +194,55 @@
         {% endfor %}
     </div>
     
-    <!-- Historial (oculto) -->
+    <!-- Solicitudes pendientes (SOLICITADO) -->
+    <div id="prestamos-solicitados" style="display: none;">
+        {% for prestamo in solicitados %}
+            <div class="prestamo-card" style="border-left-color: #ffc107;">
+                <div class="prestamo-header">
+                    <span class="prestamo-titulo">{{ prestamo.ejemplar.libro.titulo }}</span>
+                    <span class="estado-badge" style="background: #fff3cd; color: #856404;">⏳ Pendiente de confirmación</span>
+                </div>
+                
+                <div class="prestamo-detalles">
+                    <div class="detalle-item">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span>Solicitado: {{ prestamo.fecha_prestamo|date:"d/m/Y" }}</span>
+                    </div>
+                    <div class="detalle-item">
+                        <i class="fas fa-clock"></i>
+                        <span>Días solicitados: {{ prestamo.dias_solicitados }}</span>
+                    </div>
+                    <div class="detalle-item">
+                        <i class="fas fa-hourglass-half"></i>
+                        <span>Devolución estimada: {{ prestamo.fecha_vencimiento|date:"d/m/Y" }}</span>
+                    </div>
+                </div>
+                
+                <div style="text-align: right;">
+                    <span class="text-muted" style="font-size: 0.8rem;">
+                        <i class="fas fa-info-circle"></i> Esperando confirmación del bibliotecario
+                    </span>
+                </div>
+            </div>
+        {% empty %}
+            <div class="text-center py-5">
+                <i class="fas fa-clock" style="font-size: 4rem; color: #cbd5e1;"></i>
+                <h3 class="mt-3">No hay solicitudes pendientes</h3>
+                <p class="text-muted">Cuando solicites un préstamo, aparecerá aquí hasta que el bibliotecario lo confirme.</p>
+            </div>
+        {% endfor %}
+    </div>
+    
+    <!-- Historial (DEVUELTO / EXTRAVIADO) -->
     <div id="prestamos-historial" style="display: none;">
         {% for prestamo in historial %}
             <div class="prestamo-card">
                 <div class="prestamo-header">
                     <span class="prestamo-titulo">{{ prestamo.ejemplar.libro.titulo }}</span>
                     <span class="estado-badge estado-devuelto">
-                        {% if prestamo.multa %}
+                        {% if prestamo.estado == 'EXTRAVIADO' %}
+                            Extraviado
+                        {% elif prestamo.multa %}
                             Devuelto con multa
                         {% else %}
                             Devuelto
@@ -238,17 +280,25 @@
     function cambiarTab(tab) {
         const tabs = document.querySelectorAll('.tab-item');
         const activos = document.getElementById('prestamos-activos');
+        const solicitados = document.getElementById('prestamos-solicitados');
         const historial = document.getElementById('prestamos-historial');
         
         tabs.forEach(t => t.classList.remove('active'));
         
+        // Ocultar todas
+        activos.style.display = 'none';
+        if (solicitados) solicitados.style.display = 'none';
+        historial.style.display = 'none';
+        
+        // Mostrar la seleccionada
         if (tab === 'activos') {
             tabs[0].classList.add('active');
             activos.style.display = 'block';
-            historial.style.display = 'none';
-        } else {
+        } else if (tab === 'solicitados') {
             tabs[1].classList.add('active');
-            activos.style.display = 'none';
+            if (solicitados) solicitados.style.display = 'block';
+        } else {
+            tabs[2].classList.add('active');
             historial.style.display = 'block';
         }
     }

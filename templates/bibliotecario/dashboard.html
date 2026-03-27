@@ -93,6 +93,67 @@
     </a>
 </div>
 
+<!-- Solicitudes de préstamo pendientes -->
+<div class="card mb-4" style="border-left: 4px solid #ffc107;">
+    <div class="card-header" style="background: #fff3cd; border-bottom: none;">
+        <h2 class="section-title" style="margin-bottom: 0;">
+            <i class="fas fa-clock" style="color: #ffc107;"></i> 
+            Solicitudes de préstamo pendientes
+            <span class="badge" style="background: #ffc107; color: #000;">{{ solicitudes_pendientes|length }}</span>
+        </h2>
+        <p class="text-muted mb-0">Préstamos solicitados por usuarios que esperan confirmación</p>
+    </div>
+    <div class="card-body">
+        {% if solicitudes_pendientes %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Socio</th>
+                            <th>Libro</th>
+                            <th>Ejemplar</th>
+                            <th>Días</th>
+                            <th>Fecha solicitud</th>
+                            <th>Devolución estimada</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for prestamo in solicitudes_pendientes %}
+                        <tr>
+                            <td>
+                                <strong>{{ prestamo.socio.user.get_full_name|default:prestamo.socio.user.username }}</strong><br>
+                                <small class="text-muted">Cédula: {{ prestamo.socio.cedula }}</small>
+                            </td>
+                            <td>{{ prestamo.ejemplar.libro.titulo }}</td>
+                            <td>
+                                <span class="badge bg-secondary">{{ prestamo.ejemplar.codigo_inventario }}</span>
+                            </td>
+                            <td>{{ prestamo.dias_solicitados }} días</td>
+                            <td>{{ prestamo.fecha_prestamo|date:"d/m/Y H:i" }}</td>
+                            <td>
+                                <span class="badge bg-info">{{ prestamo.fecha_vencimiento|date:"d/m/Y" }}</span>
+                            </td>
+                            <td>
+                                <a href="{% url 'confirmar_prestamo' prestamo.id %}" class="btn btn-sm btn-success">
+                                    <i class="fas fa-check"></i> Confirmar entrega
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center py-4">
+                <i class="fas fa-check-circle" style="font-size: 3rem; color: #28a745;"></i>
+                <h4 class="mt-2">No hay solicitudes pendientes</h4>
+                <p class="text-muted">Todos los préstamos solicitados ya fueron confirmados.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
 <!-- Tareas Pendientes y Actividad Reciente en dos columnas -->
 <div class="row">
     <div class="col-md-6 mb-4">

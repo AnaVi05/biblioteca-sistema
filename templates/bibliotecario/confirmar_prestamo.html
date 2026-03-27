@@ -1,0 +1,51 @@
+{% extends 'base/menu_bibliotecario.html' %}
+{% load static %}
+
+{% block main_content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header" style="background: var(--primary-blue); color: white;">
+                    <h4 class="mb-0"><i class="fas fa-hand-holding-heart me-2"></i>Confirmar Entrega de Libro</h4>
+                </div>
+                <div class="card-body text-center">
+                    <i class="fas fa-book" style="font-size: 4rem; color: var(--primary-blue);"></i>
+                    
+                    <h5 class="mt-3">{{ prestamo.ejemplar.libro.titulo }}</h5>
+                    <p class="text-muted">
+                        {% for autor in prestamo.ejemplar.libro.autores.all %}
+                            {{ autor.nombre_completo }}{% if not forloop.last %}, {% endif %}
+                        {% endfor %}
+                    </p>
+                    
+                    <div class="alert alert-info text-start mt-3">
+                        <h6><i class="fas fa-user me-2"></i>Datos del solicitante</h6>
+                        <p class="mb-1"><strong>Nombre:</strong> {{ prestamo.socio.user.get_full_name }}</p>
+                        <p class="mb-1"><strong>Cédula:</strong> {{ prestamo.socio.cedula }}</p>
+                        <p class="mb-1"><strong>Email:</strong> {{ prestamo.socio.user.email }}</p>
+                    </div>
+                    
+                    <div class="alert alert-secondary text-start">
+                        <h6><i class="fas fa-info-circle me-2"></i>Detalles del préstamo</h6>
+                        <p class="mb-1"><strong>Ejemplar:</strong> {{ prestamo.ejemplar.codigo_inventario }}</p>
+                        <p class="mb-1"><strong>Días solicitados:</strong> {{ prestamo.dias_solicitados }} días</p>
+                        <p class="mb-1"><strong>Fecha de solicitud:</strong> {{ prestamo.fecha_prestamo|date:"d/m/Y H:i" }}</p>
+                        <p class="mb-0"><strong>Devolución estimada:</strong> {{ prestamo.fecha_vencimiento|date:"d/m/Y" }}</p>
+                    </div>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-success btn-lg px-4">
+                            <i class="fas fa-check-circle me-2"></i>Confirmar Entrega
+                        </button>
+                        <a href="{% url 'dashboard_bibliotecario' %}" class="btn btn-secondary btn-lg px-4">
+                            <i class="fas fa-times me-2"></i>Cancelar
+                        </a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

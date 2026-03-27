@@ -132,29 +132,19 @@ def registrar_prestamo_usuario(request, ejemplar_id):
             messages.error(request, 'Los días deben ser entre 1 y 5')
             return redirect('registrar_prestamo_usuario', ejemplar_id=ejemplar.id)
         
-        # Crear préstamo
+        # Crear préstamo en estado SOLICITADO (el bibliotecario confirmará después)
         prestamo = Prestamo.objects.create(
             socio=request.user.socio,
             ejemplar=ejemplar,
             dias_solicitados=dias_solicitados,
             fecha_prestamo=timezone.now(),
             fecha_vencimiento=date.today() + timedelta(days=dias_solicitados),
-            estado='ACTIVO'
+            estado='SOLICITADO'   
         )
         
-        # Actualizar disponibilidad del ejemplar
-        ejemplar.disponibilidad = 'PRESTADO'
-        ejemplar.save()
+       
         
-        # Actualizar inventario del libro
-        libro = ejemplar.libro
-        libro.inventario_disponible = Ejemplar.objects.filter(
-            libro=libro, 
-            disponibilidad='DISPONIBLE'
-        ).count()
-        libro.save()
-        
-        messages.success(request, f'✅ Préstamo registrado. Devolver antes del {prestamo.fecha_vencimiento.strftime("%d/%m/%Y")}')
+        messages.success(request, f'✅ Solicitud de préstamo enviada. Esperá confirmación del bibliotecario.')
         return redirect('mis_prestamos')
     
     context = {
@@ -166,22 +156,25 @@ def registrar_prestamo_usuario(request, ejemplar_id):
 
 @login_required
 def mis_prestamos(request):
-    """Vista para que el usuario vea sus préstamos"""
+    """Vista para que el usuario vea sus préstamos activos (ya retirados)"""
     prestamos = Prestamo.objects.filter(
         socio=request.user.socio
     ).select_related('ejemplar__libro').order_by('-fecha_prestamo')
     
-    # Separar activos y devueltos
-    prestamos_activos = prestamos.filter(estado__in=['ACTIVO', 'VENCIDO'])
+    
+    prestamos_activos = prestamos.filter(estado='ACTIVO')
+    
+    prestamos_solicitados = prestamos.filter(estado='SOLICITADO')
+    
     historial = prestamos.filter(estado__in=['DEVUELTO', 'EXTRAVIADO'])
     
     context = {
         'activos': prestamos_activos,
+        'solicitados': prestamos_solicitados,
         'historial': historial,
         'hoy': date.today(),
     }
     return render(request, 'prestamo/mis_prestamos.html', context)
-
 
 @login_required
 def devolver_prestamo_usuario(request, prestamo_id):
@@ -421,6 +414,11 @@ def dashboard_bibliotecario(request):
         fecha_vencimiento__gte=hoy,
         fecha_vencimiento__lte=hoy + timedelta(days=3)
     ).count()
+
+        #  SOLICITUDES PENDIENTES (préstamos en estado SOLICITADO) 
+    solicitudes_pendientes = Prestamo.objects.filter(
+        estado='SOLICITADO'
+    ).select_related('socio__user', 'ejemplar__libro').order_by('fecha_prestamo')
     
     # ========== TAREAS PENDIENTES (datos reales) ==========
     tareas_pendientes = []
@@ -512,6 +510,10 @@ def dashboard_bibliotecario(request):
         'total_morosos': total_morosos,
         'socios_activos': socios_activos,
         'proximos_a_vencer': proximos_a_vencer,
+
+        # solicitudes pendientes
+        'solicitudes_pendientes': solicitudes_pendientes,  
+
         
         # Tareas y actividades
         'tareas_pendientes': tareas_pendientes,
@@ -519,6 +521,43 @@ def dashboard_bibliotecario(request):
     }
     
     return render(request, 'bibliotecario/dashboard.html', context)
+
+@staff_member_required
+def confirmar_prestamo(request, prestamo_id):
+    """Confirmar entrega de un préstamo solicitado"""
+    from django.db import transaction
+    
+    try:
+        prestamo = Prestamo.objects.get(id=prestamo_id, estado='SOLICITADO')
+    except Prestamo.DoesNotExist:
+        messages.error(request, 'Solicitud de préstamo no encontrada')
+        return redirect('dashboard_bibliotecario')
+    
+    if request.method == 'POST':
+        with transaction.atomic():
+            # Cambiar estado a ACTIVO
+            prestamo.estado = 'ACTIVO'
+            prestamo.save()
+            
+            # Actualizar disponibilidad del ejemplar
+            ejemplar = prestamo.ejemplar
+            ejemplar.disponibilidad = 'PRESTADO'
+            ejemplar.save()
+            
+            # Actualizar inventario del libro
+            libro = ejemplar.libro
+            libro.inventario_disponible = Ejemplar.objects.filter(
+                libro=libro, 
+                disponibilidad='DISPONIBLE'
+            ).count()
+            libro.save()
+            
+            messages.success(request, f'✅ Préstamo confirmado. Libro entregado a {prestamo.socio.user.get_full_name()}')
+            
+        return redirect('dashboard_bibliotecario')
+    
+    context = {'prestamo': prestamo}
+    return render(request, 'bibliotecario/confirmar_prestamo.html', context)
          
 
 @staff_member_required
