@@ -1,0 +1,97 @@
+{% extends 'base/menu_bibliotecario.html' %}
+
+{% block main_content %}
+<div class="content-header">
+    <div class="page-title">
+        <h1>{% if libro %}Editar{% else %}Nuevo{% endif %} Libro</h1>
+        <p>{% if libro %}Modificar los datos del libro{% else %}Completa los datos para agregar un nuevo libro{% endif %}</p>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">ISBN *</label>
+                    <input type="text" name="isbn" class="form-control" value="{{ libro.isbn|default:'' }}" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">Título *</label>
+                    <input type="text" name="titulo" class="form-control" value="{{ libro.titulo|default:'' }}" required>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">Año de publicación</label>
+                    <input type="number" name="anio_publicacion" class="form-control" value="{{ libro.anio_publicacion|default:'' }}">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">Editorial *</label>
+                    <select name="editorial" class="form-select" required>
+                        <option value="">Seleccionar editorial</option>
+                        {% for editorial in editoriales %}
+                        <option value="{{ editorial.id }}" {% if libro.editorial.id == editorial.id %}selected{% endif %}>
+                            {{ editorial.nombre }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">Categoría *</label>
+                    <select name="categoria" class="form-select" required>
+                        <option value="">Seleccionar categoría</option>
+                        {% for categoria in categorias %}
+                        <option value="{{ categoria.id }}" {% if libro.categoria.id == categoria.id %}selected{% endif %}>
+                            {{ categoria.nombre }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">Autores</label>
+                    <select name="autores" class="form-select" multiple size="4">
+                        {% for autor in autores %}
+                        <option value="{{ autor.id }}" {% if autor.id in autores_seleccionados %}selected{% endif %}>
+                            {{ autor.nombre }} {{ autor.apellido }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <small class="text-muted">Ctrl + Click para seleccionar múltiples autores</small>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">Cantidad total de ejemplares</label>
+                    <input type="number" name="cantidad_total" class="form-control" value="{{ libro.cantidad_total|default:'0' }}" min="0">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">Ejemplares disponibles</label>
+                    <input type="number" name="inventario_disponible" class="form-control" value="{{ libro.inventario_disponible|default:'0' }}" min="0">
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label fw-bold">Descripción</label>
+                <textarea name="descripcion" class="form-control" rows="4">{{ libro.descripcion|default:'' }}</textarea>
+            </div>
+            
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> {% if libro %}Actualizar{% else %}Guardar{% endif %}
+                </button>
+                <a href="{% url 'gestionar_libros' %}" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

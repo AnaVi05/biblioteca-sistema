@@ -1,0 +1,76 @@
+{% extends 'base/menu_bibliotecario.html' %}
+
+{% block main_content %}
+<div class="content-header">
+    <div class="page-title">
+        <h1>{% if ejemplar %}Editar{% else %}Nuevo{% endif %} Ejemplar</h1>
+        <p>
+            {% if ejemplar %}
+            Modificar los datos del ejemplar <strong>{{ ejemplar.codigo_inventario }}</strong>
+            {% else %}
+            Agregar un nuevo ejemplar para el libro <strong>{{ libro.titulo }}</strong>
+            {% endif %}
+        </p>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            
+            {% if not ejemplar %}
+            <div class="mb-3">
+                <label class="form-label fw-bold">Código de inventario *</label>
+                <input type="text" name="codigo_inventario" class="form-control" required>
+                <small class="text-muted">Ej: LIB-001, EJ-2024-001</small>
+            </div>
+            {% endif %}
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">Estado físico *</label>
+                    <select name="estado_fisico" class="form-select" required>
+                        {% for value, label in estado_fisico_choices %}
+                        <option value="{{ value }}" {% if ejemplar.estado_fisico == value %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">Disponibilidad *</label>
+                    <select name="disponibilidad" class="form-select" required>
+                        {% for value, label in disponibilidad_choices %}
+                        <option value="{{ value }}" {% if ejemplar.disponibilidad == value %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label fw-bold">Ubicación física</label>
+                <input type="text" name="ubicacion" class="form-control" value="{{ ejemplar.ubicacion|default:'' }}">
+                <small class="text-muted">Ej: Estante A3, Sección 5, Sala 2</small>
+            </div>
+            
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> {% if ejemplar %}Actualizar{% else %}Guardar{% endif %}
+                </button>
+                {% if libro %}
+                <a href="{% url 'gestionar_ejemplares_por_libro' libro.id %}" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> Cancelar
+                </a>
+                {% else %}
+                <a href="{% url 'gestionar_ejemplares' %}" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> Cancelar
+                </a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

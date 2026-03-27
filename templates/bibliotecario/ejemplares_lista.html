@@ -1,0 +1,120 @@
+{% extends 'base/menu_bibliotecario.html' %}
+
+{% block main_content %}
+<div class="content-header">
+    <div class="page-title">
+        <h1>Gestión de Ejemplares</h1>
+        <p>
+            {% if libro %}
+            Ejemplares de: <strong>{{ libro.titulo }}</strong>
+            {% else %}
+            Todos los ejemplares
+            {% endif %}
+        </p>
+    </div>
+    {% if libro %}
+    <div>
+        <a href="{% url 'ejemplar_crear' libro.id %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Agregar Ejemplar
+        </a>
+        <a href="{% url 'gestionar_libros' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Volver a Libros
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Buscador -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-10">
+                <input type="text" name="search" class="form-control" 
+                       placeholder="Buscar por código de inventario o título..." 
+                       value="{{ search }}">
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-search"></i> Buscar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Lista de ejemplares -->
+<div class="card">
+    <div class="card-header bg-white">
+        <h5 class="mb-0">Ejemplares</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Código</th>
+                        <th>Libro</th>
+                        <th>Estado Físico</th>
+                        <th>Disponibilidad</th>
+                        <th>Ubicación</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ejemplar in ejemplares %}
+                    <tr>
+                        <td><code>{{ ejemplar.codigo_inventario }}</code></td>
+                        <td>
+                            <strong>{{ ejemplar.libro.titulo }}</strong><br>
+                            <small class="text-muted">{{ ejemplar.libro.isbn }}</small>
+                        </td>
+                        <td>
+                            {% if ejemplar.estado_fisico == 'BUENO' %}
+                                <span class="badge bg-success">Bueno</span>
+                            {% elif ejemplar.estado_fisico == 'REGULAR' %}
+                                <span class="badge bg-warning">Regular</span>
+                            {% elif ejemplar.estado_fisico == 'MALO' %}
+                                <span class="badge bg-danger">Malo</span>
+                            {% elif ejemplar.estado_fisico == 'DANADO' %}
+                                <span class="badge bg-dark">Dañado</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Perdido</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if ejemplar.disponibilidad == 'DISPONIBLE' %}
+                                <span class="badge bg-success">Disponible</span>
+                            {% elif ejemplar.disponibilidad == 'PRESTADO' %}
+                                <span class="badge bg-warning">Prestado</span>
+                            {% elif ejemplar.disponibilidad == 'RESERVADO' %}
+                                <span class="badge bg-info">Reservado</span>
+                            {% else %}
+                                <span class="badge bg-secondary">En reparación</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ ejemplar.ubicacion|default:"-" }}</td>
+                        <td>
+                            <a href="{% url 'ejemplar_editar' ejemplar.id %}" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-4">
+                            <i class="fas fa-inbox fa-2x text-muted mb-2 d-block"></i>
+                            <p class="text-muted mb-0">No hay ejemplares registrados</p>
+                            {% if libro %}
+                            <a href="{% url 'ejemplar_crear' libro.id %}" class="btn btn-sm btn-primary mt-2">
+                                <i class="fas fa-plus"></i> Agregar el primer ejemplar
+                            </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

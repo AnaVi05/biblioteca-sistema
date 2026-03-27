@@ -534,6 +534,18 @@
         
         <div class="menu-section">GESTIÓN</div>
         <ul class="sidebar-menu">
+            <li class="menu-item" id="menu-libros">
+                <a href="{% url 'gestionar_libros' %}">
+                    <i class="fas fa-book"></i>
+                    <span>Gestionar Libros</span>
+                </a>
+            </li>
+            <li class="menu-item" id="menu-stock">
+                <a href="{% url 'gestionar_ejemplares' %}">
+                    <i class="fas fa-boxes"></i>
+                    <span>Gestionar Stock</span>
+                </a>
+            </li>
             <li class="menu-item" id="menu-morosos">
                 <a href="{% url 'gestionar_multas' %}">
                     <i class="fas fa-exclamation-triangle"></i>
@@ -544,12 +556,6 @@
                 <a href="#">
                     <i class="fas fa-file-alt"></i>
                     <span>Reportes Simples</span>
-                </a>
-            </li>
-            <li class="menu-item">
-                <a href="#">
-                    <i class="fas fa-cog"></i>
-                    <span>Configuración</span>
                 </a>
             </li>
             <li class="menu-item">
@@ -587,7 +593,9 @@
             '/bibliotecario/prestamos/nuevo/': 'menu-prestamo',
             '/bibliotecario/devoluciones/': 'menu-devolucion',
             '/bibliotecario/reservas/': 'menu-reservas',
-            '/bibliotecario/multas/': 'menu-morosos'
+            '/bibliotecario/multas/': 'menu-morosos',
+            '/catalogo/gestion/libros/': 'menu-libros',
+            '/catalogo/gestion/ejemplares/': 'menu-stock'
         };
         
         for (const [path, menuId] of Object.entries(menuItems)) {
