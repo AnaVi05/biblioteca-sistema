@@ -24,4 +24,7 @@ urlpatterns = [
     path('bibliotecario/reservas/', views.gestionar_reservas, name='gestionar_reservas'),
     path('bibliotecario/multas/', views.gestionar_multas, name='gestionar_multas'),
     path('confirmar-prestamo/<int:prestamo_id>/', views.confirmar_prestamo, name='confirmar_prestamo'),
+    path('bibliotecario/configuracion/', views.configuracion_panel, name='configuracion_panel'),
+    path('bibliotecario/perfil/', views.mi_perfil, name='mi_perfil'),
+    path('bibliotecario/buscar-usuario/', views.buscar_usuario, name='buscar_usuario'),
 ]

@@ -1,0 +1,180 @@
+{% extends 'base/menu_bibliotecario.html' %}
+
+{% block main_content %}
+<div class="content-header">
+    <div class="page-title">
+        <h1>Buscar Usuario</h1>
+        <p>Busca socios por cédula o nombre</p>
+    </div>
+</div>
+
+<!-- Buscador -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-10">
+                <input type="text" name="search" class="form-control form-control-lg" 
+                       placeholder="Buscar por cédula o nombre..." 
+                       value="{{ search }}">
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary btn-lg w-100">
+                    <i class="fas fa-search"></i> Buscar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if search %}
+<div class="row">
+    <!-- Resultados de búsqueda -->
+    <div class="col-md-{% if socio_seleccionado %}6{% else %}12{% endif %}">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-users me-2" style="color: #2563eb;"></i>
+                    Resultados de búsqueda
+                    <span class="badge bg-secondary ms-2">{{ socios|length }}</span>
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                {% if socios %}
+                <div class="list-group">
+                    {% for socio in socios %}
+                    <a href="?search={{ search }}&socio_id={{ socio.id }}" 
+                       class="list-group-item list-group-item-action {% if socio_seleccionado.id == socio.id %}active{% endif %}">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>{{ socio.user.get_full_name }}</strong><br>
+                                <small class="text-muted">
+                                    <i class="fas fa-id-card"></i> {{ socio.cedula }} | 
+                                    <i class="fas fa-graduation-cap"></i> {{ socio.tipo_usuario|title }}
+                                </small>
+                            </div>
+                            <i class="fas fa-chevron-right"></i>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-user-slash fa-3x text-muted mb-2"></i>
+                    <p class="text-muted mb-0">No se encontraron socios</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Detalle del socio seleccionado -->
+    {% if socio_seleccionado %}
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-user-circle me-2" style="color: #2563eb;"></i>
+                    Detalle del Socio
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3 p-3 bg-light rounded">
+                    <div class="d-flex align-items-center">
+                        <div class="me-3">
+                            <i class="fas fa-user-circle fa-3x text-primary"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-1">{{ socio_seleccionado.user.get_full_name }}</h6>
+                            <small class="text-muted">
+                                <i class="fas fa-id-card"></i> {{ socio_seleccionado.cedula }}<br>
+                                <i class="fas fa-phone"></i> {{ socio_seleccionado.telefono|default:"No registrado" }}<br>
+                                <i class="fas fa-envelope"></i> {{ socio_seleccionado.user.email|default:"No registrado" }}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Préstamos activos -->
+                <div class="mb-3">
+                    <h6 class="fw-bold">
+                        <i class="fas fa-book me-2" style="color: #10b981;"></i>
+                        Préstamos Activos
+                        <span class="badge bg-success ms-2">{{ prestamos_activos|length }}</span>
+                    </h6>
+                    {% if prestamos_activos %}
+                    <div class="list-group">
+                        {% for prestamo in prestamos_activos %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>{{ prestamo.ejemplar.libro.titulo }}</strong><br>
+                                    <small class="text-muted">
+                                        Vence: {{ prestamo.fecha_vencimiento|date:"d/m/Y" }}
+                                        {% if prestamo.fecha_vencimiento < today %}
+                                        <span class="badge bg-danger ms-1">Vencido</span>
+                                        {% endif %}
+                                    </small>
+                                </div>
+                                <a href="{% url 'registrar_devolucion' %}?search={{ socio_seleccionado.user.get_full_name }}" 
+                                   class="btn btn-sm btn-primary">
+                                    <i class="fas fa-arrow-left"></i> Devolver
+                                </a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No tiene préstamos activos</p>
+                    {% endif %}
+                </div>
+                
+                <!-- Multas pendientes -->
+                <div class="mb-3">
+                    <h6 class="fw-bold">
+                        <i class="fas fa-exclamation-triangle me-2" style="color: #ef4444;"></i>
+                        Multas Pendientes
+                        <span class="badge bg-danger ms-2">{{ multas_pendientes|length }}</span>
+                    </h6>
+                    {% if multas_pendientes %}
+                    <div class="list-group">
+                        {% for multa in multas_pendientes %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>{{ multa.prestamo.ejemplar.libro.titulo }}</strong><br>
+                                    <small class="text-muted">
+                                        Días atraso: {{ multa.dias_atraso }} | 
+                                        Monto: Gs. {{ multa.monto_total|floatformat:0 }}
+                                    </small>
+                                </div>
+                                <a href="{% url 'gestionar_multas' %}?socio_id={{ socio_seleccionado.id }}" 
+                                   class="btn btn-sm btn-warning">
+                                    <i class="fas fa-money-bill"></i> Pagar
+                                </a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No tiene multas pendientes</p>
+                    {% endif %}
+                </div>
+                
+                <!-- Botones de acción rápida -->
+                <div class="d-grid gap-2 mt-3">
+                    <a href="{% url 'prestamo_nuevo_bibliotecario' %}?socio_cedula={{ socio_seleccionado.cedula }}" 
+                       class="btn btn-primary">
+                        <i class="fas fa-plus-circle"></i> Registrar Préstamo
+                    </a>
+                    <a href="{% url 'gestionar_multas' %}?socio_id={{ socio_seleccionado.id }}" 
+                       class="btn btn-outline-warning">
+                        <i class="fas fa-exclamation-triangle"></i> Ver Multas
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

@@ -1118,3 +1118,80 @@ def gestionar_multas(request):
     }
     
     return render(request, 'bibliotecario/morosos.html', context)
+
+@staff_member_required
+def configuracion_panel(request):
+    """Página de configuración del bibliotecario"""
+    return render(request, 'bibliotecario/configuracion.html')
+
+@staff_member_required
+def mi_perfil(request):
+    """Perfil del bibliotecario"""
+    from usuario.models import Socio
+    
+    try:
+        socio = Socio.objects.get(user=request.user)
+    except Socio.DoesNotExist:
+        socio = None
+    
+    context = {
+        'user': request.user,
+        'socio': socio,
+    }
+    return render(request, 'bibliotecario/perfil.html', context)
+@staff_member_required
+def buscar_usuario(request):
+    """Buscar usuarios (socios) para el bibliotecario"""
+    from usuario.models import Socio
+    
+    search = request.GET.get('search', '')
+    socios = []
+    socio_seleccionado = None
+    prestamos_activos = []
+    multas_pendientes = []
+    
+    if search:
+        # Buscar por cédula o nombre
+        socios = Socio.objects.filter(
+            estado_socio='activo'
+        ).select_related('user')
+        
+        if search.isdigit():
+            socios = socios.filter(cedula__icontains=search)
+        else:
+            socios = socios.filter(
+                user__first_name__icontains=search
+            ) | socios.filter(
+                user__last_name__icontains=search
+            )
+        socios = socios[:10]
+    
+    # Ver detalle de un socio seleccionado
+    socio_id = request.GET.get('socio_id')
+    if socio_id:
+        try:
+            socio_seleccionado = Socio.objects.select_related('user').get(id=socio_id)
+            
+            # Préstamos activos del socio
+            prestamos_activos = Prestamo.objects.filter(
+                socio=socio_seleccionado,
+                estado='ACTIVO'
+            ).select_related('ejemplar__libro').order_by('-fecha_prestamo')
+            
+            # Multas pendientes del socio
+            multas_pendientes = Multa.objects.filter(
+                prestamo__socio=socio_seleccionado,
+                estado='PENDIENTE'
+            ).select_related('prestamo__ejemplar__libro')
+            
+        except Socio.DoesNotExist:
+            pass
+    
+    context = {
+        'socios': socios,
+        'socio_seleccionado': socio_seleccionado,
+        'prestamos_activos': prestamos_activos,
+        'multas_pendientes': multas_pendientes,
+        'search': search,
+    }
+    return render(request, 'bibliotecario/buscar_usuario.html', context)

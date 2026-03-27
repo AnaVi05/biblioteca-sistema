@@ -552,10 +552,16 @@
                     <span>Usuarios Morosos</span>
                 </a>
             </li>
-            <li class="menu-item">
-                <a href="#">
-                    <i class="fas fa-file-alt"></i>
-                    <span>Reportes Simples</span>
+            <li class="menu-item" id="menu-buscar-usuario">
+                <a href="{% url 'buscar_usuario' %}">
+                    <i class="fas fa-search"></i>
+                    <span>Buscar Usuario</span>
+                </a>
+            </li>
+            <li class="menu-item" id="menu-configuracion">
+                <a href="{% url 'configuracion_panel' %}">
+                    <i class="fas fa-cog"></i>
+                    <span>Configuración</span>
                 </a>
             </li>
             <li class="menu-item">
@@ -595,7 +601,9 @@
             '/bibliotecario/reservas/': 'menu-reservas',
             '/bibliotecario/multas/': 'menu-morosos',
             '/catalogo/gestion/libros/': 'menu-libros',
-            '/catalogo/gestion/ejemplares/': 'menu-stock'
+            '/catalogo/gestion/ejemplares/': 'menu-stock',
+            '/bibliotecario/configuracion/': 'menu-configuracion',
+            '/bibliotecario/buscar-usuario/': 'menu-buscar-usuario'
         };
         
         for (const [path, menuId] of Object.entries(menuItems)) {

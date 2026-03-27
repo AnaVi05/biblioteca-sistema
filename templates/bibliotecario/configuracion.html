@@ -1,0 +1,61 @@
+{% extends 'base/menu_bibliotecario.html' %}
+
+{% block main_content %}
+<div class="content-header">
+    <div class="page-title">
+        <h1>Configuración</h1>
+        <p>Opciones de configuración de tu cuenta</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6 mx-auto">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-cog me-2" style="color: #2563eb;"></i>
+                    Configuración de Cuenta
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    <a href="{% url 'mi_perfil' %}" class="list-group-item list-group-item-action d-flex align-items-center">
+                        <div class="me-3">
+                            <i class="fas fa-user-circle fa-2x" style="color: #2563eb;"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <h6 class="mb-1">Mi Perfil</h6>
+                            <small class="text-muted">Ver tu información personal</small>
+                        </div>
+                        <i class="fas fa-chevron-right text-muted"></i>
+                    </a>
+                    
+                    <a href="{% url 'password_change' %}" class="list-group-item list-group-item-action d-flex align-items-center mt-2">
+                        <div class="me-3">
+                            <i class="fas fa-key fa-2x" style="color: #f59e0b;"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <h6 class="mb-1">Cambiar Contraseña</h6>
+                            <small class="text-muted">Actualiza tu contraseña de acceso</small>
+                        </div>
+                        <i class="fas fa-chevron-right text-muted"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Información adicional -->
+        <div class="card mt-3">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-info-circle fa-2x text-info me-3"></i>
+                    <div>
+                        <small class="text-muted">Cuenta creada el {{ user.date_joined|date:"d/m/Y" }}</small><br>
+                        <small class="text-muted">Último acceso: {{ user.last_login|date:"d/m/Y H:i" }}</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

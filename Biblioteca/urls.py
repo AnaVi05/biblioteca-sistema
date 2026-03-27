@@ -7,6 +7,7 @@ from django.shortcuts import redirect, render
 from usuario import views
 from django.conf import settings
 from django.conf.urls.static import static
+from prestamo.views import mi_perfil, configuracion_panel
 
 # Vista de redirección según rol
 def redirigir_inicio(request):
@@ -26,6 +27,20 @@ urlpatterns = [
     path('logout/', cerrar_sesion, name='logout'),
     path('', redirigir_inicio, name='home'),
     path('registro/', views.registrar_usuario, name='registro'),
+    
+    # Cambio de contraseña
+    path('cambiar-contrasena/', auth_views.PasswordChangeView.as_view(
+        template_name='registration/password_change.html',
+        success_url='/cambiar-contrasena/hecho/'
+    ), name='password_change'),
+    path('cambiar-contrasena/hecho/', auth_views.PasswordChangeDoneView.as_view(
+        template_name='registration/password_change_done.html'
+    ), name='password_change_done'),
+    
+    # Perfil y configuración
+    path('perfil/', mi_perfil, name='mi_perfil'),
+    path('configuracion/', configuracion_panel, name='configuracion_panel'),
+    
     path('catalogo/', include('catalogo.urls')),
     path('', include('prestamo.urls')),
 ]
