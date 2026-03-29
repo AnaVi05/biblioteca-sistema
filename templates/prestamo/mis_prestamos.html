@@ -219,9 +219,10 @@
                 </div>
                 
                 <div style="text-align: right;">
-                    <span class="text-muted" style="font-size: 0.8rem;">
-                        <i class="fas fa-info-circle"></i> Esperando confirmación del bibliotecario
-                    </span>
+                    <a href="{% url 'cancelar_solicitud' prestamo.id %}" class="btn btn-sm btn-danger" 
+                    onclick="return confirm('¿Cancelar esta solicitud?')">
+                        <i class="fas fa-times"></i> Cancelar solicitud
+                    </a>
                 </div>
             </div>
         {% empty %}

@@ -1,0 +1,176 @@
+{% extends 'base/menu_usuario.html' %}
+{% load static %}
+
+{% block main_content %}
+<style>
+    .config-card {
+        max-width: 600px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+    
+    .config-header {
+        background: var(--primary-blue);
+        color: white;
+        padding: 25px;
+        text-align: center;
+    }
+    
+    .config-header h2 {
+        margin: 0;
+        font-size: 1.8rem;
+    }
+    
+    .config-body {
+        padding: 30px;
+    }
+    
+    .form-group {
+        margin-bottom: 20px;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 500;
+        color: var(--text-dark);
+    }
+    
+    .form-group input {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        font-size: 1rem;
+    }
+    
+    .form-group input:focus {
+        outline: none;
+        border-color: var(--primary-blue);
+    }
+    
+    .form-group .help-text {
+        font-size: 0.8rem;
+        color: #64748b;
+        margin-top: 5px;
+    }
+    
+    .errorlist {
+        color: #dc2626;
+        list-style: none;
+        padding-left: 0;
+        margin-top: 5px;
+        font-size: 0.85rem;
+    }
+    
+    .btn-guardar {
+        background: var(--primary-blue);
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s;
+        font-size: 1rem;
+        width: 100%;
+    }
+    
+    .btn-guardar:hover {
+        background: var(--dark-blue);
+        transform: translateY(-2px);
+    }
+    
+    .alert {
+        padding: 12px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+    
+    .alert-success {
+        background: #d4edda;
+        color: #155724;
+        border-left: 4px solid #28a745;
+    }
+    
+    .alert-error {
+        background: #f8d7da;
+        color: #721c24;
+        border-left: 4px solid #dc3545;
+    }
+</style>
+
+<div class="container py-5">
+    <div class="config-card">
+        <div class="config-header">
+            <h2><i class="fas fa-cog me-2"></i>Configuración</h2>
+            <p class="mb-0 mt-2" style="opacity: 0.9;">Actualiza tu contraseña</p>
+        </div>
+        
+        <div class="config-body">
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+            
+            <form method="post">
+                {% csrf_token %}
+                
+                <div class="form-group">
+                    <label>Contraseña actual:</label>
+                    <input type="password" name="old_password" class="form-control" required>
+                    {% if form.old_password.errors %}
+                        <ul class="errorlist">
+                            {% for error in form.old_password.errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
+                
+                <div class="form-group">
+                    <label>Nueva contraseña:</label>
+                    <input type="password" name="new_password1" class="form-control" required>
+                    <div class="help-text">
+                        <i class="fas fa-info-circle"></i> Mínimo 8 caracteres. No puede ser demasiado similar a tu información personal.
+                    </div>
+                    {% if form.new_password1.errors %}
+                        <ul class="errorlist">
+                            {% for error in form.new_password1.errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
+                
+                <div class="form-group">
+                    <label>Confirmar nueva contraseña:</label>
+                    <input type="password" name="new_password2" class="form-control" required>
+                    {% if form.new_password2.errors %}
+                        <ul class="errorlist">
+                            {% for error in form.new_password2.errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
+                
+                <button type="submit" class="btn-guardar">
+                    <i class="fas fa-save me-2"></i>Actualizar Contraseña
+                </button>
+            </form>
+            
+            <div class="mt-4 text-center">
+                <a href="{% url 'mi_perfil' %}" class="text-muted">
+                    <i class="fas fa-user me-1"></i> Ir a Mi Perfil
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

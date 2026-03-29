@@ -1,0 +1,41 @@
+{% extends 'base/menu_usuario.html' %}
+{% load static %}
+
+{% block main_content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header" style="background: var(--primary-blue); color: white;">
+                    <h4 class="mb-0"><i class="fas fa-times-circle me-2"></i>Cancelar Solicitud</h4>
+                </div>
+                <div class="card-body text-center">
+                    <i class="fas fa-exclamation-triangle" style="font-size: 4rem; color: #ffc107;"></i>
+                    
+                    <h5 class="mt-3">{{ prestamo.ejemplar.libro.titulo }}</h5>
+                    <p class="text-muted">
+                        {% for autor in prestamo.ejemplar.libro.autores.all %}
+                            {{ autor.nombre_completo }}{% if not forloop.last %}, {% endif %}
+                        {% endfor %}
+                    </p>
+                    
+                    <div class="alert alert-warning">
+                        <p class="mb-0">¿Estás seguro de cancelar esta solicitud?</p>
+                        <small class="text-muted">Podés volver a solicitarlo más tarde si lo necesitás.</small>
+                    </div>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger btn-lg px-4">
+                            <i class="fas fa-trash-alt me-2"></i>Sí, cancelar
+                        </button>
+                        <a href="{% url 'mis_prestamos' %}" class="btn btn-secondary btn-lg px-4">
+                            <i class="fas fa-arrow-left me-2"></i>Volver
+                        </a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

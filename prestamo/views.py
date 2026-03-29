@@ -219,6 +219,26 @@ def devolver_prestamo_usuario(request, prestamo_id):
     return render(request, 'prestamo/confirmar_devolucion.html', context)
 
 
+@login_required
+def cancelar_solicitud(request, prestamo_id):
+    """Cancela una solicitud de préstamo (estado SOLICITADO)"""
+    prestamo = get_object_or_404(
+        Prestamo, 
+        id=prestamo_id, 
+        socio=request.user.socio,
+        estado='SOLICITADO'
+    )
+    
+    if request.method == 'POST':
+        prestamo.estado = 'CANCELADA'  # Necesitás agregar este estado al modelo
+        prestamo.save()
+        messages.success(request, 'Solicitud de préstamo cancelada exitosamente')
+        return redirect('mis_prestamos')
+    
+    context = {'prestamo': prestamo}
+    return render(request, 'prestamo/cancelar_solicitud.html', context)
+
+
 # ========== VISTAS PARA RESERVAS ==========
 
 @login_required
@@ -333,8 +353,8 @@ def cancelar_reserva(request, reserva_id):
     )
     
     if request.method == 'POST':
-        reserva.estado = 'CANCELADA'
-        reserva.save()
+        # Eliminar la reserva directamente (más simple)
+        reserva.delete()
         messages.success(request, 'Reserva cancelada exitosamente')
         return redirect('mis_reservas')
     

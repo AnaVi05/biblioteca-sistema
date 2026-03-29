@@ -13,6 +13,7 @@ class Prestamo(models.Model):
         ('VENCIDO', 'Vencido'),
         ('DEVUELTO', 'Devuelto'),
         ('EXTRAVIADO', 'Extraviado'),
+        ('CANCELADA', 'Cancelada'),
     ]
     
     socio = models.ForeignKey(

@@ -17,6 +17,8 @@ urlpatterns = [
     path('registrar/<int:ejemplar_id>/', views.registrar_prestamo_usuario, name='registrar_prestamo_usuario'),
     path('mis-prestamos/', views.mis_prestamos, name='mis_prestamos'),
     path('mis-prestamos/devolver/<int:prestamo_id>/', views.devolver_prestamo_usuario, name='devolver_prestamo_usuario'),
+    path('cancelar-solicitud/<int:prestamo_id>/', views.cancelar_solicitud, name='cancelar_solicitud'),
+    
     # ========== PANEL BIBLIOTECARIO ==========
     path('bibliotecario/dashboard/', views.dashboard_bibliotecario, name='dashboard_bibliotecario'),
     path('bibliotecario/prestamos/nuevo/', views.prestamo_nuevo_bibliotecario, name='prestamo_nuevo_bibliotecario'),

@@ -1,0 +1,243 @@
+{% extends 'base/menu_usuario.html' %}
+{% load static %}
+
+{% block main_content %}
+<style>
+    .perfil-card {
+        max-width: 800px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+    
+    .perfil-header {
+        background: var(--primary-blue);
+        color: white;
+        padding: 25px;
+        text-align: center;
+    }
+    
+    .perfil-header h2 {
+        margin: 0;
+        font-size: 1.8rem;
+    }
+    
+    .perfil-body {
+        padding: 30px;
+        background: white;
+    }
+    
+    .info-row {
+        display: flex;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid #e2e8f0;
+    }
+    
+    .info-label {
+        width: 40%;
+        font-weight: 600;
+        color: var(--text-dark);
+    }
+    
+    .info-value {
+        width: 60%;
+        color: var(--text-light);
+    }
+    
+    .btn-editar {
+        background: var(--primary-blue);
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s;
+        font-size: 1rem;
+    }
+    
+    .btn-editar:hover {
+        background: var(--dark-blue);
+        transform: translateY(-2px);
+    }
+    
+    .form-group {
+        margin-bottom: 20px;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 500;
+        color: var(--text-dark);
+    }
+    
+    .form-group input {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        font-size: 1rem;
+    }
+    
+    .form-group input:focus {
+        outline: none;
+        border-color: var(--primary-blue);
+    }
+    
+    .badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+    
+    .badge-success {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .badge-warning {
+        background: #fff3cd;
+        color: #856404;
+    }
+    
+    .badge-danger {
+        background: #f8d7da;
+        color: #721c24;
+    }
+    
+    .text-center {
+        text-align: center;
+    }
+    
+    .mt-4 {
+        margin-top: 1.5rem;
+    }
+</style>
+
+<div class="container py-5">
+    <div class="perfil-card">
+        <div class="perfil-header">
+            <h2><i class="fas fa-user-circle me-2"></i>Mi Perfil</h2>
+        </div>
+        
+        <!-- Modo visualización -->
+        <div id="view-mode" class="perfil-body">
+            <div class="info-row">
+                <div class="info-label">Usuario:</div>
+                <div class="info-value">{{ user.username }}</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">Nombre completo:</div>
+                <div class="info-value">{{ user.first_name }} {{ user.last_name }}</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">Email:</div>
+                <div class="info-value">{{ user.email }}</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">Cédula:</div>
+                <div class="info-value">{{ socio.cedula }}</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">Teléfono:</div>
+                <div class="info-value">{{ socio.telefono|default:"No registrado" }}</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">Dirección:</div>
+                <div class="info-value">{{ socio.direccion|default:"No registrada" }}</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">Tipo de usuario:</div>
+                <div class="info-value">{{ socio.get_tipo_usuario_display }}</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">Estado:</div>
+                <div class="info-value">
+                    {% if socio.estado_socio == 'activo' %}
+                        <span class="badge badge-success">Activo</span>
+                    {% elif socio.estado_socio == 'moroso' %}
+                        <span class="badge badge-warning">Moroso</span>
+                    {% else %}
+                        <span class="badge badge-danger">Inhabilitado</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">Último inicio:</div>
+                <div class="info-value">{{ user.last_login|date:"d/m/Y H:i"|default:"Nunca" }}</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">Fecha registro:</div>
+                <div class="info-value">{{ user.date_joined|date:"d/m/Y" }}</div>
+            </div>
+            
+            <div class="text-center mt-4">
+                <button class="btn-editar" onclick="toggleEditMode()">
+                    <i class="fas fa-edit me-2"></i>Editar Perfil
+                </button>
+            </div>
+        </div>
+        
+        <!-- Modo edición -->
+        <div id="edit-mode" class="perfil-body" style="display: none;">
+            <form method="post">
+                {% csrf_token %}
+                
+                <div class="form-group">
+                    <label>Nombre:</label>
+                    <input type="text" name="first_name" value="{{ user.first_name }}" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Apellido:</label>
+                    <input type="text" name="last_name" value="{{ user.last_name }}" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Email:</label>
+                    <input type="email" name="email" value="{{ user.email }}" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Teléfono:</label>
+                    <input type="text" name="telefono" value="{{ socio.telefono|default:'' }}">
+                </div>
+                
+                <div class="form-group">
+                    <label>Dirección:</label>
+                    <input type="text" name="direccion" value="{{ socio.direccion|default:'' }}">
+                </div>
+                
+                <div class="text-center mt-4">
+                    <button type="submit" class="btn-editar" style="background: #28a745;">
+                        <i class="fas fa-save me-2"></i>Guardar Cambios
+                    </button>
+                    <button type="button" class="btn-editar" style="background: #6c757d;" onclick="toggleEditMode()">
+                        <i class="fas fa-times me-2"></i>Cancelar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function toggleEditMode() {
+        const viewMode = document.getElementById('view-mode');
+        const editMode = document.getElementById('edit-mode');
+        
+        if (viewMode.style.display === 'none') {
+            viewMode.style.display = 'block';
+            editMode.style.display = 'none';
+        } else {
+            viewMode.style.display = 'none';
+            editMode.style.display = 'block';
+        }
+    }
+</script>
+{% endblock %}
