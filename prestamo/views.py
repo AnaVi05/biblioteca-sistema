@@ -50,7 +50,7 @@ def crear_prestamo(request):
 
 @staff_member_required
 def devolver_prestamo(request, pk):
-    """Registrar devolución de un préstamo"""
+    """Registrar devolución de un préstamo (desde detalle)"""
     prestamo = get_object_or_404(Prestamo, pk=pk)
     
     if request.method == 'POST':
@@ -132,7 +132,7 @@ def registrar_prestamo_usuario(request, ejemplar_id):
             messages.error(request, 'Los días deben ser entre 1 y 5')
             return redirect('registrar_prestamo_usuario', ejemplar_id=ejemplar.id)
         
-        # Crear préstamo en estado SOLICITADO (el bibliotecario confirmará después)
+        # Crear préstamo en estado SOLICITADO
         prestamo = Prestamo.objects.create(
             socio=request.user.socio,
             ejemplar=ejemplar,
@@ -141,8 +141,6 @@ def registrar_prestamo_usuario(request, ejemplar_id):
             fecha_vencimiento=date.today() + timedelta(days=dias_solicitados),
             estado='SOLICITADO'   
         )
-        
-       
         
         messages.success(request, f'✅ Solicitud de préstamo enviada. Esperá confirmación del bibliotecario.')
         return redirect('mis_prestamos')
@@ -156,16 +154,13 @@ def registrar_prestamo_usuario(request, ejemplar_id):
 
 @login_required
 def mis_prestamos(request):
-    """Vista para que el usuario vea sus préstamos activos (ya retirados)"""
+    """Vista para que el usuario vea sus préstamos"""
     prestamos = Prestamo.objects.filter(
         socio=request.user.socio
     ).select_related('ejemplar__libro').order_by('-fecha_prestamo')
     
-    
     prestamos_activos = prestamos.filter(estado='ACTIVO')
-    
     prestamos_solicitados = prestamos.filter(estado='SOLICITADO')
-    
     historial = prestamos.filter(estado__in=['DEVUELTO', 'EXTRAVIADO'])
     
     context = {
@@ -176,9 +171,10 @@ def mis_prestamos(request):
     }
     return render(request, 'prestamo/mis_prestamos.html', context)
 
+
 @login_required
 def devolver_prestamo_usuario(request, prestamo_id):
-    """Usuario confirma devolución de su préstamo"""
+    """Usuario confirma devolución de su préstamo (YA NO SE USA)"""
     prestamo = get_object_or_404(Prestamo, id=prestamo_id, socio=request.user.socio, estado='ACTIVO')
     
     if request.method == 'POST':
@@ -186,12 +182,10 @@ def devolver_prestamo_usuario(request, prestamo_id):
         prestamo.estado = 'DEVUELTO'
         prestamo.save()
         
-        # Actualizar ejemplar
         if prestamo.ejemplar:
             prestamo.ejemplar.disponibilidad = 'DISPONIBLE'
             prestamo.ejemplar.save()
             
-            # Actualizar inventario del libro
             libro = prestamo.ejemplar.libro
             libro.inventario_disponible = Ejemplar.objects.filter(
                 libro=libro, 
@@ -199,7 +193,6 @@ def devolver_prestamo_usuario(request, prestamo_id):
             ).count()
             libro.save()
         
-        # Verificar atraso
         dias_atraso = prestamo.dias_atraso
         if dias_atraso > 0:
             Multa.objects.create(
@@ -230,7 +223,7 @@ def cancelar_solicitud(request, prestamo_id):
     )
     
     if request.method == 'POST':
-        prestamo.estado = 'CANCELADA'  # Necesitás agregar este estado al modelo
+        prestamo.estado = 'CANCELADA'  
         prestamo.save()
         messages.success(request, 'Solicitud de préstamo cancelada exitosamente')
         return redirect('mis_prestamos')
@@ -246,7 +239,6 @@ def reservar_libro(request, libro_id):
     """Permite al usuario reservar un libro no disponible"""
     libro = get_object_or_404(Libro, id=libro_id)
     
-    # Verificar si hay ejemplares disponibles
     ejemplares_disponibles = Ejemplar.objects.filter(
         libro=libro, 
         disponibilidad='DISPONIBLE'
@@ -265,7 +257,6 @@ def reservar_libro(request, libro_id):
             messages.error(request, 'Fecha inválida')
             return redirect('reservar_libro', libro_id=libro.id)
         
-        # Validar fecha límite
         fecha_min = date.today() + timedelta(days=1)
         fecha_max = date.today() + timedelta(days=30)
         
@@ -277,7 +268,6 @@ def reservar_libro(request, libro_id):
             messages.error(request, 'La fecha límite no puede ser mayor a 30 días')
             return redirect('reservar_libro', libro_id=libro.id)
         
-        # Verificar si ya tiene una reserva activa
         reserva_existente = Reserva.objects.filter(
             socio=request.user.socio,
             libro=libro,
@@ -288,13 +278,11 @@ def reservar_libro(request, libro_id):
             messages.warning(request, 'Ya tenés una reserva activa para este libro')
             return redirect('mis_reservas')
         
-        # Calcular posición en cola
         ultima_posicion = Reserva.objects.filter(
             libro=libro,
             estado__in=['PENDIENTE', 'ACTIVA']
         ).count()
         
-        # Crear reserva
         reserva = Reserva.objects.create(
             socio=request.user.socio,
             libro=libro,
@@ -353,7 +341,6 @@ def cancelar_reserva(request, reserva_id):
     )
     
     if request.method == 'POST':
-        # Eliminar la reserva directamente (más simple)
         reserva.delete()
         messages.success(request, 'Reserva cancelada exitosamente')
         return redirect('mis_reservas')
@@ -362,191 +349,98 @@ def cancelar_reserva(request, reserva_id):
     return render(request, 'prestamo/cancelar_reserva.html', context)
 
 
-# ========== #panel bibliotecario
+# ========== PANEL BIBLIOTECARIO ==========
 
 @staff_member_required
 def dashboard_bibliotecario(request):
-    """
-    
-    Dashboard principal para bibliotecarios
-    """
+    """Dashboard principal para bibliotecarios"""
     hoy = timezone.now().date()
     
-    # ========== ESTADÍSTICAS PRINCIPALES ==========
-    
-    # Préstamos activos
-    prestamos_activos = Prestamo.objects.filter(
-        estado='ACTIVO'
-    ).count()
-    
-    # Préstamos del día (registrados hoy)
-    prestamos_hoy = Prestamo.objects.filter(
-        fecha_prestamo__date=hoy
-    ).count()
-    
-    # Préstamos vencidos
-    prestamos_vencidos = Prestamo.objects.filter(
-        estado='ACTIVO',
-        fecha_vencimiento__lt=hoy
-    ).count()
-    
-    # Devoluciones pendientes (préstamos activos vencidos)
+    # Estadísticas
+    prestamos_activos = Prestamo.objects.filter(estado='ACTIVO').count()
+    prestamos_hoy = Prestamo.objects.filter(fecha_prestamo__date=hoy).count()
+    prestamos_vencidos = Prestamo.objects.filter(estado='ACTIVO', fecha_vencimiento__lt=hoy).count()
     devoluciones_pendientes = prestamos_vencidos
-    
-    # Ejemplares disponibles
-    from catalogo.models import Ejemplar
-    ejemplares_disponibles = Ejemplar.objects.filter(
-        disponibilidad='DISPONIBLE'
-    ).count()
-    
-    # Reservas pendientes
-    reservas_pendientes = Reserva.objects.filter(
-        estado='PENDIENTE',
-        fecha_expiracion__date__gte=hoy
-    ).count()
-    
-    # Reservas activas
-    reservas_activas = reservas_pendientes
-    
-    # Total de multas pendientes
-    total_multas_pendientes = Multa.objects.filter(
-        estado='PENDIENTE'
-    ).aggregate(
-        total=Sum('monto_total')
-    )['total'] or 0
-    
-    # Usuarios con multas pendientes
-    usuarios_morosos = Multa.objects.filter(
-        estado='PENDIENTE'
-    ).values('prestamo__socio').distinct().count()
-    
-    total_morosos = usuarios_morosos
-    
-    # Socios activos
-    from usuario.models import Socio
-    socios_activos = Socio.objects.filter(
-        estado_socio='activo'
-    ).count()
-    
-    # Préstamos próximos a vencer (próximos 3 días)
+    ejemplares_disponibles = Ejemplar.objects.filter(disponibilidad='DISPONIBLE').count()
+    reservas_pendientes = Reserva.objects.filter(estado='PENDIENTE', fecha_expiracion__date__gte=hoy).count()
+    total_multas_pendientes = Multa.objects.filter(estado='PENDIENTE').aggregate(total=Sum('monto_total'))['total'] or 0
+    usuarios_morosos = Multa.objects.filter(estado='PENDIENTE').values('prestamo__socio').distinct().count()
+    socios_activos = Socio.objects.filter(estado_socio='activo').count()
     proximos_a_vencer = Prestamo.objects.filter(
         estado='ACTIVO',
         fecha_vencimiento__gte=hoy,
         fecha_vencimiento__lte=hoy + timedelta(days=3)
     ).count()
-
-        #  SOLICITUDES PENDIENTES (préstamos en estado SOLICITADO) 
+    
     solicitudes_pendientes = Prestamo.objects.filter(
         estado='SOLICITADO'
     ).select_related('socio__user', 'ejemplar__libro').order_by('fecha_prestamo')
     
-    # ========== TAREAS PENDIENTES (datos reales) ==========
+    # Tareas pendientes
     tareas_pendientes = []
     
-    # Agregar préstamos vencidos como tareas
-    prestamos_vencidos_lista = Prestamo.objects.filter(
-        estado='ACTIVO',
-        fecha_vencimiento__lt=hoy
-    ).select_related('socio__user', 'ejemplar__libro')[:3]
-    
-    for prestamo in prestamos_vencidos_lista:
+    for prestamo in Prestamo.objects.filter(estado='ACTIVO', fecha_vencimiento__lt=hoy).select_related('socio__user', 'ejemplar__libro')[:3]:
         tareas_pendientes.append({
             'titulo': 'Devolución atrasada',
             'descripcion': f"{prestamo.socio.user.get_full_name()} - \"{prestamo.ejemplar.libro.titulo}\""
         })
     
-    # Agregar usuarios con multas como tareas
-    multas_pendientes = Multa.objects.filter(
-        estado='PENDIENTE'
-    ).select_related('prestamo__socio__user')[:2]
-    
-    for multa in multas_pendientes:
+    for multa in Multa.objects.filter(estado='PENDIENTE').select_related('prestamo__socio__user')[:2]:
         tareas_pendientes.append({
             'titulo': 'Usuario con multa',
             'descripcion': f"{multa.prestamo.socio.user.get_full_name()} - Gs. {multa.monto_total:,.0f} pendientes"
         })
     
-    # Agregar reservas pendientes como tareas
-    reservas_lista = Reserva.objects.filter(
-        estado='PENDIENTE',
-        fecha_expiracion__date__gte=hoy
-    ).select_related('socio__user', 'libro')[:2]
-    
-    for reserva in reservas_lista:
+    for reserva in Reserva.objects.filter(estado='PENDIENTE', fecha_expiracion__date__gte=hoy).select_related('socio__user', 'libro')[:2]:
         tareas_pendientes.append({
             'titulo': 'Reserva por confirmar',
             'descripcion': f"{reserva.socio.user.get_full_name()} - \"{reserva.libro.titulo}\""
         })
     
-    # ========== ACTIVIDAD RECIENTE ==========
+    # Actividad reciente
     actividades_recientes = []
     
-    # Últimos préstamos
-    ultimos_prestamos = Prestamo.objects.select_related(
-        'socio__user', 'ejemplar__libro'
-    ).order_by('-fecha_prestamo')[:2]
-    
-    for prestamo in ultimos_prestamos:
+    for prestamo in Prestamo.objects.select_related('socio__user', 'ejemplar__libro').order_by('-fecha_prestamo')[:2]:
         actividades_recientes.append({
             'titulo': 'Préstamo registrado',
             'descripcion': f"{prestamo.socio.user.get_full_name()} - \"{prestamo.ejemplar.libro.titulo}\""
         })
     
-    # Últimas devoluciones
-    ultimas_devoluciones = Prestamo.objects.filter(
-        fecha_devolucion_real__isnull=False
-    ).select_related(
-        'socio__user', 'ejemplar__libro'
-    ).order_by('-fecha_devolucion_real')[:2]
-    
-    for devolucion in ultimas_devoluciones:
+    for devolucion in Prestamo.objects.filter(fecha_devolucion_real__isnull=False).select_related('socio__user', 'ejemplar__libro').order_by('-fecha_devolucion_real')[:2]:
         actividades_recientes.append({
             'titulo': 'Devolución procesada',
             'descripcion': f"{devolucion.socio.user.get_full_name()} - \"{devolucion.ejemplar.libro.titulo}\""
         })
     
-    # Últimas reservas confirmadas
-    reservas_confirmadas = Reserva.objects.filter(
-        estado='COMPLETADA'
-    ).select_related('socio__user', 'libro').order_by('-fecha_reserva')[:1]
-    
-    for reserva in reservas_confirmadas:
+    for reserva in Reserva.objects.filter(estado='COMPLETADA').select_related('socio__user', 'libro').order_by('-fecha_reserva')[:1]:
         actividades_recientes.append({
             'titulo': 'Reserva confirmada',
             'descripcion': f"{reserva.socio.user.get_full_name()} - \"{reserva.libro.titulo}\""
         })
     
     context = {
-        # Estadísticas principales
         'prestamos_activos': prestamos_activos,
         'prestamos_hoy': prestamos_hoy,
         'prestamos_vencidos': prestamos_vencidos,
         'devoluciones_pendientes': devoluciones_pendientes,
         'ejemplares_disponibles': ejemplares_disponibles,
         'reservas_pendientes': reservas_pendientes,
-        'reservas_activas': reservas_activas,
         'total_multas_pendientes': total_multas_pendientes,
         'usuarios_morosos': usuarios_morosos,
-        'total_morosos': total_morosos,
+        'total_morosos': usuarios_morosos,
         'socios_activos': socios_activos,
         'proximos_a_vencer': proximos_a_vencer,
-
-        # solicitudes pendientes
-        'solicitudes_pendientes': solicitudes_pendientes,  
-
-        
-        # Tareas y actividades
+        'solicitudes_pendientes': solicitudes_pendientes,
         'tareas_pendientes': tareas_pendientes,
         'actividades_recientes': actividades_recientes,
     }
     
     return render(request, 'bibliotecario/dashboard.html', context)
 
+
 @staff_member_required
 def confirmar_prestamo(request, prestamo_id):
     """Confirmar entrega de un préstamo solicitado"""
-    from django.db import transaction
-    
     try:
         prestamo = Prestamo.objects.get(id=prestamo_id, estado='SOLICITADO')
     except Prestamo.DoesNotExist:
@@ -555,16 +449,13 @@ def confirmar_prestamo(request, prestamo_id):
     
     if request.method == 'POST':
         with transaction.atomic():
-            # Cambiar estado a ACTIVO
             prestamo.estado = 'ACTIVO'
             prestamo.save()
             
-            # Actualizar disponibilidad del ejemplar
             ejemplar = prestamo.ejemplar
             ejemplar.disponibilidad = 'PRESTADO'
             ejemplar.save()
             
-            # Actualizar inventario del libro
             libro = ejemplar.libro
             libro.inventario_disponible = Ejemplar.objects.filter(
                 libro=libro, 
@@ -578,19 +469,11 @@ def confirmar_prestamo(request, prestamo_id):
     
     context = {'prestamo': prestamo}
     return render(request, 'bibliotecario/confirmar_prestamo.html', context)
-         
+
 
 @staff_member_required
 def prestamo_nuevo_bibliotecario(request):
-    """
-    Registrar un nuevo préstamo desde el panel bibliotecario
-    """
-    from django.contrib import messages
-    from django.db import transaction
-    from django.utils import timezone
-    from datetime import timedelta
-    
-    # Obtener parámetros de búsqueda
+    """Registrar un nuevo préstamo desde el panel bibliotecario"""
     socio_cedula = request.GET.get('socio_cedula', '')
     socio_nombre = request.GET.get('socio_nombre', '')
     ejemplar_codigo = request.GET.get('ejemplar_codigo', '')
@@ -599,7 +482,6 @@ def prestamo_nuevo_bibliotecario(request):
     socio_seleccionado = None
     ejemplar_seleccionado = None
     
-    # Búsqueda de socio
     socios = []
     if socio_cedula or socio_nombre:
         socios = Socio.objects.filter(estado_socio='activo')
@@ -613,20 +495,15 @@ def prestamo_nuevo_bibliotecario(request):
             )
         socios = socios[:10]
     
-    # Búsqueda de ejemplares disponibles
     ejemplares = []
     if ejemplar_codigo or ejemplar_titulo:
-        ejemplares = Ejemplar.objects.filter(
-            disponibilidad='DISPONIBLE'
-        ).select_related('libro')
-        
+        ejemplares = Ejemplar.objects.filter(disponibilidad='DISPONIBLE').select_related('libro')
         if ejemplar_codigo:
             ejemplares = ejemplares.filter(codigo_inventario__icontains=ejemplar_codigo)
         if ejemplar_titulo:
             ejemplares = ejemplares.filter(libro__titulo__icontains=ejemplar_titulo)
         ejemplares = ejemplares[:10]
     
-    # Si se seleccionó un socio via GET
     socio_id = request.GET.get('socio_id')
     if socio_id:
         try:
@@ -634,7 +511,6 @@ def prestamo_nuevo_bibliotecario(request):
         except Socio.DoesNotExist:
             pass
     
-    # Si se seleccionó un ejemplar via GET
     ejemplar_id = request.GET.get('ejemplar_id')
     if ejemplar_id:
         try:
@@ -642,7 +518,6 @@ def prestamo_nuevo_bibliotecario(request):
         except Ejemplar.DoesNotExist:
             pass
     
-    # Procesar el formulario cuando se envía
     if request.method == 'POST':
         socio_id = request.POST.get('socio_id')
         ejemplar_id = request.POST.get('ejemplar_id')
@@ -658,12 +533,10 @@ def prestamo_nuevo_bibliotecario(request):
                     socio = Socio.objects.get(id=socio_id)
                     ejemplar = Ejemplar.objects.get(id=ejemplar_id)
                     
-                    # Verificar que el ejemplar siga disponible
                     if ejemplar.disponibilidad != 'DISPONIBLE':
                         messages.error(request, 'El ejemplar ya no está disponible')
                         return redirect('prestamo_nuevo_bibliotecario')
                     
-                    # Verificar que el socio no tenga multas pendientes
                     tiene_multas = Multa.objects.filter(
                         prestamo__socio=socio,
                         estado='PENDIENTE'
@@ -673,7 +546,6 @@ def prestamo_nuevo_bibliotecario(request):
                         messages.warning(request, 'El socio tiene multas pendientes')
                         return redirect('prestamo_nuevo_bibliotecario')
                     
-                    # Crear el préstamo
                     fecha_prestamo = timezone.now()
                     fecha_vencimiento = fecha_prestamo.date() + timedelta(days=dias)
                     
@@ -686,7 +558,6 @@ def prestamo_nuevo_bibliotecario(request):
                         estado='ACTIVO'
                     )
                     
-                    # Actualizar disponibilidad del ejemplar
                     ejemplar.disponibilidad = 'PRESTADO'
                     ejemplar.save()
                     
@@ -709,51 +580,19 @@ def prestamo_nuevo_bibliotecario(request):
     
     return render(request, 'bibliotecario/prestamo_nuevo.html', context)
 
-    # ========== VISTAS PLACEHOLDER (en desarrollo) ==========
 
+# ========== REGISTRAR DEVOLUCIÓN (PRINCIPAL) ==========
 @staff_member_required
 def registrar_devolucion(request):
-    """Vista temporal - Registrar devolución"""
-    return render(request, 'bibliotecario/en_construccion.html', {
-        'titulo': 'Registrar Devolución',
-        'mensaje': 'Próximamente: Sistema de registro de devoluciones con cálculo de multas'
-    })
-
-@staff_member_required
-def gestionar_reservas(request):
-    """Vista temporal - Gestionar reservas"""
-    return render(request, 'bibliotecario/en_construccion.html', {
-        'titulo': 'Gestionar Reservas',
-        'mensaje': 'Próximamente: Gestión de reservas y sistema de cola de espera'
-    })
-
-@staff_member_required
-def gestionar_multas(request):
-    """Vista temporal - Gestionar multas y morosos"""
-    return render(request, 'bibliotecario/en_construccion.html', {
-        'titulo': 'Usuarios Morosos',
-        'mensaje': 'Próximamente: Gestión de multas y registro de pagos'
-    })
-
-
-@staff_member_required
-def registrar_devolucion(request):
-    """
-    Registrar devolución de un préstamo
-    """
-    from django.contrib import messages
-    from django.db import transaction
-    from django.utils import timezone
+    """Registrar devolución de un préstamo desde el panel"""
     from decimal import Decimal
     
-    # Obtener préstamos activos
     prestamos_activos = Prestamo.objects.filter(
         estado='ACTIVO'
     ).select_related(
         'socio__user', 'ejemplar__libro'
     ).order_by('fecha_vencimiento')
     
-    # Obtener parámetros de búsqueda
     search = request.GET.get('search', '')
     if search:
         prestamos_activos = prestamos_activos.filter(
@@ -766,7 +605,6 @@ def registrar_devolucion(request):
             ejemplar__codigo_inventario__icontains=search
         )
     
-    # Si se selecciona un préstamo para devolver
     prestamo_id = request.GET.get('devolver_id')
     prestamo_seleccionado = None
     multa_calculada = None
@@ -777,11 +615,9 @@ def registrar_devolucion(request):
                 'socio__user', 'ejemplar__libro'
             ).get(id=prestamo_id, estado='ACTIVO')
             
-            # Calcular días de atraso
             hoy = timezone.now().date()
             if prestamo_seleccionado.fecha_vencimiento < hoy:
                 dias_atraso = (hoy - prestamo_seleccionado.fecha_vencimiento).days
-                # Calcular multa (ejemplo: 1000 Gs por día)
                 monto_por_dia = Decimal('1000')
                 monto_total = dias_atraso * monto_por_dia
                 multa_calculada = {
@@ -792,7 +628,6 @@ def registrar_devolucion(request):
         except Prestamo.DoesNotExist:
             pass
     
-    # Procesar devolución
     if request.method == 'POST':
         prestamo_id = request.POST.get('prestamo_id')
         
@@ -803,28 +638,32 @@ def registrar_devolucion(request):
                 ).get(id=prestamo_id, estado='ACTIVO')
                 
                 hoy = timezone.now().date()
-                fecha_devolucion = hoy
                 dias_atraso = 0
                 monto_multa = Decimal('0')
                 
-                # Calcular atraso si corresponde
                 if prestamo.fecha_vencimiento < hoy:
                     dias_atraso = (hoy - prestamo.fecha_vencimiento).days
-                    monto_por_dia = Decimal('1000')  # Gs por día
+                    monto_por_dia = Decimal('1000')
                     monto_multa = dias_atraso * monto_por_dia
                 
-                # Registrar fecha de devolución
-                prestamo.fecha_devolucion_real = fecha_devolucion
+                prestamo.fecha_devolucion_real = hoy
                 prestamo.estado = 'DEVUELTO'
                 prestamo.save()
                 
-                # Actualizar disponibilidad del ejemplar
+                # ✅ ACTUALIZAR DISPONIBILIDAD DEL EJEMPLAR
                 prestamo.ejemplar.disponibilidad = 'DISPONIBLE'
                 prestamo.ejemplar.save()
                 
-                # Crear multa si hay atraso
+                # ✅ ACTUALIZAR INVENTARIO DEL LIBRO
+                libro = prestamo.ejemplar.libro
+                libro.inventario_disponible = Ejemplar.objects.filter(
+                    libro=libro, 
+                    disponibilidad='DISPONIBLE'
+                ).count()
+                libro.save()
+                
                 if dias_atraso > 0:
-                    multa = Multa.objects.create(
+                    Multa.objects.create(
                         prestamo=prestamo,
                         dias_atraso=dias_atraso,
                         monto_base=monto_por_dia,
@@ -835,14 +674,14 @@ def registrar_devolucion(request):
                     )
                     messages.warning(request, f'Devolución registrada. Multa generada: Gs. {monto_multa:,.0f} por {dias_atraso} días de atraso.')
                 else:
-                    messages.success(request, f'Devolución registrada exitosamente. Préstamo #{prestamo.id} completado.')
+                    messages.success(request, f'Devolución registrada exitosamente.')
                 
                 return redirect('registrar_devolucion')
                 
         except Prestamo.DoesNotExist:
             messages.error(request, 'Préstamo no encontrado')
         except Exception as e:
-            messages.error(request, f'Error al procesar devolución: {str(e)}')
+            messages.error(request, f'Error: {str(e)}')
     
     context = {
         'prestamos_activos': prestamos_activos,
@@ -853,29 +692,16 @@ def registrar_devolucion(request):
     }
     
     return render(request, 'bibliotecario/devolucion.html', context)
-    
+
+
 @staff_member_required
 def gestionar_reservas(request):
-    """
-    Gestionar reservas de libros
-    """
-    from django.contrib import messages
-    from django.db import transaction
-    from django.utils import timezone
-    from django.http import HttpResponse
-    
-    # DEBUG: Verificar que la vista se ejecuta
-    print("=== LLEGÓ A GESTIONAR RESERVAS ===")
-    
+    """Gestionar reservas de libros"""
     try:
-        # Obtener parámetros
         accion = request.GET.get('accion')
         reserva_id = request.GET.get('reserva_id')
         search = request.GET.get('search', '')
         
-        print(f"Acción: {accion}, Reserva ID: {reserva_id}, Search: {search}")
-        
-        # Procesar acciones (confirmar o cancelar)
         if accion and reserva_id:
             try:
                 reserva = Reserva.objects.select_related('socio', 'libro', 'ejemplar_asignado').get(id=reserva_id)
@@ -919,14 +745,10 @@ def gestionar_reservas(request):
             
             return redirect('gestionar_reservas')
         
-        # Obtener reservas
         reservas = Reserva.objects.select_related(
             'socio__user', 'libro', 'ejemplar_asignado'
         ).order_by('-fecha_reserva')
         
-        print(f"Total reservas encontradas: {reservas.count()}")
-        
-        # Filtrar por búsqueda
         if search:
             reservas = reservas.filter(
                 socio__user__first_name__icontains=search
@@ -936,21 +758,12 @@ def gestionar_reservas(request):
                 libro__titulo__icontains=search
             )
         
-        # Separar por estados
-        reservas_pendientes = reservas.filter(estado='PENDIENTE')
-        reservas_activas = reservas.filter(estado='ACTIVA')
-        reservas_completadas = reservas.filter(estado='COMPLETADA')[:5]
-        reservas_canceladas = reservas.filter(estado='CANCELADA')[:5]
-        reservas_expiradas = reservas.filter(estado='EXPIRADA')[:5]
-        
-        print(f"Pendientes: {reservas_pendientes.count()}, Activas: {reservas_activas.count()}")
-        
         context = {
-            'reservas_pendientes': reservas_pendientes,
-            'reservas_activas': reservas_activas,
-            'reservas_completadas': reservas_completadas,
-            'reservas_canceladas': reservas_canceladas,
-            'reservas_expiradas': reservas_expiradas,
+            'reservas_pendientes': reservas.filter(estado='PENDIENTE'),
+            'reservas_activas': reservas.filter(estado='ACTIVA'),
+            'reservas_completadas': reservas.filter(estado='COMPLETADA')[:5],
+            'reservas_canceladas': reservas.filter(estado='CANCELADA')[:5],
+            'reservas_expiradas': reservas.filter(estado='EXPIRADA')[:5],
             'search': search,
             'hoy': timezone.now().date(),
         }
@@ -958,51 +771,39 @@ def gestionar_reservas(request):
         return render(request, 'bibliotecario/reservas.html', context)
         
     except Exception as e:
-        print(f"ERROR: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return HttpResponse(f"Error: {str(e)}")
+        messages.error(request, f'Error: {str(e)}')
+        return redirect('dashboard_bibliotecario')
+
 
 @staff_member_required
 def gestionar_multas(request):
-    """
-    Gestionar usuarios morosos y multas pendientes
-    """
-    from django.contrib import messages
-    from django.db import transaction
-    from django.utils import timezone
+    """Gestionar usuarios morosos y multas pendientes"""
     from decimal import Decimal
     
-    # Obtener parámetros
     accion = request.GET.get('accion')
     multa_id = request.GET.get('multa_id')
     socio_id = request.GET.get('socio_id')
     search = request.GET.get('search', '')
     
-    # Procesar pago de multa
     if accion == 'pagar' and multa_id:
         try:
             with transaction.atomic():
                 multa = Multa.objects.select_related('prestamo__socio__user').get(id=multa_id, estado='PENDIENTE')
                 
-                # Registrar pago
                 multa.estado = 'PAGADA'
                 multa.fecha_pago = timezone.now().date()
                 
-                # Comprobante (opcional)
                 if request.GET.get('comprobante'):
                     multa.comprobante_pago = request.GET.get('comprobante')
                 
                 multa.save()
                 
-                # Verificar si el socio ya no tiene más multas pendientes
                 otras_multas = Multa.objects.filter(
                     prestamo__socio=multa.prestamo.socio,
                     estado='PENDIENTE'
                 ).exclude(id=multa.id).count()
                 
                 if otras_multas == 0:
-                    # Si el socio estaba como moroso, actualizar su estado
                     socio = multa.prestamo.socio
                     if socio.estado_socio == 'moroso':
                         socio.estado_socio = 'activo'
@@ -1015,10 +816,10 @@ def gestionar_multas(request):
         
         return redirect('gestionar_multas')
     
-    # Ver detalle de multas de un socio específico
     multas_detalle = None
     socio_seleccionado = None
-    total_multas_socio = 0 
+    total_multas_socio = 0
+    
     if socio_id:
         try:
             socio_seleccionado = Socio.objects.get(id=socio_id)
@@ -1026,16 +827,14 @@ def gestionar_multas(request):
                 prestamo__socio=socio_seleccionado,
                 estado='PENDIENTE'
             ).select_related('prestamo__ejemplar__libro').order_by('fecha_generacion')
-            # Calcular el total de multas para este socio
             total_multas_socio = multas_detalle.aggregate(total=Sum('monto_total'))['total'] or 0
         except Socio.DoesNotExist:
             pass
-    # Obtener todos los socios con multas pendientes - CORREGIDO
+    
     socios_morosos = Socio.objects.filter(
         prestamos__multas__estado='PENDIENTE'
     ).distinct().select_related('user')
     
-    # Aplicar búsqueda
     if search:
         socios_morosos = socios_morosos.filter(
             user__first_name__icontains=search
@@ -1045,7 +844,6 @@ def gestionar_multas(request):
             cedula__icontains=search
         )
     
-    # Calcular total de multas por socio
     socios_con_total = []
     for socio in socios_morosos:
         total_multas = Multa.objects.filter(
@@ -1064,7 +862,6 @@ def gestionar_multas(request):
             'cantidad_multas': cantidad_multas
         })
     
-    # Ordenar por mayor deuda
     socios_con_total.sort(key=lambda x: x['total_multas'], reverse=True)
     
     context = {
@@ -1077,78 +874,17 @@ def gestionar_multas(request):
     }
     
     return render(request, 'bibliotecario/morosos.html', context)
-    
-    # Ver detalle de multas de un socio específico
-    multas_detalle = None
-    socio_seleccionado = None
-    
-    if socio_id:
-        try:
-            socio_seleccionado = Socio.objects.get(id=socio_id)
-            multas_detalle = Multa.objects.filter(
-                prestamo__socio=socio_seleccionado,
-                estado='PENDIENTE'
-            ).select_related('prestamo__ejemplar__libro').order_by('fecha_generacion')
-        except Socio.DoesNotExist:
-            pass
-    
-    # Obtener todos los socios con multas pendientes
-    socios_morosos = Socio.objects.filter(
-    prestamos__multas__estado='PENDIENTE'
-    ).distinct().select_related('user')
-    
-    # Aplicar búsqueda
-    if search:
-        socios_morosos = socios_morosos.filter(
-            user__first_name__icontains=search
-        ) | socios_morosos.filter(
-            user__last_name__icontains=search
-        ) | socios_morosos.filter(
-            cedula__icontains=search
-        )
-    
-    # Calcular total de multas por socio
-    socios_con_total = []
-    for socio in socios_morosos:
-        total_multas = Multa.objects.filter(
-            prestamo__socio=socio,
-            estado='PENDIENTE'
-        ).aggregate(total=Sum('monto_total'))['total'] or 0
-        
-        cantidad_multas = Multa.objects.filter(
-            prestamo__socio=socio,
-            estado='PENDIENTE'
-        ).count()
-        
-        socios_con_total.append({
-            'socio': socio,
-            'total_multas': total_multas,
-            'cantidad_multas': cantidad_multas
-        })
-    
-    # Ordenar por mayor deuda
-    socios_con_total.sort(key=lambda x: x['total_multas'], reverse=True)
-    
-    context = {
-        'socios_morosos': socios_con_total,
-        'multas_detalle': multas_detalle,
-        'socio_seleccionado': socio_seleccionado,
-        'search': search,
-        'hoy': timezone.now().date(),
-    }
-    
-    return render(request, 'bibliotecario/morosos.html', context)
+
 
 @staff_member_required
 def configuracion_panel(request):
     """Página de configuración del bibliotecario"""
     return render(request, 'bibliotecario/configuracion.html')
 
+
 @staff_member_required
 def mi_perfil(request):
     """Perfil del bibliotecario"""
-    from usuario.models import Socio
-    
     try:
         socio = Socio.objects.get(user=request.user)
     except Socio.DoesNotExist:
@@ -1159,11 +895,11 @@ def mi_perfil(request):
         'socio': socio,
     }
     return render(request, 'bibliotecario/perfil.html', context)
+
+
 @staff_member_required
 def buscar_usuario(request):
     """Buscar usuarios (socios) para el bibliotecario"""
-    from usuario.models import Socio
-    
     search = request.GET.get('search', '')
     socios = []
     socio_seleccionado = None
@@ -1171,10 +907,7 @@ def buscar_usuario(request):
     multas_pendientes = []
     
     if search:
-        # Buscar por cédula o nombre
-        socios = Socio.objects.filter(
-            estado_socio='activo'
-        ).select_related('user')
+        socios = Socio.objects.filter(estado_socio='activo').select_related('user')
         
         if search.isdigit():
             socios = socios.filter(cedula__icontains=search)
@@ -1186,24 +919,18 @@ def buscar_usuario(request):
             )
         socios = socios[:10]
     
-    # Ver detalle de un socio seleccionado
     socio_id = request.GET.get('socio_id')
     if socio_id:
         try:
             socio_seleccionado = Socio.objects.select_related('user').get(id=socio_id)
-            
-            # Préstamos activos del socio
             prestamos_activos = Prestamo.objects.filter(
                 socio=socio_seleccionado,
                 estado='ACTIVO'
             ).select_related('ejemplar__libro').order_by('-fecha_prestamo')
-            
-            # Multas pendientes del socio
             multas_pendientes = Multa.objects.filter(
                 prestamo__socio=socio_seleccionado,
                 estado='PENDIENTE'
             ).select_related('prestamo__ejemplar__libro')
-            
         except Socio.DoesNotExist:
             pass
     
