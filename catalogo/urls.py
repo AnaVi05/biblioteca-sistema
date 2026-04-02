@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from prestamo.admin import admin_site
 
 urlpatterns = [
     # URLs públicas
@@ -16,4 +17,5 @@ urlpatterns = [
     path('gestion/ejemplares/libro/<int:libro_id>/', views.gestionar_ejemplares, name='gestionar_ejemplares_por_libro'),
     path('gestion/ejemplares/nuevo/<int:libro_id>/', views.ejemplar_crear, name='ejemplar_crear'),
     path('gestion/ejemplares/editar/<int:ejemplar_id>/', views.ejemplar_editar, name='ejemplar_editar'),
+    path('admin/', admin_site.urls),
 ]

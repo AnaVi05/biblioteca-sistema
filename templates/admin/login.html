@@ -1,0 +1,131 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    .login #container {
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        overflow: hidden;
+        max-width: 400px;
+        margin: 80px auto;
+    }
+    
+    .login #header {
+        margin-left: 0 !important;
+        text-align: center;
+        background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+        padding: 25px;
+    }
+    
+    .login #header h1 a {
+        color: white !important;
+    }
+    
+    .login #content {
+        margin-left: 0 !important;
+        padding: 30px !important;
+    }
+    
+    .login .form-row {
+        margin-bottom: 20px;
+    }
+    
+    .login .form-row label {
+        font-weight: 600;
+        display: block;
+        margin-bottom: 8px;
+        color: #1e293b;
+    }
+    
+    .login .form-row input {
+        width: 100%;
+        padding: 12px;
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        font-size: 14px;
+    }
+    
+    .login .form-row input:focus {
+        border-color: #2563eb;
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(37,99,235,0.1);
+    }
+    
+    .login .submit-row {
+        padding: 0;
+    }
+    
+    .login .submit-row input {
+        width: 100%;
+        padding: 12px;
+        background: #2563eb;
+        color: white;
+        border: none;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 16px;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    
+    .login .submit-row input:hover {
+        background: #1e40af;
+        transform: translateY(-2px);
+    }
+    
+    .login .errornote {
+        background: #fee2e2;
+        color: #dc2626;
+        padding: 12px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        border-left: 4px solid #dc2626;
+    }
+</style>
+{% endblock %}
+
+{% block branding %}
+<h1 id="site-name">
+    <a href="{% url 'admin:index' %}">
+        <i class="fas fa-book-open"></i> Biblioteca - Panel de Administración
+    </a>
+</h1>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+    {% if form.errors and not form.non_field_errors %}
+        <div class="errornote">
+            {% blocktranslate count counter=form.errors.items|length %}Por favor corrige el error siguiente.{% plural %}Por favor corrige los errores siguientes.{% endblocktranslate %}
+        </div>
+    {% endif %}
+    
+    {% if form.non_field_errors %}
+        {% for error in form.non_field_errors %}
+            <div class="errornote">{{ error }}</div>
+        {% endfor %}
+    {% endif %}
+    
+    <form action="{{ app_path }}" method="post" id="login-form">
+        {% csrf_token %}
+        
+        <div class="form-row">
+            <label for="id_username">{% translate 'Nombre de usuario' %}:</label>
+            <input type="text" name="username" id="id_username" autofocus autocapitalize="none" autocomplete="username" required>
+        </div>
+        
+        <div class="form-row">
+            <label for="id_password">{% translate 'Contraseña' %}:</label>
+            <input type="password" name="password" id="id_password" autocomplete="current-password" required>
+            <input type="hidden" name="next" value="{{ next }}">
+        </div>
+        
+        <div class="submit-row">
+            <input type="submit" value="{% translate 'Iniciar sesión' %}">
+        </div>
+    </form>
+</div>
+{% endblock %}

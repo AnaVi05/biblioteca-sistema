@@ -942,3 +942,67 @@ def buscar_usuario(request):
         'search': search,
     }
     return render(request, 'bibliotecario/buscar_usuario.html', context)
+@staff_member_required
+def admin_dashboard(request):
+    """Dashboard personalizado para el administrador"""
+    
+    hoy = timezone.now().date()
+    
+    # Estadísticas
+    from django.contrib.auth.models import User
+    from catalogo.models import Libro
+    from prestamo.models import Prestamo, Multa
+    
+    total_usuarios = User.objects.count()
+    total_libros = Libro.objects.count()
+    prestamos_mes = Prestamo.objects.filter(
+        fecha_prestamo__month=hoy.month,
+        fecha_prestamo__year=hoy.year
+    ).count()
+    incidencias = Multa.objects.filter(estado='PENDIENTE').count()
+    
+    # Actividad reciente
+    from usuario.models import Socio
+    
+    actividades = []
+    
+    # Últimos usuarios registrados
+    ultimos_usuarios = User.objects.order_by('-date_joined')[:3]
+    for u in ultimos_usuarios:
+        try:
+            tipo = u.socio.tipo_usuario if hasattr(u, 'socio') else 'Usuario'
+        except:
+            tipo = 'Usuario'
+        actividades.append({
+            'titulo': 'Nuevo usuario registrado',
+            'descripcion': f'{u.get_full_name()} - Rol: {tipo}',
+            'tiempo': u.date_joined
+        })
+    
+    # Últimos libros agregados
+    ultimos_libros = Libro.objects.order_by('-id')[:3]
+    for l in ultimos_libros:
+        actividades.append({
+            'titulo': 'Libro agregado',
+            'descripcion': f'"{l.titulo}" - Autor: {l.autores.first().nombre if l.autores.first() else "Desconocido"}',
+            'tiempo': None  # No tenemos fecha de creación en Libro
+        })
+    
+    # Últimos préstamos
+    ultimos_prestamos = Prestamo.objects.select_related('socio__user', 'ejemplar__libro').order_by('-fecha_prestamo')[:2]
+    for p in ultimos_prestamos:
+        actividades.append({
+            'titulo': 'Préstamo registrado',
+            'descripcion': f'{p.socio.user.get_full_name()} - "{p.ejemplar.libro.titulo}"',
+            'tiempo': p.fecha_prestamo
+        })
+    
+    context = {
+        'total_usuarios': total_usuarios,
+        'total_libros': total_libros,
+        'prestamos_mes': prestamos_mes,
+        'incidencias': incidencias,
+        'actividades': actividades[:6],
+        'hoy': hoy,
+    }
+    return render(request, 'admin/dashboard.html', context)

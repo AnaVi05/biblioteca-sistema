@@ -313,3 +313,23 @@ class Multa(models.Model):
             self.comprobante_pago = comprobante
         self.save()
 
+class Configuracion(models.Model):
+    """Configuración general del sistema"""
+    dias_maximos_prestamo = models.IntegerField(default=5, verbose_name="Días máximos de préstamo")
+    valor_multa_por_dia = models.DecimalField(max_digits=10, decimal_places=2, default=1000.00, verbose_name="Valor de multa por día")
+    dias_expiracion_reserva = models.IntegerField(default=3, verbose_name="Días de expiración de reserva")
+    reservas_automaticas = models.BooleanField(default=True, verbose_name="Reservas automáticas")
+    notificaciones_vencimiento = models.BooleanField(default=True, verbose_name="Notificaciones de vencimiento")
+    fecha_actualizacion = models.DateTimeField(auto_now=True, verbose_name="Última actualización")
+    
+    class Meta:
+        verbose_name = "Configuración"
+        verbose_name_plural = "Configuraciones"
+    
+    def __str__(self):
+        return "Configuración del Sistema"
+    
+    @classmethod
+    def get_config(cls):
+        config, created = cls.objects.get_or_create(id=1)
+        return config

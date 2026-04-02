@@ -1,0 +1,189 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block title %}{{ title }} | Biblioteca - Administración{% endblock %}
+
+{% block extrastyle %}
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<style>
+    :root {
+        --primary-blue: #2563eb;
+        --dark-blue: #1e40af;
+        --light-blue: #dbeafe;
+        --text-dark: #1e293b;
+        --text-light: #64748b;
+    }
+    
+    * {
+        font-family: 'Inter', sans-serif;
+    }
+    
+    /* Header */
+    #header {
+        background: linear-gradient(135deg, var(--primary-blue) 0%, var(--dark-blue) 100%);
+        padding: 15px 30px;
+    }
+    
+    #branding h1 {
+        font-size: 22px;
+        font-weight: 600;
+        margin: 0;
+    }
+    
+    #branding h1 a {
+        color: #1e293b !important;
+        text-decoration: none;
+    }
+    
+    #branding h1 i {
+        color: #1e293b;
+        margin-right: 10px;
+    }
+    
+    /* Breadcrumbs */
+    div.breadcrumbs {
+        background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+        color: white;
+        padding: 12px 30px;
+        border-bottom: none;
+    }
+    
+    div.breadcrumbs a {
+        color: rgba(255, 255, 255, 0.9);
+    }
+    
+    div.breadcrumbs a:hover {
+        color: white;
+    }
+    
+    /* Módulos y tablas */
+    .module {
+        background: white;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        border: 1px solid #f1f5f9;
+        margin-bottom: 20px;
+    }
+    
+    .module h2, .module caption {
+        background: white;
+        color: #1e293b;
+        padding: 15px 20px;
+        font-size: 16px;
+        font-weight: 600;
+        border-bottom: 1px solid #e2e8f0;
+    }
+    
+    .module table th {
+        background: #f8fafc;
+        color: #1e293b;
+        font-weight: 600;
+        padding: 12px 15px;
+    }
+    
+    .module table td {
+        padding: 10px 15px;
+        border-bottom: 1px solid #e2e8f0;
+        color: #334155;
+    }
+    
+    /* Botones */
+    .button, input[type=submit], input[type=button], .submit-row input {
+        background: var(--primary-blue);
+        border-radius: 12px;
+        padding: 10px 20px;
+        font-weight: 500;
+        border: none;
+        transition: all 0.3s;
+        color: white;
+    }
+    
+    .button:hover, input[type=submit]:hover, input[type=button]:hover, .submit-row input:hover {
+        background: var(--dark-blue);
+        transform: translateY(-2px);
+    }
+    
+    /* Enlaces */
+    a:link, a:visited {
+        color: var(--primary-blue);
+        text-decoration: none;
+    }
+    
+    a:hover {
+        color: var(--dark-blue);
+    }
+    
+    /* Formularios */
+    input, select, textarea {
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        padding: 8px 12px;
+    }
+    
+    input:focus, select:focus, textarea:focus {
+        border-color: var(--primary-blue);
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(37,99,235,0.1);
+    }
+    
+    /* Login */
+    .login #container {
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    }
+    
+    .login #header {
+        text-align: center;
+    }
+    
+    /* Dashboard */
+    .dashboard #content {
+        margin: 30px;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+        #header {
+            padding: 15px 20px;
+        }
+        div.breadcrumbs {
+            padding: 10px 20px;
+        }
+        .dashboard #content {
+            margin: 15px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block branding %}
+<h1 id="site-name">
+    <a href="{% url 'admin:index' %}">
+        <i class="fas fa-book-open"></i> Biblioteca - Panel de Administración
+    </a>
+</h1>
+{% endblock %}
+
+{% block welcome-msg %}
+    <i class="fas fa-user-circle"></i>
+    <strong>{% firstof user.get_short_name user.get_username %}</strong>
+{% endblock %}
+
+{% block userlinks %}
+    {% if site_url %}
+        <a href="{{ site_url }}"><i class="fas fa-globe"></i> Ver sitio</a> /
+    {% endif %}
+    {% if user.is_active and user.is_staff %}
+        {% url 'django-admindocs-docroot' as docsroot %}
+        {% if docsroot %}
+            <a href="{{ docsroot }}"><i class="fas fa-book"></i> Documentación</a> /
+        {% endif %}
+    {% endif %}
+    {% if user.has_usable_password %}
+        <a href="{% url 'admin:password_change' %}"><i class="fas fa-key"></i> Cambiar contraseña</a> /
+    {% endif %}
+    <a href="{% url 'admin:logout' %}"><i class="fas fa-sign-out-alt"></i> Cerrar sesión</a>
+{% endblock %}

@@ -1,0 +1,107 @@
+{% extends "admin/base.html" %}
+{% load i18n static %}
+
+{% block content %}
+<div id="content-main">
+    <!-- Tarjetas de estadísticas -->
+    <div class="dashboard-stats">
+        <div class="stat-card">
+            <div class="card-icon" style="background: rgba(37, 99, 235, 0.1); color: #2563eb;">
+                <i class="fas fa-users"></i>
+            </div>
+            <h3>Usuarios Registrados</h3>
+            <div class="number">{{ total_usuarios|default:"0" }}</div>
+            <p class="sub">Total en el sistema</p>
+        </div>
+        
+        <div class="stat-card">
+            <div class="card-icon" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">
+                <i class="fas fa-book"></i>
+            </div>
+            <h3>Inventario de Libros</h3>
+            <div class="number">{{ total_libros|default:"0" }}</div>
+            <p class="sub">Total en biblioteca</p>
+        </div>
+        
+        <div class="stat-card">
+            <div class="card-icon" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <h3>Actividad del Mes</h3>
+            <div class="number">{{ prestamos_mes|default:"0" }}</div>
+            <p class="sub">Métricas de uso</p>
+        </div>
+        
+        <div class="stat-card">
+            <div class="card-icon" style="background: rgba(239, 68, 68, 0.1); color: #ef4444;">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <h3>Incidencias</h3>
+            <div class="number">{{ incidencias|default:"0" }}</div>
+            <p class="sub">Requieren atención</p>
+        </div>
+    </div>
+    
+    <!-- Acciones Rápidas -->
+    <h2 style="font-size: 22px; font-weight: 600; margin-bottom: 20px;">Acciones Rápidas</h2>
+    <div class="quick-actions">
+        <a href="{% url 'admin:usuario_socio_add' %}" class="action-btn">
+            <i class="fas fa-user-plus"></i>
+            <span>Nuevo Usuario</span>
+        </a>
+        <a href="{% url 'admin:catalogo_libro_add' %}" class="action-btn">
+            <i class="fas fa-book"></i>
+            <span>Agregar Libro</span>
+        </a>
+        <a href="{% url 'admin:auth_user_changelist' %}" class="action-btn">
+            <i class="fas fa-user-tag"></i>
+            <span>Asignar Rol</span>
+        </a>
+        <a href="#" class="action-btn">
+            <i class="fas fa-chart-line"></i>
+            <span>Ver Reportes</span>
+        </a>
+        <a href="#" class="action-btn">
+            <i class="fas fa-cog"></i>
+            <span>Configuración</span>
+        </a>
+        <a href="#" class="action-btn">
+            <i class="fas fa-database"></i>
+            <span>Backup</span>
+        </a>
+    </div>
+    
+    <!-- Actividad Reciente -->
+    <h2 style="font-size: 22px; font-weight: 600; margin-bottom: 20px;">📋 Actividad Reciente</h2>
+    <div class="activity-list">
+        {% for actividad in actividades %}
+        <div class="activity-item">
+            <div class="activity-icon" style="background: rgba(37, 99, 235, 0.1); color: #2563eb;">
+                <i class="fas {% if 'usuario' in actividad.titulo|lower %}fa-user-plus{% elif 'libro' in actividad.titulo|lower %}fa-book{% else %}fa-chart-line{% endif %}"></i>
+            </div>
+            <div class="activity-details">
+                <h4>{{ actividad.titulo }}</h4>
+                <p>{{ actividad.descripcion }}</p>
+            </div>
+            <div class="activity-time">
+                {% if actividad.tiempo %}
+                    {{ actividad.tiempo|timesince }} atrás
+                {% else %}
+                    Reciente
+                {% endif %}
+            </div>
+        </div>
+        {% empty %}
+        <div class="activity-item">
+            <div class="activity-icon">
+                <i class="fas fa-info-circle"></i>
+            </div>
+            <div class="activity-details">
+                <h4>No hay actividad reciente</h4>
+                <p>Comienza a gestionar el sistema</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
