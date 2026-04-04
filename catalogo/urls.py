@@ -18,4 +18,8 @@ urlpatterns = [
     path('gestion/ejemplares/nuevo/<int:libro_id>/', views.ejemplar_crear, name='ejemplar_crear'),
     path('gestion/ejemplares/editar/<int:ejemplar_id>/', views.ejemplar_editar, name='ejemplar_editar'),
     path('admin/', admin_site.urls),
+
+
+
+    path('<int:libro_id>/', views.detalle_libro, name='detalle_libro'),
 ]

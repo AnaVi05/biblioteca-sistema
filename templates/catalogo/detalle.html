@@ -1,0 +1,206 @@
+{% extends 'base/menu_usuario.html' %}
+{% load static %}
+
+{% block main_content %}
+<style>
+    .detalle-container {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+        overflow: hidden;
+        margin: 2rem 0;
+    }
+    
+    .detalle-header {
+        background: var(--primary-blue);
+        color: white;
+        padding: 25px;
+    }
+    
+    .detalle-header h1 {
+        margin: 0;
+        font-size: 1.8rem;
+    }
+    
+    .detalle-body {
+        padding: 30px;
+    }
+    
+    .libro-imagen {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+    
+    .libro-imagen img {
+        max-width: 250px;
+        border-radius: 12px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    
+    .info-section {
+        margin-bottom: 25px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid #e2e8f0;
+    }
+    
+    .info-label {
+        font-weight: 600;
+        color: var(--text-dark);
+        width: 120px;
+        display: inline-block;
+    }
+    
+    .info-value {
+        color: var(--text-light);
+    }
+    
+    .badge-disponible {
+        background: #28a745;
+        color: white;
+        padding: 5px 15px;
+        border-radius: 20px;
+        display: inline-block;
+    }
+    
+    .badge-no-disponible {
+        background: #dc3545;
+        color: white;
+        padding: 5px 15px;
+        border-radius: 20px;
+        display: inline-block;
+    }
+    
+    .btn-volver {
+        background: var(--primary-blue);
+        color: white;
+        border: none;
+        padding: 10px 25px;
+        border-radius: 8px;
+        text-decoration: none;
+        display: inline-block;
+        transition: all 0.3s;
+    }
+    
+    .btn-volver:hover {
+        background: var(--dark-blue);
+        transform: translateY(-2px);
+        color: white;
+    }
+    
+    .ejemplares-lista {
+        background: #f8fafc;
+        padding: 15px;
+        border-radius: 12px;
+        margin-top: 15px;
+    }
+    
+    .ejemplar-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px;
+        border-bottom: 1px solid #e2e8f0;
+    }
+    
+    .ejemplar-item:last-child {
+        border-bottom: none;
+    }
+</style>
+
+<div class="container py-4">
+    <div class="detalle-container">
+        <div class="detalle-header">
+            <h1><i class="fas fa-book me-2"></i>{{ libro.titulo }}</h1>
+            <p class="mb-0" style="opacity: 0.9;">{{ libro.categoria.nombre }}</p>
+        </div>
+        
+        <div class="detalle-body">
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="libro-imagen">
+                        {% if libro.imagen %}
+                            <img src="{{ libro.imagen.url }}" alt="{{ libro.titulo }}">
+                        {% else %}
+                            <div style="background: #e2e8f0; height: 250px; display: flex; align-items: center; justify-content: center; border-radius: 12px;">
+                                <i class="fas fa-book" style="font-size: 4rem; color: #94a3b8;"></i>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="col-md-9">
+                    <div class="info-section">
+                        <div class="mb-2">
+                            <span class="info-label">Autores:</span>
+                            <span class="info-value">
+                                {% for autor in libro.autores.all %}
+                                    {{ autor.nombre_completo }}{% if not forloop.last %}, {% endif %}
+                                {% endfor %}
+                            </span>
+                        </div>
+                        
+                        <div class="mb-2">
+                            <span class="info-label">ISBN:</span>
+                            <span class="info-value">{{ libro.isbn }}</span>
+                        </div>
+                        
+                        <div class="mb-2">
+                            <span class="info-label">Editorial:</span>
+                            <span class="info-value">{{ libro.editorial.nombre }}</span>
+                        </div>
+                        
+                        <div class="mb-2">
+                            <span class="info-label">Año:</span>
+                            <span class="info-value">{{ libro.anio_publicacion|default:"No especificado" }}</span>
+                        </div>
+                        
+                        <div class="mb-2">
+                            <span class="info-label">Disponibilidad:</span>
+                            <span class="info-value">
+                                {% if libro.inventario_disponible > 0 %}
+                                    <span class="badge-disponible">
+                                        <i class="fas fa-check-circle"></i> {{ libro.inventario_disponible }} ejemplares disponibles
+                                    </span>
+                                {% else %}
+                                    <span class="badge-no-disponible">
+                                        <i class="fas fa-times-circle"></i> No disponible
+                                    </span>
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    {% if libro.descripcion %}
+                        <div class="info-section">
+                            <h5><i class="fas fa-align-left me-2"></i>Sinopsis</h5>
+                            <p>{{ libro.descripcion }}</p>
+                        </div>
+                    {% endif %}
+                    
+                    <div class="info-section">
+                        <h5><i class="fas fa-copy me-2"></i>Ejemplares</h5>
+                        <div class="ejemplares-lista">
+                            {% for ejemplar in ejemplares_disponibles %}
+                                <div class="ejemplar-item">
+                                    <span><strong>Código:</strong> {{ ejemplar.codigo_inventario }}</span>
+                                    <span><strong>Estado:</strong> {{ ejemplar.estado_fisico|title }}</span>
+                                    <span><strong>Ubicación:</strong> {{ ejemplar.ubicacion|default:"No especificada" }}</span>
+                                    <span class="badge-disponible" style="background: #28a745; font-size: 0.7rem;">Disponible</span>
+                                </div>
+                            {% empty %}
+                                <p class="text-muted mb-0">No hay ejemplares disponibles en este momento.</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <div class="text-center mt-4">
+                        <a href="{% url 'catalogo_lista' %}" class="btn-volver">
+                            <i class="fas fa-arrow-left me-2"></i>Volver al catálogo
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
