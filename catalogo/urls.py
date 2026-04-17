@@ -18,4 +18,7 @@ urlpatterns = [
     path('gestion/ejemplares/nuevo/<int:libro_id>/', views.ejemplar_crear, name='ejemplar_crear'),
     path('gestion/ejemplares/editar/<int:ejemplar_id>/', views.ejemplar_editar, name='ejemplar_editar'),
     path('admin/', admin_site.urls),
+
+    path('gestion/libros/baja/<int:libro_id>/', views.libro_dar_baja, name='libro_dar_baja'),
+    path('gestion/libros/alta/<int:libro_id>/', views.libro_dar_alta, name='libro_dar_alta'),
 ]

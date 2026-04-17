@@ -10,9 +10,10 @@
 
 <div class="card">
     <div class="card-body">
-        <form method="post">
+        <form method="post" enctype="multipart/form-data">
             {% csrf_token %}
             
+            <!-- Datos del Libro -->
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label class="form-label fw-bold">ISBN *</label>
@@ -79,11 +80,67 @@
             </div>
             
             <div class="mb-3">
+                <label class="form-label fw-bold">Imagen del libro</label>
+                {% if libro.imagen %}
+                <div class="mb-2">
+                    <img src="{{ libro.imagen.url }}" alt="{{ libro.titulo }}" style="max-width: 150px;" class="img-thumbnail">
+                </div>
+                {% endif %}
+                <input type="file" name="imagen" class="form-control" accept="image/*">
+            </div>
+            
+            <div class="mb-3">
                 <label class="form-label fw-bold">Descripción</label>
                 <textarea name="descripcion" class="form-control" rows="4">{{ libro.descripcion|default:'' }}</textarea>
             </div>
             
-            <div class="d-flex gap-2">
+            <!-- Sección de Ejemplar Inicial -->
+            <div class="card mt-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-boxes me-2" style="color: #10b981;"></i>
+                        Ejemplar Inicial
+                    </h5>
+                    <p class="text-muted mb-0 small">Completa estos campos para crear el primer ejemplar</p>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Código de inventario</label>
+                            <input type="text" name="codigo_inventario" class="form-control" 
+                                   placeholder="Ej: LIB-001 (opcional)">
+                            <small class="text-muted">Déjalo vacío para que se genere automáticamente</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Estado físico</label>
+                            <select name="estado_fisico" class="form-select">
+                                {% for value, label in estado_fisico_choices %}
+                                <option value="{{ value }}" {% if value == 'BUENO' %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Disponibilidad</label>
+                            <select name="disponibilidad" class="form-select">
+                                {% for value, label in disponibilidad_choices %}
+                                <option value="{{ value }}" {% if value == 'DISPONIBLE' %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Ubicación</label>
+                            <input type="text" name="ubicacion" class="form-control" 
+                                   placeholder="Ej: Estante A3, Sección 5">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="d-flex gap-2 mt-4">
                 <button type="submit" class="btn btn-primary">
                     <i class="fas fa-save"></i> {% if libro %}Actualizar{% else %}Guardar{% endif %}
                 </button>

@@ -128,6 +128,28 @@
         box-shadow: 0 0 0 2px rgba(37,99,235,0.1);
     }
     
+    /* Estilos para la sección de ejemplar */
+    .collapse {
+        background: #f8fafc;
+        border-radius: 12px;
+        padding: 15px;
+        margin-top: 10px;
+    }
+    
+    .field-codigo_inventario input,
+    .field-estado_fisico select,
+    .field-disponibilidad select,
+    .field-ubicacion input {
+        width: 100%;
+        max-width: 400px;
+    }
+    
+    .help {
+        color: #64748b;
+        font-size: 12px;
+        margin-top: 5px;
+    }
+    
     /* Login */
     .login #container {
         border-radius: 20px;
@@ -187,3 +209,6 @@
     {% endif %}
     <a href="{% url 'admin:logout' %}"><i class="fas fa-sign-out-alt"></i> Cerrar sesión</a>
 {% endblock %}
+
+<!-- Notificaciones personalizadas -->
+{% include 'includes/notificaciones.html' %}

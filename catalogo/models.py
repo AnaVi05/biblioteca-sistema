@@ -48,6 +48,7 @@ class Categoria(models.Model):
 
 
 class Libro(models.Model):
+    activo = models.BooleanField(default=True, verbose_name="Activo")
     """Libros del catálogo"""
     isbn = models.CharField(
         max_length=20, 

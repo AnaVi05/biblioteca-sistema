@@ -698,6 +698,26 @@ def registrar_devolucion(request):
 def gestionar_reservas(request):
     """Gestionar reservas de libros"""
     try:
+        # ========== ELIMINAR RESERVAS EXPIRADAS ==========
+        ahora = timezone.now()
+        reservas_expiradas = Reserva.objects.filter(
+            estado='PENDIENTE',
+            fecha_expiracion__lt=ahora
+        )
+        
+        expiradas_count = reservas_expiradas.count()
+        for reserva in reservas_expiradas:
+            reserva.estado = 'EXPIRADA'
+            reserva.save()
+            # Si tenía un ejemplar asignado, liberarlo
+            if reserva.ejemplar_asignado:
+                reserva.ejemplar_asignado.disponibilidad = 'DISPONIBLE'
+                reserva.ejemplar_asignado.save()
+        
+        if expiradas_count > 0:
+            messages.info(request, f'ℹ️ {expiradas_count} reserva(s) expirada(s) han sido canceladas automáticamente.')
+        
+        # ========== PROCESAR ACCIONES ==========
         accion = request.GET.get('accion')
         reserva_id = request.GET.get('reserva_id')
         search = request.GET.get('search', '')
@@ -721,30 +741,60 @@ def gestionar_reservas(request):
                             ejemplar_disponible.disponibilidad = 'RESERVADO'
                             ejemplar_disponible.save()
                             
-                            messages.success(request, f'Reserva #{reserva.id} confirmada.')
+                            messages.success(request, f'✅ Reserva #{reserva.id} confirmada. Ejemplar {ejemplar_disponible.codigo_inventario} reservado.')
                         else:
-                            messages.warning(request, f'No hay ejemplares disponibles')
+                            messages.warning(request, f'⚠️ No hay ejemplares disponibles para "{reserva.libro.titulo}"')
                             
                 elif accion == 'cancelar':
-                    reserva.estado = 'CANCELADA'
-                    reserva.save()
-                    messages.success(request, f'Reserva #{reserva.id} cancelada.')
-                    
-                elif accion == 'completar':
-                    reserva.estado = 'COMPLETADA'
-                    reserva.save()
-                    
-                    if reserva.ejemplar_asignado:
-                        reserva.ejemplar_asignado.disponibilidad = 'PRESTADO'
-                        reserva.ejemplar_asignado.save()
+                    with transaction.atomic():
+                        if reserva.ejemplar_asignado:
+                            reserva.ejemplar_asignado.disponibilidad = 'DISPONIBLE'
+                            reserva.ejemplar_asignado.save()
                         
-                    messages.success(request, f'Reserva #{reserva.id} completada.')
-                    
+                        reserva.estado = 'CANCELADA'
+                        reserva.save()
+                        messages.success(request, f'✅ Reserva #{reserva.id} cancelada correctamente.')
+                        
+                elif accion == 'completar':
+                    with transaction.atomic():
+                        if not reserva.ejemplar_asignado:
+                            messages.error(request, '❌ Esta reserva no tiene un ejemplar asignado.')
+                            return redirect('gestionar_reservas')
+                        
+                        reserva.estado = 'COMPLETADA'
+                        reserva.save()
+                        
+                        ejemplar = reserva.ejemplar_asignado
+                        ejemplar.disponibilidad = 'PRESTADO'
+                        ejemplar.save()
+                        
+                        # Obtener días de préstamo desde configuración
+                        try:
+                            from prestamo.models import Configuracion
+                            dias_prestamo = Configuracion.get_config().dias_maximos_prestamo
+                        except:
+                            dias_prestamo = 5
+                        
+                        fecha_prestamo = timezone.now()
+                        fecha_vencimiento = fecha_prestamo.date() + timedelta(days=dias_prestamo)
+                        
+                        prestamo = Prestamo.objects.create(
+                            socio=reserva.socio,
+                            ejemplar=ejemplar,
+                            dias_solicitados=dias_prestamo,
+                            fecha_prestamo=fecha_prestamo,
+                            fecha_vencimiento=fecha_vencimiento,
+                            estado='ACTIVO'
+                        )
+                        
+                        messages.success(request, f'✅ Reserva #{reserva.id} completada. Préstamo #{prestamo.id} creado.')
+                        
             except Reserva.DoesNotExist:
-                messages.error(request, 'Reserva no encontrada')
+                messages.error(request, '❌ Reserva no encontrada')
             
             return redirect('gestionar_reservas')
         
+        # ========== OBTENER RESERVAS ==========
         reservas = Reserva.objects.select_related(
             'socio__user', 'libro', 'ejemplar_asignado'
         ).order_by('-fecha_reserva')
@@ -771,10 +821,8 @@ def gestionar_reservas(request):
         return render(request, 'bibliotecario/reservas.html', context)
         
     except Exception as e:
-        messages.error(request, f'Error: {str(e)}')
+        messages.error(request, f'❌ Error: {str(e)}')
         return redirect('dashboard_bibliotecario')
-
-
 @staff_member_required
 def gestionar_multas(request):
     """Gestionar usuarios morosos y multas pendientes"""

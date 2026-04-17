@@ -1,0 +1,210 @@
+{% extends 'base/menu_usuario.html' %}
+{% load static %}
+
+{% block main_content %}
+<style>
+    .detalle-container {
+        background: white;
+        border-radius: 16px;
+        padding: 2rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        margin-top: 1rem;
+    }
+    
+    .libro-imagen {
+        width: 100%;
+        max-height: 400px;
+        object-fit: cover;
+        border-radius: 12px;
+    }
+    
+    .libro-titulo {
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--text-dark);
+        margin-bottom: 1rem;
+    }
+    
+    .libro-autor {
+        font-size: 18px;
+        color: var(--text-light);
+        margin-bottom: 1rem;
+    }
+    
+    .info-item {
+        padding: 0.75rem 0;
+        border-bottom: 1px solid #e2e8f0;
+        display: flex;
+        flex-wrap: wrap;
+    }
+    
+    .info-label {
+        font-weight: 600;
+        width: 150px;
+        color: var(--text-dark);
+    }
+    
+    .info-value {
+        color: var(--text-light);
+        flex: 1;
+    }
+    
+    .descripcion {
+        margin-top: 1.5rem;
+        padding: 1rem;
+        background: #f8fafc;
+        border-radius: 12px;
+    }
+    
+    .btn-prestar {
+        background: #28a745;
+        color: white;
+        border: none;
+        padding: 0.75rem 2rem;
+        border-radius: 10px;
+        font-weight: 600;
+        transition: all 0.3s;
+    }
+    
+    .btn-prestar:hover {
+        background: #218838;
+        transform: translateY(-2px);
+    }
+    
+    .btn-reservar {
+        background: #ffc107;
+        color: #000;
+        border: none;
+        padding: 0.75rem 2rem;
+        border-radius: 10px;
+        font-weight: 600;
+        transition: all 0.3s;
+    }
+    
+    .btn-reservar:hover {
+        background: #e0a800;
+        transform: translateY(-2px);
+    }
+    
+    .btn-volver {
+        background: #6c757d;
+        color: white;
+        border: none;
+        padding: 0.75rem 2rem;
+        border-radius: 10px;
+        font-weight: 600;
+        transition: all 0.3s;
+    }
+    
+    .btn-volver:hover {
+        background: #5a6268;
+    }
+    
+    .badge-stock {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+    }
+    
+    .stock-disponible {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .stock-no {
+        background: #f8d7da;
+        color: #721c24;
+    }
+</style>
+
+<div class="content-header">
+    <div class="page-title">
+        <h1>Detalle del Libro</h1>
+        <p>Información completa del ejemplar</p>
+    </div>
+</div>
+
+<div class="detalle-container">
+    <div class="row">
+        <div class="col-md-4">
+            {% if libro.imagen %}
+                <img src="{{ libro.imagen.url }}" class="libro-imagen" alt="{{ libro.titulo }}">
+            {% else %}
+                <img src="https://via.placeholder.com/400x500?text=Sin+imagen" class="libro-imagen" alt="Sin imagen">
+            {% endif %}
+        </div>
+        
+        <div class="col-md-8">
+            <h1 class="libro-titulo">{{ libro.titulo }}</h1>
+            <div class="libro-autor">
+                <i class="fas fa-user"></i>
+                {% for autor in libro.autores.all %}
+                    {{ autor.nombre_completo }}{% if not forloop.last %}, {% endif %}
+                {% endfor %}
+            </div>
+            
+            {% if ejemplares_disponibles > 0 %}
+                <div class="badge-stock stock-disponible">
+                    <i class="fas fa-check-circle"></i> {{ ejemplares_disponibles }} ejemplar(es) disponible(s)
+                </div>
+            {% else %}
+                <div class="badge-stock stock-no">
+                    <i class="fas fa-times-circle"></i> No hay ejemplares disponibles
+                </div>
+            {% endif %}
+            
+            <div class="info-item">
+                <div class="info-label">ISBN:</div>
+                <div class="info-value">{{ libro.isbn }}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Editorial:</div>
+                <div class="info-value">{{ libro.editorial.nombre }}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Categoría:</div>
+                <div class="info-value">{{ libro.categoria.nombre }}</div>
+            </div>
+            {% if libro.anio_publicacion %}
+            <div class="info-item">
+                <div class="info-label">Año de publicación:</div>
+                <div class="info-value">{{ libro.anio_publicacion }}</div>
+            </div>
+            {% endif %}
+            <div class="info-item">
+                <div class="info-label">Total ejemplares:</div>
+                <div class="info-value">{{ libro.cantidad_total }}</div>
+            </div>
+            
+            {% if libro.descripcion %}
+            <div class="descripcion">
+                <strong><i class="fas fa-align-left"></i> Sinopsis:</strong>
+                <p class="mt-2 mb-0">{{ libro.descripcion }}</p>
+            </div>
+            {% endif %}
+            
+            <div class="mt-4 d-flex gap-3">
+                {% if ejemplares_disponibles > 0 %}
+                    {% with primer_ejemplar=libro.ejemplares.all|first %}
+                        {% if primer_ejemplar %}
+                            <a href="{% url 'registrar_prestamo_usuario' primer_ejemplar.id %}" class="btn-prestar">
+                                <i class="fas fa-hand-holding-heart"></i> Solicitar Préstamo
+                            </a>
+                        {% endif %}
+                    {% endwith %}
+                {% else %}
+                    <a href="{% url 'reservar_libro' libro.id %}" class="btn-reservar">
+                        <i class="fas fa-bookmark"></i> Reservar Libro
+                    </a>
+                {% endif %}
+                <a href="{% url 'catalogo_lista' %}" class="btn-volver">
+                    <i class="fas fa-arrow-left"></i> Volver al Catálogo
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
