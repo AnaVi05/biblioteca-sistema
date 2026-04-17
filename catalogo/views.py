@@ -294,3 +294,15 @@ def ejemplar_editar(request, ejemplar_id):
         'disponibilidad_choices': Ejemplar.DISPONIBILIDAD_CHOICES,
     }
     return render(request, 'bibliotecario/ejemplar_form.html', context)
+
+
+def detalle_libro(request, libro_id):
+    """Vista para ver detalles de un libro específico"""
+    libro = get_object_or_404(Libro, id=libro_id)
+    ejemplares_disponibles = libro.ejemplares.filter(disponibilidad='DISPONIBLE')
+    
+    context = {
+        'libro': libro,
+        'ejemplares_disponibles': ejemplares_disponibles,
+    }
+    return render(request, 'catalogo/detalle.html', context)

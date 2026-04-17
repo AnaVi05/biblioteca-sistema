@@ -17,11 +17,62 @@ from prestamo.admin import admin_site  # Importa el admin personalizado
 
 # ========== VISTA PRINCIPAL ==========
 def redirigir_inicio(request):
-    """Redirige según el rol del usuario"""
+    """Redirige según el rol del usuario y pasa datos reales al dashboard"""
     if request.user.is_staff:
         return redirect('dashboard_bibliotecario')
     else:
-        return render(request, 'base/menu_usuario.html')
+        # ========== DATOS REALES PARA EL DASHBOARD ==========
+        from datetime import date
+        from prestamo.models import Prestamo, Reserva, Multa
+        
+        try:
+            socio = request.user.socio
+        except:
+            # Si el usuario no tiene perfil de socio, mostrar dashboard vacío
+            context = {
+                'prestamos_activos': [],
+                'reservas_activas': [],
+                'multas_pendientes': [],
+                'total_multas': 0,
+                'proxima_devolucion': None,
+                'proxima_devolucion_dias': None,
+                'actividad_reciente': [],
+                'hoy': date.today(),
+            }
+            return render(request, 'base/menu_usuario.html', context)
+        
+        # Préstamos activos
+        prestamos_activos = Prestamo.objects.filter(socio=socio, estado='ACTIVO')
+        
+        # Reservas activas
+        reservas_activas = Reserva.objects.filter(socio=socio, estado='PENDIENTE')
+        
+        # Multas pendientes
+        multas_pendientes = Multa.objects.filter(prestamo__socio=socio, estado='PENDIENTE')
+        total_multas = sum(m.monto_total for m in multas_pendientes)
+        
+        # Próxima devolución
+        proxima_devolucion = prestamos_activos.order_by('fecha_vencimiento').first()
+        proxima_devolucion_dias = None
+        if proxima_devolucion:
+            dias = (proxima_devolucion.fecha_vencimiento - date.today()).days
+            proxima_devolucion_dias = dias if dias > 0 else 0
+        
+        # Actividad reciente
+        actividad_reciente = Prestamo.objects.filter(socio=socio).order_by('-fecha_prestamo')[:3]
+        
+        context = {
+            'prestamos_activos': prestamos_activos,
+            'reservas_activas': reservas_activas,
+            'multas_pendientes': multas_pendientes,
+            'total_multas': total_multas,
+            'proxima_devolucion': proxima_devolucion,
+            'proxima_devolucion_dias': proxima_devolucion_dias,
+            'actividad_reciente': actividad_reciente,
+            'hoy': date.today(),
+        }
+        
+        return render(request, 'base/menu_usuario.html', context)
 
 
 def cerrar_sesion(request):
