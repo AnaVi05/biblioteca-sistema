@@ -990,6 +990,30 @@ def buscar_usuario(request):
         'search': search,
     }
     return render(request, 'bibliotecario/buscar_usuario.html', context)
+
+# ========== REPORTES ==========
+
+@staff_member_required
+def reporte_prestamos_activos(request):
+    """Reporte de libros prestados actualmente"""
+    prestamos = Prestamo.objects.filter(estado='ACTIVO').select_related('socio__user', 'ejemplar__libro')
+    context = {'prestamos': prestamos}
+    return render(request, 'bibliotecario/reporte_prestamos_activos.html', context)
+
+@staff_member_required
+def reporte_devoluciones(request):
+    """Reporte de libros devueltos (historial)"""
+    devoluciones = Prestamo.objects.filter(estado='DEVUELTO').select_related('socio__user', 'ejemplar__libro')[:100]
+    context = {'devoluciones': devoluciones}
+    return render(request, 'bibliotecario/reporte_devoluciones.html', context)
+
+@staff_member_required
+def reporte_reservas_expiradas(request):
+    """Reporte de reservas expiradas"""
+    reservas = Reserva.objects.filter(estado='EXPIRADA').select_related('socio__user', 'libro')
+    context = {'reservas': reservas}
+    return render(request, 'bibliotecario/reporte_reservas_expiradas.html', context)
+
 @staff_member_required
 def admin_dashboard(request):
     """Dashboard personalizado para el administrador"""

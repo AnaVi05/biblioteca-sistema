@@ -29,4 +29,10 @@ urlpatterns = [
     path('bibliotecario/configuracion/', views.configuracion_panel, name='configuracion_panel'),
     path('bibliotecario/perfil/', views.mi_perfil, name='mi_perfil'),
     path('bibliotecario/buscar-usuario/', views.buscar_usuario, name='buscar_usuario'),
+
+
+    # Reportes 
+    path('reporte/prestamos-activos/', views.reporte_prestamos_activos, name='reporte_prestamos_activos'),
+    path('reporte/devoluciones/', views.reporte_devoluciones, name='reporte_devoluciones'),
+    path('reporte/reservas-expiradas/', views.reporte_reservas_expiradas, name='reporte_reservas_expiradas'),
 ]

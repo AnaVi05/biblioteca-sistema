@@ -1,0 +1,42 @@
+{% extends 'base/menu_bibliotecario.html' %}
+{% load static %}
+
+{% block main_content %}
+<div class="content-header">
+    <div class="page-title">
+        <h1>⏰ Reservas Expiradas</h1>
+        <p>Reservas que no fueron retiradas a tiempo</p>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Socio</th>
+                        <th>Libro</th>
+                        <th>Fecha reserva</th>
+                        <th>Fecha expiración</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for reserva in reservas %}
+                    <tr>
+                        <td>{{ reserva.socio.user.get_full_name }}</td>
+                        <td>{{ reserva.libro.titulo }}</td>
+                        <td>{{ reserva.fecha_reserva|date:"d/m/Y H:i" }}</td>
+                        <td>{{ reserva.fecha_expiracion|date:"d/m/Y" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-center">No hay reservas expiradas</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

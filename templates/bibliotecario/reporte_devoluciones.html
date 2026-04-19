@@ -1,0 +1,54 @@
+{% extends 'base/menu_bibliotecario.html' %}
+{% load static %}
+
+{% block main_content %}
+<div class="content-header">
+    <div class="page-title">
+        <h1>📚 Historial de Devoluciones</h1>
+        <p>Últimos 100 libros devueltos</p>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Socio</th>
+                        <th>Libro</th>
+                        <th>Ejemplar</th>
+                        <th>Fecha préstamo</th>
+                        <th>Fecha devolución</th>
+                        <th>Días solicitados</th>
+                        <th>Multa</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for devolucion in devoluciones %}
+                    <tr>
+                        <td>{{ devolucion.socio.user.get_full_name }}</td>
+                        <td>{{ devolucion.ejemplar.libro.titulo }}</td>
+                        <td><code>{{ devolucion.ejemplar.codigo_inventario }}</code></td>
+                        <td>{{ devolucion.fecha_prestamo|date:"d/m/Y" }}</td>
+                        <td>{{ devolucion.fecha_devolucion_real|date:"d/m/Y" }}</td>
+                        <td>{{ devolucion.dias_solicitados }} días</td>
+                        <td>
+                            {% if devolucion.multa %}
+                                <span class="text-danger">Gs. {{ devolucion.multa.monto_total|floatformat:0 }}</span>
+                            {% else %}
+                                <span class="text-success">Sin multa</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center">No hay devoluciones registradas</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

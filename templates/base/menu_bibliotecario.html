@@ -558,6 +558,27 @@
                     <span>Buscar Usuario</span>
                 </a>
             </li>
+            <div class="menu-section">REPORTES</div>
+        <ul class="sidebar-menu">
+            <li class="menu-item">
+                <a href="{% url 'reporte_prestamos_activos' %}">
+                    <i class="fas fa-book"></i>
+                    <span>Préstamos Activos</span>
+                </a>
+            </li>
+            <li class="menu-item">
+                <a href="{% url 'reporte_devoluciones' %}">
+                    <i class="fas fa-history"></i>
+                    <span>Historial Devoluciones</span>
+                </a>
+            </li>
+            <li class="menu-item">
+                <a href="{% url 'reporte_reservas_expiradas' %}">
+                    <i class="fas fa-clock"></i>
+                    <span>Reservas Expiradas</span>
+                </a>
+            </li>
+        </ul>
             <li class="menu-item" id="menu-configuracion">
                 <a href="{% url 'configuracion_panel' %}">
                     <i class="fas fa-cog"></i>

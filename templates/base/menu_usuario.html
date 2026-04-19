@@ -542,7 +542,15 @@
             <!-- Header -->
             <div class="content-header">
                 <div class="page-title">
-                    <h1>Bienvenida, {{ user.first_name }}</h1>
+                  <h1>
+                {% with nombre=user.first_name|lower %}
+                    {% if 'a' == nombre|last and nombre != 'elias' and nombre != 'lucas' and nombre != 'nicolas' %}
+                        Bienvenida, {{ user.first_name }}
+                    {% else %}
+                        Bienvenido, {{ user.first_name }}
+                    {% endif %}
+                {% endwith %}
+            </h1>
                     <p>Tu espacio personal en la biblioteca</p>
                 </div>
                 

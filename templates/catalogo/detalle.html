@@ -147,9 +147,15 @@
             </div>
             
             {% if ejemplares_disponibles > 0 %}
-                <div class="badge-stock stock-disponible">
-                    <i class="fas fa-check-circle"></i> {{ ejemplares_disponibles }} ejemplar(es) disponible(s)
-                </div>
+               <div class="badge-stock stock-disponible">
+            <i class="fas fa-check-circle"></i> 
+            {{ ejemplares_disponibles }} 
+            {% if ejemplares_disponibles == 1 %}
+                ejemplar disponible
+            {% else %}
+                ejemplares disponibles
+            {% endif %}
+        </div>
             {% else %}
                 <div class="badge-stock stock-no">
                     <i class="fas fa-times-circle"></i> No hay ejemplares disponibles
