@@ -10,14 +10,19 @@
 
 <div class="card">
     <div class="card-body">
-        <form method="post" enctype="multipart/form-data">
+        <form method="post" enctype="multipart/form-data" id="formLibro">
             {% csrf_token %}
             
             <!-- Datos del Libro -->
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label class="form-label fw-bold">ISBN *</label>
-                    <input type="text" name="isbn" class="form-control" value="{{ libro.isbn|default:'' }}" required>
+                    {% if libro %}
+                        <input type="text" name="isbn" class="form-control" value="{{ libro.isbn|default:'' }}" readonly style="background-color: #e9ecef; cursor: not-allowed;">
+                        <small class="text-muted">El ISBN no se puede modificar después de crear el libro</small>
+                    {% else %}
+                        <input type="text" name="isbn" class="form-control" value="{{ libro.isbn|default:'' }}" required>
+                    {% endif %}
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label fw-bold">Título *</label>
@@ -32,38 +37,53 @@
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label fw-bold">Editorial *</label>
-                    <select name="editorial" class="form-select" required>
-                        <option value="">Seleccionar editorial</option>
-                        {% for editorial in editoriales %}
-                        <option value="{{ editorial.id }}" {% if libro.editorial.id == editorial.id %}selected{% endif %}>
-                            {{ editorial.nombre }}
-                        </option>
-                        {% endfor %}
-                    </select>
+                    <div class="input-group">
+                        <select name="editorial" class="form-select" required>
+                            <option value="">Seleccionar editorial</option>
+                            {% for editorial in editoriales %}
+                            <option value="{{ editorial.id }}" {% if libro.editorial.id == editorial.id %}selected{% endif %}>
+                                {{ editorial.nombre }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalEditorial">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
             
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label class="form-label fw-bold">Categoría *</label>
-                    <select name="categoria" class="form-select" required>
-                        <option value="">Seleccionar categoría</option>
-                        {% for categoria in categorias %}
-                        <option value="{{ categoria.id }}" {% if libro.categoria.id == categoria.id %}selected{% endif %}>
-                            {{ categoria.nombre }}
-                        </option>
-                        {% endfor %}
-                    </select>
+                    <div class="input-group">
+                        <select name="categoria" class="form-select" required>
+                            <option value="">Seleccionar categoría</option>
+                            {% for categoria in categorias %}
+                            <option value="{{ categoria.id }}" {% if libro.categoria.id == categoria.id %}selected{% endif %}>
+                                {{ categoria.nombre }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalCategoria">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label fw-bold">Autores</label>
-                    <select name="autores" class="form-select" multiple size="4">
-                        {% for autor in autores %}
-                        <option value="{{ autor.id }}" {% if autor.id in autores_seleccionados %}selected{% endif %}>
-                            {{ autor.nombre }} {{ autor.apellido }}
-                        </option>
-                        {% endfor %}
-                    </select>
+                    <div class="input-group">
+                        <select name="autores" class="form-select" multiple size="4" style="height: auto;">
+                            {% for autor in autores %}
+                            <option value="{{ autor.id }}" {% if autor.id in autores_seleccionados %}selected{% endif %}>
+                                {{ autor.nombre }} {{ autor.apellido }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalAutor" style="height: auto;">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
                     <small class="text-muted">Ctrl + Click para seleccionar múltiples autores</small>
                 </div>
             </div>
@@ -151,4 +171,172 @@
         </form>
     </div>
 </div>
+
+<!-- Modal Editorial -->
+<div class="modal fade" id="modalEditorial" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nueva Editorial</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="nuevaEditorial" class="form-control" placeholder="Nombre de la editorial">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="crearEditorial()">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Categoría -->
+<div class="modal fade" id="modalCategoria" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nueva Categoría</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="nuevaCategoria" class="form-control" placeholder="Nombre de la categoría">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="crearCategoria()">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Autor -->
+<div class="modal fade" id="modalAutor" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nuevo Autor</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6 mb-2">
+                        <label>Nombre</label>
+                        <input type="text" id="autorNombre" class="form-control" placeholder="Nombre">
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <label>Apellido</label>
+                        <input type="text" id="autorApellido" class="form-control" placeholder="Apellido">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="crearAutor()">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // CSRF Token
+    const csrf_token = '{{ csrf_token }}';
+    
+    function crearEditorial() {
+        let nombre = document.getElementById('nuevaEditorial').value;
+        if(!nombre) {
+            alert('Ingrese un nombre de editorial');
+            return;
+        }
+        fetch('/catalogo/api/editorial/crear/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrf_token
+            },
+            body: JSON.stringify({nombre: nombre})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if(data.id) {
+                let select = document.querySelector('select[name="editorial"]');
+                let option = new Option(data.nombre, data.id);
+                select.add(option);
+                select.value = data.id;
+                // Cerrar el modal
+                let modal = bootstrap.Modal.getInstance(document.getElementById('modalEditorial'));
+                modal.hide();
+                document.getElementById('nuevaEditorial').value = '';
+            } else {
+                alert(data.error || 'Error al crear editorial');
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+    
+    function crearCategoria() {
+        let nombre = document.getElementById('nuevaCategoria').value;
+        if(!nombre) {
+            alert('Ingrese un nombre de categoría');
+            return;
+        }
+        fetch('/catalogo/api/categoria/crear/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrf_token
+            },
+            body: JSON.stringify({nombre: nombre})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if(data.id) {
+                let select = document.querySelector('select[name="categoria"]');
+                let option = new Option(data.nombre, data.id);
+                select.add(option);
+                select.value = data.id;
+                // Cerrar el modal
+                let modal = bootstrap.Modal.getInstance(document.getElementById('modalCategoria'));
+                modal.hide();
+                document.getElementById('nuevaCategoria').value = '';
+            } else {
+                alert(data.error || 'Error al crear categoría');
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+    
+    function crearAutor() {
+        let nombre = document.getElementById('autorNombre').value;
+        let apellido = document.getElementById('autorApellido').value;
+        if(!nombre || !apellido) {
+            alert('Ingrese nombre y apellido del autor');
+            return;
+        }
+        fetch('/catalogo/api/autor/crear/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrf_token
+            },
+            body: JSON.stringify({nombre: nombre, apellido: apellido})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if(data.id) {
+                let select = document.querySelector('select[name="autores"]');
+                let option = new Option(data.nombre + ' ' + data.apellido, data.id);
+                select.add(option);
+                // Cerrar el modal
+                let modal = bootstrap.Modal.getInstance(document.getElementById('modalAutor'));
+                modal.hide();
+                document.getElementById('autorNombre').value = '';
+                document.getElementById('autorApellido').value = '';
+            } else {
+                alert(data.error || 'Error al crear autor');
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+</script>
 {% endblock %}

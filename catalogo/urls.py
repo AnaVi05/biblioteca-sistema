@@ -20,4 +20,8 @@ urlpatterns = [
     path('gestion/ejemplares/nuevo/<int:libro_id>/', views.ejemplar_crear, name='ejemplar_crear'),
     path('gestion/ejemplares/editar/<int:ejemplar_id>/', views.ejemplar_editar, name='ejemplar_editar'),
     path('admin/', admin_site.urls),
+    # APIs para crear desde modales
+    path('api/editorial/crear/', views.api_crear_editorial, name='api_crear_editorial'),
+    path('api/categoria/crear/', views.api_crear_categoria, name='api_crear_categoria'),
+    path('api/autor/crear/', views.api_crear_autor, name='api_crear_autor'),
 ]

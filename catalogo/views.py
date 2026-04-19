@@ -1,6 +1,8 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib import messages
+from django.http import JsonResponse
+import json
 from .models import Libro, Categoria, Autor, Editorial, Ejemplar
 
 
@@ -69,8 +71,8 @@ def libro_crear(request):
     """Crear nuevo libro con ejemplar automático"""
     if request.method == 'POST':
         try:
-            # Crear el libro (con cantidades iniciales en 1)
-            libro = Libro.objects.create(
+            # Crear el libro
+            libro = Libro(
                 isbn=request.POST.get('isbn'),
                 titulo=request.POST.get('titulo'),
                 anio_publicacion=request.POST.get('anio_publicacion') or None,
@@ -81,6 +83,12 @@ def libro_crear(request):
                 inventario_disponible=1,
                 activo=True
             )
+            
+            # Guardar la imagen si se subió
+            if request.FILES.get('imagen'):
+                libro.imagen = request.FILES['imagen']
+            
+            libro.save()
             
             autores_ids = request.POST.getlist('autores')
             if autores_ids:
@@ -157,6 +165,14 @@ def libro_editar(request, libro_id):
                 messages.error(request, '❌ No puedes establecer cantidad total 0 porque el libro tiene ejemplares')
                 return redirect('libro_editar', libro_id=libro.id)
             
+            # No permitir modificar el ISBN
+            isbn_original = libro.isbn
+            isbn_nuevo = request.POST.get('isbn')
+            
+            if isbn_original != isbn_nuevo:
+                messages.error(request, '❌ No se puede modificar el ISBN de un libro existente')
+                return redirect('libro_editar', libro_id=libro.id)
+            
             libro.isbn = request.POST.get('isbn')
             libro.titulo = request.POST.get('titulo')
             libro.anio_publicacion = request.POST.get('anio_publicacion') or None
@@ -165,6 +181,11 @@ def libro_editar(request, libro_id):
             libro.categoria_id = request.POST.get('categoria')
             libro.cantidad_total = cantidad_total
             libro.inventario_disponible = inventario_disponible
+            
+            # Actualizar imagen si se subió una nueva
+            if request.FILES.get('imagen'):
+                libro.imagen = request.FILES['imagen']
+            
             libro.save()
             
             autores_ids = request.POST.getlist('autores')
@@ -187,6 +208,8 @@ def libro_editar(request, libro_id):
         'categorias': categorias,
         'autores': autores,
         'autores_seleccionados': list(autores_seleccionados),
+        'estado_fisico_choices': Ejemplar.ESTADO_FISICO_CHOICES,
+        'disponibilidad_choices': Ejemplar.DISPONIBILIDAD_CHOICES,
     }
     return render(request, 'bibliotecario/libro_form.html', context)
 
@@ -296,13 +319,59 @@ def ejemplar_editar(request, ejemplar_id):
     return render(request, 'bibliotecario/ejemplar_form.html', context)
 
 
-def detalle_libro(request, libro_id):
-    """Vista para ver detalles de un libro específico"""
-    libro = get_object_or_404(Libro, id=libro_id)
-    ejemplares_disponibles = libro.ejemplares.filter(disponibilidad='DISPONIBLE')
-    
-    context = {
-        'libro': libro,
-        'ejemplares_disponibles': ejemplares_disponibles,
-    }
-    return render(request, 'catalogo/detalle.html', context)
+# ========== APIS PARA CREAR EDITORIAL, CATEGORÍA, AUTOR ==========
+
+@staff_member_required
+def api_crear_editorial(request):
+    """API para crear una nueva editorial desde el modal"""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            nombre = data.get('nombre', '').strip()
+            if nombre:
+                editorial, created = Editorial.objects.get_or_create(nombre=nombre)
+                return JsonResponse({'id': editorial.id, 'nombre': editorial.nombre})
+            return JsonResponse({'error': 'Nombre requerido'}, status=400)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+
+@staff_member_required
+def api_crear_categoria(request):
+    """API para crear una nueva categoría desde el modal"""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            nombre = data.get('nombre', '').strip()
+            if nombre:
+                categoria, created = Categoria.objects.get_or_create(nombre=nombre)
+                return JsonResponse({'id': categoria.id, 'nombre': categoria.nombre})
+            return JsonResponse({'error': 'Nombre requerido'}, status=400)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+
+@staff_member_required
+def api_crear_autor(request):
+    """API para crear un nuevo autor desde el modal"""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            nombre = data.get('nombre', '').strip()
+            apellido = data.get('apellido', '').strip()
+            if nombre and apellido:
+                autor, created = Autor.objects.get_or_create(
+                    nombre=nombre,
+                    apellido=apellido
+                )
+                return JsonResponse({
+                    'id': autor.id, 
+                    'nombre': autor.nombre, 
+                    'apellido': autor.apellido
+                })
+            return JsonResponse({'error': 'Nombre y apellido requeridos'}, status=400)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    return JsonResponse({'error': 'Método no permitido'}, status=405)
