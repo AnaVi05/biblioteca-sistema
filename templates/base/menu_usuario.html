@@ -350,6 +350,7 @@
             color: var(--text-dark);
             transition: all 0.3s;
             position: relative;
+            cursor: pointer;
         }
         
         .btn-notification:hover {
@@ -359,12 +360,64 @@
         
         .notification-badge {
             position: absolute;
-            top: 8px;
-            right: 8px;
-            width: 8px;
-            height: 8px;
+            top: 5px;
+            right: 5px;
+            min-width: 18px;
+            height: 18px;
             background: #ef4444;
+            color: white;
             border-radius: 50%;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        
+        /* Modal de notificaciones */
+        .notification-modal {
+            display: none;
+            position: absolute;
+            right: 20px;
+            top: 70px;
+            width: 350px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            z-index: 1000;
+            overflow: hidden;
+        }
+        
+        .notification-header {
+            background: var(--primary-blue);
+            color: white;
+            padding: 12px 15px;
+            font-weight: 600;
+        }
+        
+        .notification-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .notification-item {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e2e8f0;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .notification-item:hover {
+            background: #f8fafc;
+        }
+        
+        .notification-item.no-leida {
+            background: #f0f7ff;
+        }
+        
+        .notification-icon {
+            width: 35px;
+            text-align: center;
         }
         
         .user-menu {
@@ -412,7 +465,8 @@
                 justify-content: center;
             }
         }
-                /* Estilos para mensajes */
+        
+        /* Estilos para mensajes */
         .alert {
             padding: 12px 20px;
             border-radius: 8px;
@@ -529,7 +583,7 @@
     
     <!-- Contenido principal (cambia según la página) -->
     <div class="main-content">
-                {% if messages %}
+        {% if messages %}
             {% for message in messages %}
                 <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
                     {{ message }}
@@ -538,26 +592,35 @@
             {% endfor %}
         {% endif %}
         {% block main_content %}
-        {% include 'includes/notificaciones.html' %}
             <!-- Header -->
             <div class="content-header">
                 <div class="page-title">
-                  <h1>
-                {% with nombre=user.first_name|lower %}
-                    {% if 'a' == nombre|last and nombre != 'elias' and nombre != 'lucas' and nombre != 'nicolas' %}
-                        Bienvenida, {{ user.first_name }}
-                    {% else %}
-                        Bienvenido, {{ user.first_name }}
-                    {% endif %}
-                {% endwith %}
-            </h1>
+                    <h1>
+                        {% with nombre=user.first_name|lower %}
+                            {% if 'a' == nombre|last and nombre != 'elias' and nombre != 'lucas' and nombre != 'nicolas' %}
+                                Bienvenida, {{ user.first_name }}
+                            {% else %}
+                                Bienvenido, {{ user.first_name }}
+                            {% endif %}
+                        {% endwith %}
+                    </h1>
                     <p>Tu espacio personal en la biblioteca</p>
                 </div>
                 
                 <div class="header-actions">
-                    <div class="btn-notification">
+                    <div class="btn-notification" id="notificationBell">
                         <i class="fas fa-bell"></i>
-                        <div class="notification-badge"></div>
+                        <div class="notification-badge" id="notificationBadge" style="display: none;"></div>
+                    </div>
+                    
+                    <!-- Modal de notificaciones -->
+                    <div class="notification-modal" id="notificationModal">
+                        <div class="notification-header">
+                            <i class="fas fa-bell me-2"></i> Notificaciones
+                        </div>
+                        <div class="notification-list" id="notificationList">
+                            <div class="text-center py-3 text-muted">Cargando...</div>
+                        </div>
                     </div>
                     
                     <div class="user-menu">
@@ -703,13 +766,77 @@
             const catalogo = document.getElementById('menu-catalogo');
             if (catalogo) catalogo.classList.add('active');
         } else if (currentPath.includes('/mis-prestamos/')) {
-            // Marcar Mis Préstamos
             document.querySelectorAll('.menu-item').forEach(item => {
                 if (item.querySelector('a') && item.querySelector('a').getAttribute('href') === '/mis-prestamos/') {
                     item.classList.add('active');
                 }
             });
         }
+        
+        // ========== SISTEMA DE NOTIFICACIONES ==========
+        const notificationBell = document.getElementById('notificationBell');
+        const notificationModal = document.getElementById('notificationModal');
+        const notificationBadge = document.getElementById('notificationBadge');
+        
+        let notificaciones = [];
+        
+        function cargarNotificaciones() {
+            fetch('/api/notificaciones/')
+                .then(response => response.json())
+                .then(data => {
+                    notificaciones = data.notificaciones;
+                    const pendientes = notificaciones.filter(n => !n.leida).length;
+                    
+                    if (pendientes > 0) {
+                        notificationBadge.style.display = 'flex';
+                        notificationBadge.textContent = pendientes > 9 ? '9+' : pendientes;
+                    } else {
+                        notificationBadge.style.display = 'none';
+                    }
+                    
+                    const listContainer = document.getElementById('notificationList');
+                    if (notificaciones.length === 0) {
+                        listContainer.innerHTML = '<div class="text-center py-3 text-muted">No hay notificaciones</div>';
+                    } else {
+                        listContainer.innerHTML = notificaciones.map(n => `
+                            <div class="notification-item ${n.leida ? '' : 'no-leida'}">
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <div class="notification-icon">
+                                        <i class="fas ${n.icono}" style="color: ${n.color};"></i>
+                                    </div>
+                                    <div style="flex: 1;">
+                                        <div style="font-weight: 600; font-size: 14px;">${n.titulo}</div>
+                                        <div style="font-size: 12px; color: #64748b;">${n.mensaje}</div>
+                                        <div style="font-size: 10px; color: #94a3b8; margin-top: 4px;">${n.fecha}</div>
+                                    </div>
+                                    ${!n.leida ? '<span style="width: 8px; height: 8px; background: #2563eb; border-radius: 50%;"></span>' : ''}
+                                </div>
+                            </div>
+                        `).join('');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error cargando notificaciones:', error);
+                });
+        }
+        
+        notificationBell.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const isVisible = notificationModal.style.display === 'block';
+            notificationModal.style.display = isVisible ? 'none' : 'block';
+            if (!isVisible) {
+                cargarNotificaciones();
+            }
+        });
+        
+        document.addEventListener('click', function(e) {
+            if (!notificationBell.contains(e.target) && !notificationModal.contains(e.target)) {
+                notificationModal.style.display = 'none';
+            }
+        });
+        
+        // Cargar notificaciones al cargar la página
+        cargarNotificaciones();
     </script>
 </body>
 </html>

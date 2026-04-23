@@ -9,6 +9,67 @@ from catalogo.models import Ejemplar, Libro
 from django.db.models import Count, Sum
 from usuario.models import Socio 
 from django.db import transaction
+from django.http import JsonResponse
+
+@login_required
+def api_notificaciones(request):
+    """API para obtener notificaciones del usuario"""
+    hoy = timezone.now().date()
+    socio = request.user.socio
+    
+    notificaciones = []
+    
+    # Préstamos próximos a vencer
+    prestamos_proximos = Prestamo.objects.filter(
+        socio=socio,
+        estado='ACTIVO',
+        fecha_vencimiento__gte=hoy,
+        fecha_vencimiento__lte=hoy + timedelta(days=3)
+    )
+    
+    for p in prestamos_proximos:
+        dias = (p.fecha_vencimiento - hoy).days
+        notificaciones.append({
+            'titulo': '📖 Préstamo próximo a vencer',
+            'mensaje': f'"{p.ejemplar.libro.titulo}" vence en {dias} {"día" if dias == 1 else "días"}',
+            'fecha': p.fecha_vencimiento.strftime("%d/%m/%Y"),
+            'icono': 'fa-clock',
+            'color': '#f59e0b',
+            'leida': False
+        })
+    
+    # Reservas listas para retirar
+    reservas_listas = Reserva.objects.filter(
+        socio=socio,
+        estado='ACTIVA',
+        fecha_expiracion__gte=hoy
+    )
+    
+    for r in reservas_listas:
+        notificaciones.append({
+            'titulo': '✅ Reserva lista',
+            'mensaje': f'"{r.libro.titulo}" está disponible para retirar',
+            'fecha': r.fecha_expiracion.strftime("%d/%m/%Y"),
+            'icono': 'fa-check-circle',
+            'color': '#10b981',
+            'leida': False
+        })
+    
+    # Multas pendientes
+    multas = Multa.objects.filter(prestamo__socio=socio, estado='PENDIENTE')
+    total_multas = sum(m.monto_total for m in multas)
+    if multas:
+        notificaciones.append({
+            'titulo': '💰 Multa pendiente',
+            'mensaje': f'Tienes {multas.count()} {"multa" if multas.count() == 1 else "multas"} por un total de Gs. {total_multas:,.0f}',
+            'fecha': hoy.strftime("%d/%m/%Y"),
+            'icono': 'fa-exclamation-triangle',
+            'color': '#dc2626',
+            'leida': False
+        })
+    
+    notificaciones.sort(key=lambda x: x['fecha'], reverse=True)
+    return JsonResponse({'notificaciones': notificaciones})
 
 
 @staff_member_required
@@ -312,6 +373,21 @@ def reservar_libro(request, libro_id):
 @login_required
 def mis_reservas(request):
     """Lista las reservas del usuario"""
+    from datetime import date
+    hoy = date.today()
+    
+    # Marcar reservas expiradas y mostrar notificación
+    reservas_expiradas = Reserva.objects.filter(
+        socio=request.user.socio,
+        estado='PENDIENTE',
+        fecha_expiracion__lt=hoy
+    )
+    
+    for reserva in reservas_expiradas:
+        reserva.estado = 'EXPIRADA'
+        reserva.save()
+        messages.warning(request, f'⚠️ Tu reserva de "{reserva.libro.titulo}" ha expirado porque no la retiraste a tiempo.')
+    
     reservas_activas = Reserva.objects.filter(
         socio=request.user.socio,
         estado__in=['PENDIENTE', 'ACTIVA']
@@ -325,7 +401,7 @@ def mis_reservas(request):
     context = {
         'reservas_activas': reservas_activas,
         'historial': historial,
-        'hoy': date.today()
+        'hoy': hoy,
     }
     return render(request, 'prestamo/mis_reservas.html', context)
 

@@ -9,7 +9,7 @@ from django.shortcuts import redirect, render
 from usuario import views
 from django.conf import settings
 from django.conf.urls.static import static
-from datetime import date
+from datetime import date, timedelta
 from prestamo.models import Prestamo, Reserva, Multa
 from django.contrib.auth.views import LogoutView
 from prestamo.admin import admin_site  # Importa el admin personalizado
@@ -22,7 +22,7 @@ def redirigir_inicio(request):
         return redirect('dashboard_bibliotecario')
     else:
         # ========== DATOS REALES PARA EL DASHBOARD ==========
-        from datetime import date
+        from datetime import date, timedelta
         from prestamo.models import Prestamo, Reserva, Multa
         
         try:
@@ -37,6 +37,7 @@ def redirigir_inicio(request):
                 'proxima_devolucion': None,
                 'proxima_devolucion_dias': None,
                 'actividad_reciente': [],
+                'prestamos_proximos_vencer': [],
                 'hoy': date.today(),
             }
             return render(request, 'base/menu_usuario.html', context)
@@ -58,6 +59,14 @@ def redirigir_inicio(request):
             dias = (proxima_devolucion.fecha_vencimiento - date.today()).days
             proxima_devolucion_dias = dias if dias > 0 else 0
         
+        # 🆕 Préstamos próximos a vencer (próximos 3 días)
+        prestamos_proximos_vencer = Prestamo.objects.filter(
+            socio=socio,
+            estado='ACTIVO',
+            fecha_vencimiento__gte=date.today(),
+            fecha_vencimiento__lte=date.today() + timedelta(days=3)
+        )
+        
         # Actividad reciente
         actividad_reciente = Prestamo.objects.filter(socio=socio).order_by('-fecha_prestamo')[:3]
         
@@ -68,6 +77,7 @@ def redirigir_inicio(request):
             'total_multas': total_multas,
             'proxima_devolucion': proxima_devolucion,
             'proxima_devolucion_dias': proxima_devolucion_dias,
+            'prestamos_proximos_vencer': prestamos_proximos_vencer,  # 🆕 Agregado
             'actividad_reciente': actividad_reciente,
             'hoy': date.today(),
         }

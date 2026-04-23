@@ -257,16 +257,16 @@
                     <p class="card-autores">{{ libro.descripcion|truncatechars:80 }}</p>
                 {% endif %}
                 
-                <!-- BOTONES DE ACCIÓN -->
+                <!-- BOTONES DE ACCIÓN MODIFICADOS -->
                 <div class="d-flex justify-content-between align-items-center mt-3">
                     <a href="{% url 'catalogo_detalle' libro.id %}" class="btn-detalles">
                         <i class="fas fa-info-circle me-1"></i>Ver detalles
                     </a>
                     
                     {% if libro.inventario_disponible > 0 %}
-                        {% with primer_ejemplar=libro.ejemplares.all|first %}
-                            {% if primer_ejemplar %}
-                                <a href="{% url 'registrar_prestamo_usuario' primer_ejemplar.id %}" class="btn-detalles" style="background: #28a745; color: white; border-color: #28a745;">
+                        {% with ejemplar_disponible=libro.ejemplares.all|dictsort:"disponibilidad"|first %}
+                            {% if ejemplar_disponible and ejemplar_disponible.disponibilidad == 'DISPONIBLE' %}
+                                <a href="{% url 'registrar_prestamo_usuario' ejemplar_disponible.id %}" class="btn-detalles" style="background: #28a745; color: white; border-color: #28a745;">
                                     <i class="fas fa-hand-holding-heart"></i> Prestar
                                 </a>
                             {% else %}

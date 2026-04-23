@@ -35,4 +35,8 @@ urlpatterns = [
     path('reporte/prestamos-activos/', views.reporte_prestamos_activos, name='reporte_prestamos_activos'),
     path('reporte/devoluciones/', views.reporte_devoluciones, name='reporte_devoluciones'),
     path('reporte/reservas-expiradas/', views.reporte_reservas_expiradas, name='reporte_reservas_expiradas'),
+
+
+    #Notificaciones 
+    path('api/notificaciones/', views.api_notificaciones, name='api_notificaciones'),
 ]
