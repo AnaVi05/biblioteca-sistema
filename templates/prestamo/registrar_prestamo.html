@@ -1,5 +1,3 @@
-
-
 {% extends 'base/menu_usuario.html' %}
 {% load static %}
 
@@ -7,29 +5,79 @@
 <div style="padding: 20px; max-width: 600px; margin: 0 auto;">
     <h1 style="color: #2c5aa0;">Registrar Préstamo</h1>
     
+    <!-- Mostrar mensajes -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}" style="padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+    
     <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
         <h3>{{ ejemplar.libro.titulo }}</h3>
-        <p>ID del ejemplar: {{ ejemplar.id }}</p>
-        <p>Código: {{ ejemplar.codigo_inventario }}</p>
+        <p><strong>ID del ejemplar:</strong> {{ ejemplar.id }}</p>
+        <p><strong>Código:</strong> {{ ejemplar.codigo_inventario }}</p>
+        <p><strong>ISBN:</strong> {{ ejemplar.libro.isbn }}</p>
+        <p><strong>Editorial:</strong> {{ ejemplar.libro.editorial.nombre }}</p>
+        <p><strong>Categoría:</strong> {{ ejemplar.libro.categoria.nombre }}</p>
     </div>
     
     <form method="post">
         {% csrf_token %}
         
         <div style="margin: 20px 0;">
-            <label style="display: block; margin-bottom: 10px;">📅 ¿Por cuántos días?</label>
-            <select name="dias_solicitados" required style="width: 100%; padding: 10px;">
+            <label style="display: block; margin-bottom: 10px; font-weight: bold;">📅 ¿Por cuántos días?</label>
+            <select name="dias_solicitados" required style="width: 100%; padding: 10px; border-radius: 5px; border: 1px solid #ddd;">
                 <option value="1">1 día</option>
                 <option value="2">2 días</option>
-                <option value="3">3 días</option>
+                <option value="3" selected>3 días</option>
                 <option value="4">4 días</option>
                 <option value="5">5 días</option>
             </select>
+            <small style="color: #666;">Máximo 5 días por préstamo</small>
         </div>
         
-        <button type="submit" style="background: #28a745; color: white; padding: 15px 30px; border: none; border-radius: 8px; cursor: pointer;">
-            Confirmar Préstamo
-        </button>
+        <div style="margin-top: 20px;">
+            <button type="submit" style="background: #28a745; color: white; padding: 15px 30px; border: none; border-radius: 8px; cursor: pointer; font-size: 16px;">
+                <i class="fas fa-hand-holding-heart"></i> Confirmar Préstamo
+            </button>
+            
+            <a href="{% url 'catalogo_lista' %}" style="display: inline-block; margin-left: 10px; padding: 15px 30px; background: #6c757d; color: white; text-decoration: none; border-radius: 8px;">
+                <i class="fas fa-times"></i> Cancelar
+            </a>
+        </div>
     </form>
+    
+    <!-- Advertencia sobre multas -->
+    <div style="margin-top: 30px; padding: 15px; background: #fff3cd; border-radius: 8px; border-left: 4px solid #ffc107;">
+        <small>
+            <i class="fas fa-info-circle"></i> 
+            <strong>Importante:</strong> Si tienes multas pendientes, no podrás solicitar nuevos préstamos hasta regularizar tu situación.
+        </small>
+    </div>
 </div>
+
+<style>
+    .alert-success {
+        background-color: #d4edda;
+        color: #155724;
+        border-left: 4px solid #28a745;
+    }
+    .alert-error, .alert-danger {
+        background-color: #f8d7da;
+        color: #721c24;
+        border-left: 4px solid #dc3545;
+    }
+    .alert-warning {
+        background-color: #fff3cd;
+        color: #856404;
+        border-left: 4px solid #ffc107;
+    }
+    .alert-info {
+        background-color: #d1ecf1;
+        color: #0c5460;
+        border-left: 4px solid #17a2b8;
+    }
+</style>
 {% endblock %}

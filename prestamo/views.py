@@ -178,8 +178,23 @@ def registrar_prestamo_usuario(request, ejemplar_id):
         messages.error(request, f'El ejemplar con ID {ejemplar_id} no existe')
         return redirect('catalogo_lista')
     
-    if ejemplar.disponibilidad.upper() != 'DISPONIBLE':
+    if ejemplar.disponibilidad != 'DISPONIBLE':
         messages.error(request, f'El ejemplar {ejemplar.codigo_inventario} no está disponible')
+        return redirect('catalogo_lista')
+    
+    # ========== VALIDAR MULTAS PENDIENTES ==========
+    multas_pendientes = Multa.objects.filter(
+        prestamo__socio=request.user.socio,
+        estado='PENDIENTE'
+    )
+    
+    if multas_pendientes.exists():
+        total_multa = sum(multa.monto_total for multa in multas_pendientes)
+        messages.error(
+            request, 
+            f'❌ No puedes solicitar préstamos porque tienes {multas_pendientes.count()} multa(s) pendiente(s) por un total de Gs. {total_multa:,.0f}. '
+            f'Debes pagar tu deuda para continuar.'
+        )
         return redirect('catalogo_lista')
     
     if request.method == 'POST':

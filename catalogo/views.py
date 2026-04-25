@@ -55,6 +55,13 @@ def gestionar_libros(request):
     """Lista de libros para administrar (bibliotecario ve todos)"""
     libros = Libro.objects.all().select_related('editorial', 'categoria').order_by('-activo', 'titulo')
     
+    # Filtro por estado
+    filtro = request.GET.get('filtro', '')
+    if filtro == 'activos':
+        libros = libros.filter(activo=True)
+    elif filtro == 'inactivos':
+        libros = libros.filter(activo=False)
+    
     search = request.GET.get('search', '')
     if search:
         libros = libros.filter(titulo__icontains=search)
@@ -62,6 +69,7 @@ def gestionar_libros(request):
     context = {
         'libros': libros,
         'search': search,
+        'filtro': filtro,
     }
     return render(request, 'bibliotecario/libros_lista.html', context)
 
