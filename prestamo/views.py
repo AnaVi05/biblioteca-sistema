@@ -178,8 +178,23 @@ def registrar_prestamo_usuario(request, ejemplar_id):
         messages.error(request, f'El ejemplar con ID {ejemplar_id} no existe')
         return redirect('catalogo_lista')
     
-    if ejemplar.disponibilidad.upper() != 'DISPONIBLE':
+    if ejemplar.disponibilidad != 'DISPONIBLE':
         messages.error(request, f'El ejemplar {ejemplar.codigo_inventario} no está disponible')
+        return redirect('catalogo_lista')
+    
+    # ========== VALIDAR MULTAS PENDIENTES ==========
+    multas_pendientes = Multa.objects.filter(
+        prestamo__socio=request.user.socio,
+        estado='PENDIENTE'
+    )
+    
+    if multas_pendientes.exists():
+        total_multa = sum(multa.monto_total for multa in multas_pendientes)
+        messages.error(
+            request, 
+            f'❌ No puedes solicitar préstamos porque tienes {multas_pendientes.count()} multa(s) pendiente(s) por un total de Gs. {total_multa:,.0f}. '
+            f'Debes pagar tu deuda para continuar.'
+        )
         return redirect('catalogo_lista')
     
     if request.method == 'POST':
@@ -329,21 +344,35 @@ def reservar_libro(request, libro_id):
             messages.error(request, 'La fecha límite no puede ser mayor a 30 días')
             return redirect('reservar_libro', libro_id=libro.id)
         
-        reserva_existente = Reserva.objects.filter(
+        # ========== VALIDAR RESERVA EXISTENTE ==========
+        # Verificar si ya tiene una reserva ACTIVA o PENDIENTE (no expirada)
+        reserva_activa = Reserva.objects.filter(
             socio=request.user.socio,
             libro=libro,
             estado__in=['PENDIENTE', 'ACTIVA']
         ).exists()
         
-        if reserva_existente:
-            messages.warning(request, 'Ya tenés una reserva activa para este libro')
+        if reserva_activa:
+            messages.warning(request, '⚠️ Ya tienes una reserva activa o pendiente para este libro. Espera a que expire o cancélala antes de hacer una nueva.')
             return redirect('mis_reservas')
         
+        # Obtener la última reserva de este libro (si existe)
+        ultima_reserva = Reserva.objects.filter(
+            socio=request.user.socio,
+            libro=libro
+        ).order_by('-fecha_reserva').first()
+        
+        # Si la última reserva fue EXPIRADA, permitir nueva reserva
+        if ultima_reserva and ultima_reserva.estado == 'EXPIRADA':
+            messages.info(request, 'ℹ️ Tu reserva anterior expiró. Puedes realizar una nueva reserva.')
+        
+        # Calcular posición en cola
         ultima_posicion = Reserva.objects.filter(
             libro=libro,
             estado__in=['PENDIENTE', 'ACTIVA']
         ).count()
         
+        # Crear nueva reserva
         reserva = Reserva.objects.create(
             socio=request.user.socio,
             libro=libro,
@@ -368,8 +397,6 @@ def reservar_libro(request, libro_id):
         'ejemplares_disponibles': ejemplares_disponibles
     }
     return render(request, 'prestamo/reservar_libro.html', context)
-
-
 @login_required
 def mis_reservas(request):
     """Lista las reservas del usuario"""
