@@ -39,4 +39,5 @@ urlpatterns = [
 
     #Notificaciones 
     path('api/notificaciones/', views.api_notificaciones, name='api_notificaciones'),
+    path('mis-multas/', views.mis_multas, name='mis_multas'),
 ]

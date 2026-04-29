@@ -1154,3 +1154,29 @@ def admin_dashboard(request):
         'hoy': hoy,
     }
     return render(request, 'admin/dashboard.html', context)
+
+
+@login_required
+def mis_multas(request):
+    """Vista para que el usuario vea sus multas pendientes y pagadas"""
+    from decimal import Decimal
+    
+    multas_pendientes = Multa.objects.filter(
+        prestamo__socio=request.user.socio,
+        estado='PENDIENTE'
+    ).select_related('prestamo__ejemplar__libro')
+    
+    multas_pagadas = Multa.objects.filter(
+        prestamo__socio=request.user.socio,
+        estado='PAGADA'
+    ).select_related('prestamo__ejemplar__libro')[:10]
+    
+    total_deuda = sum(m.monto_total for m in multas_pendientes)
+    
+    context = {
+        'multas_pendientes': multas_pendientes,
+        'multas_pagadas': multas_pagadas,
+        'total_deuda': total_deuda,
+        'socio': request.user.socio,
+    }
+    return render(request, 'usuario/mis_multas.html', context)

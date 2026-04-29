@@ -1,0 +1,150 @@
+{% extends 'base/menu_usuario.html' %}
+{% load static %}
+
+{% block main_content %}
+<style>
+    .multas-header {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        margin-bottom: 25px;
+    }
+    
+    .multa-card {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 15px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        border-left: 4px solid #dc2626;
+        transition: all 0.3s;
+    }
+    
+    .multa-card.pagada {
+        border-left-color: #10b981;
+        opacity: 0.8;
+    }
+    
+    .estado-pendiente {
+        background: #fee2e2;
+        color: #dc2626;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+    
+    .estado-pagada {
+        background: #dcfce7;
+        color: #166534;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+    
+    .total-deuda {
+        background: #fee2e2;
+        padding: 15px;
+        border-radius: 12px;
+        margin-bottom: 20px;
+        text-align: center;
+    }
+    
+    .total-deuda .monto {
+        font-size: 28px;
+        font-weight: 700;
+        color: #dc2626;
+    }
+    
+    .alerta-moroso {
+        background: #fee2e2;
+        border-left: 4px solid #dc2626;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+    
+    .alerta-moroso i {
+        color: #dc2626;
+        font-size: 1.2rem;
+        margin-right: 10px;
+    }
+</style>
+
+<div class="container py-4">
+    <div class="multas-header">
+        <h1 style="color: var(--primary-blue);">💰 Mis Multas</h1>
+        <p class="text-muted">Gestioná tus multas pendientes</p>
+    </div>
+    
+    {% if socio.estado_socio == 'moroso' %}
+        <div class="alerta-moroso">
+            <i class="fas fa-exclamation-triangle"></i>
+            <strong>⚠️ Usuario Moroso</strong> - Tenés multas pendientes. No podés solicitar nuevos préstamos hasta regularizar tu situación.
+        </div>
+    {% endif %}
+    
+    {% if total_deuda > 0 %}
+        <div class="total-deuda">
+            <strong>Total de multas pendientes:</strong>
+            <div class="monto">Gs. {{ total_deuda|floatformat:0 }}</div>
+            <small class="text-muted">Acercate a la biblioteca para pagar tus multas</small>
+        </div>
+    {% endif %}
+    
+    {% if multas_pendientes %}
+        <h3 class="mb-3">📌 Multas Pendientes</h3>
+        {% for multa in multas_pendientes %}
+            <div class="multa-card">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h5 class="mb-0">{{ multa.prestamo.ejemplar.libro.titulo }}</h5>
+                    <span class="estado-pendiente">Pendiente</span>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <p class="mb-1"><strong>📅 Fecha de préstamo:</strong> {{ multa.prestamo.fecha_prestamo|date:"d/m/Y" }}</p>
+                        <p class="mb-1"><strong>⏰ Fecha de vencimiento:</strong> {{ multa.prestamo.fecha_vencimiento|date:"d/m/Y" }}</p>
+                        <p class="mb-1"><strong>📆 Fecha de devolución:</strong> {{ multa.prestamo.fecha_devolucion_real|date:"d/m/Y" }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="mb-1"><strong>📖 Días de atraso:</strong> {{ multa.dias_atraso }} día{{ multa.dias_atraso|pluralize }}</p>
+                        <p class="mb-1"><strong>💰 Monto por día:</strong> Gs. {{ multa.monto_por_dia|floatformat:0 }}</p>
+                        <p class="mb-0 fw-bold text-danger">💸 Total: Gs. {{ multa.monto_total|floatformat:0 }}</p>
+                    </div>
+                </div>
+                <div class="mt-2 text-muted small">
+                    <i class="fas fa-info-circle"></i> Para pagar, acercate a la biblioteca con el comprobante.
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="alert alert-success">
+            <i class="fas fa-check-circle"></i>
+            No tenés multas pendientes. ¡Bien!
+        </div>
+    {% endif %}
+    
+    {% if multas_pagadas %}
+        <h3 class="mb-3 mt-4">✅ Historial de Pagos</h3>
+        {% for multa in multas_pagadas %}
+            <div class="multa-card pagada">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h5 class="mb-0">{{ multa.prestamo.ejemplar.libro.titulo }}</h5>
+                    <span class="estado-pagada">Pagada</span>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <p class="mb-1"><strong>Motivo:</strong> {{ multa.dias_atraso }} día{{ multa.dias_atraso|pluralize }} de atraso</p>
+                        <p class="mb-1"><strong>📅 Fecha de pago:</strong> {{ multa.fecha_pago|date:"d/m/Y" }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="mb-0 fw-bold text-success">Monto pagado: Gs. {{ multa.monto_total|floatformat:0 }}</p>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    {% endif %}
+</div>
+{% endblock %}
