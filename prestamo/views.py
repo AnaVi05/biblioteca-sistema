@@ -35,7 +35,8 @@ def api_notificaciones(request):
             'fecha': p.fecha_vencimiento.strftime("%d/%m/%Y"),
             'icono': 'fa-clock',
             'color': '#f59e0b',
-            'leida': False
+            'leida': False,
+            'url': '/mis-prestamos/'
         })
     
     # Reservas listas para retirar
@@ -52,7 +53,8 @@ def api_notificaciones(request):
             'fecha': r.fecha_expiracion.strftime("%d/%m/%Y"),
             'icono': 'fa-check-circle',
             'color': '#10b981',
-            'leida': False
+            'leida': False,
+            'url': '/mis-reservas/' 
         })
     
     # Multas pendientes
@@ -65,7 +67,8 @@ def api_notificaciones(request):
             'fecha': hoy.strftime("%d/%m/%Y"),
             'icono': 'fa-exclamation-triangle',
             'color': '#dc2626',
-            'leida': False
+            'leida': False,
+            'url': '/mis-multas/'  
         })
     
     notificaciones.sort(key=lambda x: x['fecha'], reverse=True)

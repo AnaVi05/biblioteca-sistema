@@ -762,87 +762,85 @@
     </div>
 
     <script>
-        // Marcar el item activo según la URL
-        const currentPath = window.location.pathname;
-        
-        if (currentPath === '/' || currentPath === '') {
-            const inicio = document.getElementById('menu-inicio');
-            if (inicio) inicio.classList.add('active');
-        } else if (currentPath.includes('/catalogo/')) {
-            const catalogo = document.getElementById('menu-catalogo');
-            if (catalogo) catalogo.classList.add('active');
-        } else if (currentPath.includes('/mis-prestamos/')) {
-            document.querySelectorAll('.menu-item').forEach(item => {
-                if (item.querySelector('a') && item.querySelector('a').getAttribute('href') === '/mis-prestamos/') {
-                    item.classList.add('active');
+     
+    // Marcar el item activo según la URL
+    const currentPath = window.location.pathname;
+    
+    if (currentPath === '/' || currentPath === '') {
+        const inicio = document.getElementById('menu-inicio');
+        if (inicio) inicio.classList.add('active');
+    } else if (currentPath.includes('/catalogo/')) {
+        const catalogo = document.getElementById('menu-catalogo');
+        if (catalogo) catalogo.classList.add('active');
+    } else if (currentPath.includes('/mis-prestamos/')) {
+        document.querySelectorAll('.menu-item').forEach(item => {
+            if (item.querySelector('a') && item.querySelector('a').getAttribute('href') === '/mis-prestamos/') {
+                item.classList.add('active');
+            }
+        });
+    }
+    
+    // ========== SISTEMA DE NOTIFICACIONES ==========
+    window.cargarNotificaciones = function() {
+        fetch('/api/notificaciones/')
+            .then(response => response.json())
+            .then(data => {
+                const notificaciones = data.notificaciones;
+                const pendientes = notificaciones.filter(n => !n.leida).length;
+                const badge = document.getElementById('notificationBadge');
+                if (pendientes > 0) {
+                    badge.style.display = 'flex';
+                    badge.textContent = pendientes > 9 ? '9+' : pendientes;
+                } else {
+                    badge.style.display = 'none';
                 }
-            });
-        }
-        
-        // ========== SISTEMA DE NOTIFICACIONES ==========
-        const notificationBell = document.getElementById('notificationBell');
-        const notificationModal = document.getElementById('notificationModal');
-        const notificationBadge = document.getElementById('notificationBadge');
-        
-        let notificaciones = [];
-        
-        function cargarNotificaciones() {
-            fetch('/api/notificaciones/')
-                .then(response => response.json())
-                .then(data => {
-                    notificaciones = data.notificaciones;
-                    const pendientes = notificaciones.filter(n => !n.leida).length;
-                    
-                    if (pendientes > 0) {
-                        notificationBadge.style.display = 'flex';
-                        notificationBadge.textContent = pendientes > 9 ? '9+' : pendientes;
-                    } else {
-                        notificationBadge.style.display = 'none';
-                    }
-                    
-                    const listContainer = document.getElementById('notificationList');
-                    if (notificaciones.length === 0) {
-                        listContainer.innerHTML = '<div class="text-center py-3 text-muted">No hay notificaciones</div>';
-                    } else {
-                        listContainer.innerHTML = notificaciones.map(n => `
-                            <div class="notification-item ${n.leida ? '' : 'no-leida'}">
-                                <div style="display: flex; align-items: center; gap: 12px;">
-                                    <div class="notification-icon">
-                                        <i class="fas ${n.icono}" style="color: ${n.color};"></i>
-                                    </div>
-                                    <div style="flex: 1;">
-                                        <div style="font-weight: 600; font-size: 14px;">${n.titulo}</div>
-                                        <div style="font-size: 12px; color: #64748b;">${n.mensaje}</div>
-                                        <div style="font-size: 10px; color: #94a3b8; margin-top: 4px;">${n.fecha}</div>
-                                    </div>
-                                    ${!n.leida ? '<span style="width: 8px; height: 8px; background: #2563eb; border-radius: 50%;"></span>' : ''}
+                const listContainer = document.getElementById('notificationList');
+                if (notificaciones.length === 0) {
+                    listContainer.innerHTML = '<div class="text-center py-3 text-muted">No hay notificaciones</div>';
+                } else {
+                    listContainer.innerHTML = notificaciones.map(n => `
+                        <div class="notification-item ${n.leida ? '' : 'no-leida'}" 
+                             onclick="window.location.href='${n.url}'" 
+                             style="cursor: pointer;">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <div class="notification-icon">
+                                    <i class="fas ${n.icono}" style="color: ${n.color};"></i>
                                 </div>
+                                <div style="flex: 1;">
+                                    <div style="font-weight: 600; font-size: 14px;">${n.titulo}</div>
+                                    <div style="font-size: 12px; color: #64748b;">${n.mensaje}</div>
+                                    <div style="font-size: 10px; color: #94a3b8; margin-top: 4px;">${n.fecha}</div>
+                                </div>
+                                ${!n.leida ? '<span style="width: 8px; height: 8px; background: #2563eb; border-radius: 50%;"></span>' : ''}
                             </div>
-                        `).join('');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error cargando notificaciones:', error);
-                });
-        }
-        
-        notificationBell.addEventListener('click', function(e) {
+                        </div>
+                    `).join('');
+                }
+            })
+            .catch(error => console.error('Error:', error));
+    };
+
+    // Asignar evento a la campana
+    const bell = document.getElementById('notificationBell');
+    if (bell) {
+        bell.onclick = function(e) {
             e.stopPropagation();
-            const isVisible = notificationModal.style.display === 'block';
-            notificationModal.style.display = isVisible ? 'none' : 'block';
-            if (!isVisible) {
-                cargarNotificaciones();
-            }
-        });
-        
-        document.addEventListener('click', function(e) {
-            if (!notificationBell.contains(e.target) && !notificationModal.contains(e.target)) {
-                notificationModal.style.display = 'none';
-            }
-        });
-        
-        // Cargar notificaciones al cargar la página
-        cargarNotificaciones();
-    </script>
-</body>
-</html>
+            const modal = document.getElementById('notificationModal');
+            const isVisible = modal.style.display === 'block';
+            modal.style.display = isVisible ? 'none' : 'block';
+            if (!isVisible) window.cargarNotificaciones();
+        };
+    }
+
+    // Cerrar modal al hacer clic fuera
+    document.addEventListener('click', function(e) {
+        const bell = document.getElementById('notificationBell');
+        const modal = document.getElementById('notificationModal');
+        if (bell && modal && !bell.contains(e.target) && !modal.contains(e.target) && modal.style.display === 'block') {
+            modal.style.display = 'none';
+        }
+    });
+
+    // Cargar notificaciones al inicio
+    window.cargarNotificaciones();
+</script>
