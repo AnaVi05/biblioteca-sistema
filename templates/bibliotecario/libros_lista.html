@@ -76,6 +76,7 @@
                         <th>Categoría</th>
                         <th>Total</th>
                         <th>Disponibles</th>
+                        <th>Disponibilidad</th>
                         <th>Estado</th>
                         <th>Acciones</th>
                     </tr>
@@ -102,6 +103,22 @@
                                 <span class="badge bg-secondary">N/A</span>
                             {% endif %}
                         </td>
+                        <!-- Columna de disponibilidad (si tiene ejemplares para usuarios) -->
+                        <td>
+                            {% if libro.tiene_ejemplares_disponibles %}
+                                <span class="badge bg-success">
+                                    <i class="fas fa-check-circle"></i> {{ libro.ejemplares_disponibles_count }} disponibles
+                                </span>
+                                <br>
+                                <small class="text-muted">Visible para usuarios</small>
+                            {% else %}
+                                <span class="badge bg-danger">
+                                    <i class="fas fa-exclamation-triangle"></i> Sin ejemplares
+                                </span>
+                                <br>
+                                <small class="text-muted">Agrega ejemplares desde <strong>Gestionar Stock</strong></small>
+                            {% endif %}
+                        </td>
                         <td>
                             {% if libro.activo %}
                                 <span class="badge bg-success">Activo</span>
@@ -122,7 +139,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="8" class="text-center py-4">
+                        <td colspan="9" class="text-center py-4">
                             <i class="fas fa-inbox fa-2x text-muted mb-2 d-block"></i>
                             <p class="text-muted mb-0">No hay libros registrados</p>
                             <a href="{% url 'libro_crear' %}" class="btn btn-sm btn-primary mt-2">

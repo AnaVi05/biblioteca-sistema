@@ -207,7 +207,7 @@ class Reserva(models.Model):
         verbose_name = "Reserva"
         verbose_name_plural = "Reservas"
         ordering = ['estado', 'orden_prioridad', 'fecha_reserva']
-        unique_together = ['socio', 'libro', 'estado']  
+        #unique_together = ['socio', 'libro', 'estado']  
     
     def __str__(self):
         return f"Reserva {self.id} - {self.socio} - {self.libro.titulo}"

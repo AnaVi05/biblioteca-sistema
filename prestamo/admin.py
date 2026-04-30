@@ -15,14 +15,14 @@ from django.urls import reverse
 from django.http import HttpResponseRedirect
 
 
-# ========== FORMULARIO PERSONALIZADO PARA LIBRO CON EJEMPLAR ==========
+# ========== FORMULARIO PERSONALIZADO PARA LIBRO CON EJEMPLAR OPCIONAL ==========
 class LibroAdminForm(forms.ModelForm):
-    """Formulario personalizado para crear libro con ejemplar"""
+    """Formulario personalizado para crear libro (ejemplar opcional)"""
     
     codigo_inventario = forms.CharField(
         required=False,
         label="Código de inventario",
-        help_text="Déjalo vacío para que se genere automáticamente"
+        help_text="Opcional: Déjalo vacío si no quieres crear un ejemplar ahora"
     )
     estado_fisico = forms.ChoiceField(
         choices=Ejemplar.ESTADO_FISICO_CHOICES,
@@ -51,13 +51,6 @@ class LibroAdminForm(forms.ModelForm):
         cantidad_total = cleaned_data.get('cantidad_total', 0)
         inventario_disponible = cleaned_data.get('inventario_disponible', 0)
         
-        # Validación para libro nuevo
-        if not self.instance.pk:
-            if cantidad_total == 0:
-                self.add_error('cantidad_total', '❌ Un libro nuevo debe tener al menos 1 ejemplar. Completa la sección "Ejemplar Inicial" o cambia la cantidad total a 1.')
-            if inventario_disponible == 0:
-                self.add_error('inventario_disponible', '❌ Un libro nuevo debe tener al menos 1 ejemplar disponible.')
-        
         # Validación: disponible no puede ser mayor que total
         if inventario_disponible > cantidad_total:
             self.add_error('inventario_disponible', '❌ Los ejemplares disponibles no pueden ser mayores al total')
@@ -65,34 +58,35 @@ class LibroAdminForm(forms.ModelForm):
         return cleaned_data
     
     def save(self, commit=True):
+        from catalogo.models import Ejemplar
         libro = super().save(commit=False)
-        
-        # Si es un libro nuevo, establecer cantidades en 1
-        if not self.instance.pk:
-            libro.cantidad_total = 1
-            libro.inventario_disponible = 1
         
         if commit:
             libro.save()
             
-            # Solo crear ejemplar si es un libro nuevo
+            # Solo para libros nuevos
             if not self.instance.pk:
                 codigo = self.cleaned_data.get('codigo_inventario')
-                if not codigo:
-                    codigo = f"AUTO-{libro.id:04d}"
-                
-                Ejemplar.objects.create(
-                    libro=libro,
-                    codigo_inventario=codigo,
-                    estado_fisico=self.cleaned_data.get('estado_fisico', 'BUENO'),
-                    disponibilidad=self.cleaned_data.get('disponibilidad', 'DISPONIBLE'),
-                    ubicacion=self.cleaned_data.get('ubicacion', '')
-                )
-                
-                # Actualizar cantidades reales
-                libro.cantidad_total = Ejemplar.objects.filter(libro=libro).count()
-                libro.inventario_disponible = Ejemplar.objects.filter(libro=libro, disponibilidad='DISPONIBLE').count()
-                libro.save()
+                # Solo crear ejemplar si se ingresó un código (opcional)
+                if codigo:
+                    Ejemplar.objects.create(
+                        libro=libro,
+                        codigo_inventario=codigo,
+                        estado_fisico=self.cleaned_data.get('estado_fisico', 'BUENO'),
+                        disponibilidad=self.cleaned_data.get('disponibilidad', 'DISPONIBLE'),
+                        ubicacion=self.cleaned_data.get('ubicacion', '')
+                    )
+                    
+                    # Actualizar cantidades
+                    libro.cantidad_total = Ejemplar.objects.filter(libro=libro).count()
+                    libro.inventario_disponible = Ejemplar.objects.filter(libro=libro, disponibilidad='DISPONIBLE').count()
+                    libro.save()
+                else:
+                    # Si no se creó ejemplar, asegurar cantidades en 0 para libros nuevos
+                    if not Ejemplar.objects.filter(libro=libro).exists():
+                        libro.cantidad_total = 0
+                        libro.inventario_disponible = 0
+                        libro.save()
         
         return libro
 
@@ -278,6 +272,8 @@ class ConfiguracionAdmin(admin.ModelAdmin):
             'fields': ('fecha_actualizacion',)
         }),
     )
+
+
 @admin.register(Libro, site=admin_site)
 class LibroAdmin(admin.ModelAdmin):
     form = LibroAdminForm
@@ -299,10 +295,10 @@ class LibroAdmin(admin.ModelAdmin):
         ('Estado', {
             'fields': ('activo',)
         }),
-        ('Ejemplar Inicial', {
+        ('Ejemplar Inicial (Opcional)', {
             'fields': ('codigo_inventario', 'estado_fisico', 'disponibilidad', 'ubicacion'),
             'classes': ('collapse',),
-            'description': 'Completa estos campos para crear el primer ejemplar automáticamente'
+            'description': 'Completa estos campos SOLO SI quieres crear un ejemplar ahora. De lo contrario, puedes agregarlo después.'
         }),
     )
     
@@ -355,6 +351,8 @@ class LibroAdmin(admin.ModelAdmin):
     
     def delete_queryset(self, request, queryset):
         self.message_user(request, f'❌ No se puede eliminar libros. Use "Dar de baja" en su lugar.', messages.ERROR)
+
+
 @admin.register(Socio, site=admin_site)
 class SocioAdmin(admin.ModelAdmin):
     list_display = ['id', 'user', 'cedula', 'tipo_usuario', 'estado_socio', 'fecha_registro']

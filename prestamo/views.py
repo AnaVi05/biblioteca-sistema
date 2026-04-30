@@ -197,6 +197,22 @@ def registrar_prestamo_usuario(request, ejemplar_id):
         )
         return redirect('catalogo_lista')
     
+    # ========== VALIDAR PRÉSTAMOS VENCIDOS ==========
+    hoy = date.today()
+    prestamos_vencidos = Prestamo.objects.filter(
+        socio=request.user.socio,
+        estado='ACTIVO',
+        fecha_vencimiento__lt=hoy
+    )
+    
+    if prestamos_vencidos.exists():
+        messages.error(
+            request, 
+            f'❌ No puedes solicitar préstamos porque tienes {prestamos_vencidos.count()} préstamo(s) vencido(s) sin devolver. '
+            f'Debes devolver los libros atrasados para continuar.'
+        )
+        return redirect('catalogo_lista')
+    
     if request.method == 'POST':
         try:
             dias_solicitados = int(request.POST.get('dias_solicitados'))
@@ -226,8 +242,6 @@ def registrar_prestamo_usuario(request, ejemplar_id):
         'max_dias': 5
     }
     return render(request, 'prestamo/registrar_prestamo.html', context)
-
-
 @login_required
 def mis_prestamos(request):
     """Vista para que el usuario vea sus préstamos"""
@@ -559,6 +573,7 @@ def confirmar_prestamo(request, prestamo_id):
             ejemplar.disponibilidad = 'PRESTADO'
             ejemplar.save()
             
+            # Actualizar inventario del libro
             libro = ejemplar.libro
             libro.inventario_disponible = Ejemplar.objects.filter(
                 libro=libro, 
@@ -566,14 +581,12 @@ def confirmar_prestamo(request, prestamo_id):
             ).count()
             libro.save()
             
-            messages.success(request, f'✅ Préstamo confirmado. Libro entregado a {prestamo.socio.user.get_full_name()}')
+            messages.success(request, f'✅ Préstamo confirmado.')
             
         return redirect('dashboard_bibliotecario')
     
     context = {'prestamo': prestamo}
     return render(request, 'bibliotecario/confirmar_prestamo.html', context)
-
-
 @staff_member_required
 def prestamo_nuevo_bibliotecario(request):
     """Registrar un nuevo préstamo desde el panel bibliotecario"""
@@ -640,15 +653,29 @@ def prestamo_nuevo_bibliotecario(request):
                         messages.error(request, 'El ejemplar ya no está disponible')
                         return redirect('prestamo_nuevo_bibliotecario')
                     
+                    # ========== VALIDAR MULTAS PENDIENTES ==========
                     tiene_multas = Multa.objects.filter(
                         prestamo__socio=socio,
                         estado='PENDIENTE'
                     ).exists()
                     
                     if tiene_multas:
-                        messages.warning(request, 'El socio tiene multas pendientes')
+                        messages.warning(request, '⚠️ El socio tiene multas pendientes')
                         return redirect('prestamo_nuevo_bibliotecario')
                     
+                    # ========== VALIDAR PRÉSTAMOS VENCIDOS ==========
+                    hoy = date.today()
+                    prestamos_vencidos = Prestamo.objects.filter(
+                        socio=socio,
+                        estado='ACTIVO',
+                        fecha_vencimiento__lt=hoy
+                    ).exists()
+                    
+                    if prestamos_vencidos:
+                        messages.warning(request, '⚠️ El socio tiene préstamos vencidos sin devolver')
+                        return redirect('prestamo_nuevo_bibliotecario')
+                    
+                    # Crear préstamo
                     fecha_prestamo = timezone.now()
                     fecha_vencimiento = fecha_prestamo.date() + timedelta(days=dias)
                     
@@ -664,7 +691,7 @@ def prestamo_nuevo_bibliotecario(request):
                     ejemplar.disponibilidad = 'PRESTADO'
                     ejemplar.save()
                     
-                    messages.success(request, f'Préstamo #{prestamo.id} registrado exitosamente')
+                    messages.success(request, f'✅ Préstamo #{prestamo.id} registrado exitosamente')
                     return redirect('dashboard_bibliotecario')
                     
             except Exception as e:
@@ -682,20 +709,20 @@ def prestamo_nuevo_bibliotecario(request):
     }
     
     return render(request, 'bibliotecario/prestamo_nuevo.html', context)
-
-
 # ========== REGISTRAR DEVOLUCIÓN (PRINCIPAL) ==========
 @staff_member_required
 def registrar_devolucion(request):
     """Registrar devolución de un préstamo desde el panel"""
     from decimal import Decimal
     
+    # Obtener préstamos activos
     prestamos_activos = Prestamo.objects.filter(
         estado='ACTIVO'
     ).select_related(
         'socio__user', 'ejemplar__libro'
     ).order_by('fecha_vencimiento')
     
+    # Búsqueda
     search = request.GET.get('search', '')
     if search:
         prestamos_activos = prestamos_activos.filter(
@@ -708,6 +735,7 @@ def registrar_devolucion(request):
             ejemplar__codigo_inventario__icontains=search
         )
     
+    # Si se selecciona un préstamo para devolver
     prestamo_id = request.GET.get('devolver_id')
     prestamo_seleccionado = None
     multa_calculada = None
@@ -731,33 +759,36 @@ def registrar_devolucion(request):
         except Prestamo.DoesNotExist:
             pass
     
+    # Procesar devolución
     if request.method == 'POST':
         prestamo_id = request.POST.get('prestamo_id')
         
         try:
             with transaction.atomic():
                 prestamo = Prestamo.objects.select_related(
-                    'socio', 'ejemplar'
+                    'socio', 'ejemplar__libro'
                 ).get(id=prestamo_id, estado='ACTIVO')
                 
                 hoy = timezone.now().date()
                 dias_atraso = 0
                 monto_multa = Decimal('0')
                 
+                # Calcular atraso
                 if prestamo.fecha_vencimiento < hoy:
                     dias_atraso = (hoy - prestamo.fecha_vencimiento).days
                     monto_por_dia = Decimal('1000')
                     monto_multa = dias_atraso * monto_por_dia
                 
+                # Registrar fecha de devolución
                 prestamo.fecha_devolucion_real = hoy
                 prestamo.estado = 'DEVUELTO'
                 prestamo.save()
                 
-                # ✅ ACTUALIZAR DISPONIBILIDAD DEL EJEMPLAR
+                # Actualizar disponibilidad del ejemplar
                 prestamo.ejemplar.disponibilidad = 'DISPONIBLE'
                 prestamo.ejemplar.save()
                 
-                # ✅ ACTUALIZAR INVENTARIO DEL LIBRO
+                # ========== ACTUALIZAR INVENTARIO DEL LIBRO ==========
                 libro = prestamo.ejemplar.libro
                 libro.inventario_disponible = Ejemplar.objects.filter(
                     libro=libro, 
@@ -765,6 +796,7 @@ def registrar_devolucion(request):
                 ).count()
                 libro.save()
                 
+                # Crear multa si hay atraso
                 if dias_atraso > 0:
                     Multa.objects.create(
                         prestamo=prestamo,
@@ -775,16 +807,16 @@ def registrar_devolucion(request):
                         fecha_generacion=hoy,
                         estado='PENDIENTE'
                     )
-                    messages.warning(request, f'Devolución registrada. Multa generada: Gs. {monto_multa:,.0f} por {dias_atraso} días de atraso.')
+                    messages.warning(request, f'⚠️ Devolución registrada. Multa generada: Gs. {monto_multa:,.0f} por {dias_atraso} días de atraso.')
                 else:
-                    messages.success(request, f'Devolución registrada exitosamente.')
+                    messages.success(request, f'✅ Devolución registrada exitosamente. Préstamo #{prestamo.id} completado.')
                 
                 return redirect('registrar_devolucion')
                 
         except Prestamo.DoesNotExist:
-            messages.error(request, 'Préstamo no encontrado')
+            messages.error(request, '❌ Préstamo no encontrado')
         except Exception as e:
-            messages.error(request, f'Error: {str(e)}')
+            messages.error(request, f'❌ Error al procesar devolución: {str(e)}')
     
     context = {
         'prestamos_activos': prestamos_activos,
@@ -795,7 +827,6 @@ def registrar_devolucion(request):
     }
     
     return render(request, 'bibliotecario/devolucion.html', context)
-
 
 @staff_member_required
 def gestionar_reservas(request):

@@ -86,6 +86,21 @@
         transform: translateY(-2px);
     }
     
+    .btn-reservar-consulta {
+        background: #17a2b8;
+        color: white;
+        border: none;
+        padding: 0.75rem 2rem;
+        border-radius: 10px;
+        font-weight: 600;
+        transition: all 0.3s;
+    }
+    
+    .btn-reservar-consulta:hover {
+        background: #138496;
+        transform: translateY(-2px);
+    }
+    
     .btn-volver {
         background: #6c757d;
         color: white;
@@ -118,6 +133,21 @@
         background: #f8d7da;
         color: #721c24;
     }
+    
+    .stock-consulta {
+        background: #fff3cd;
+        color: #856404;
+    }
+    
+    .alert-warning-custom {
+        background-color: #fff3cd;
+        color: #856404;
+        padding: 10px 15px;
+        border-radius: 8px;
+        font-size: 13px;
+        margin-top: 10px;
+        border-left: 4px solid #ffc107;
+    }
 </style>
 
 <div class="content-header">
@@ -146,16 +176,14 @@
                 {% endfor %}
             </div>
             
-            {% if ejemplares_disponibles > 0 %}
-               <div class="badge-stock stock-disponible">
-            <i class="fas fa-check-circle"></i> 
-            {{ ejemplares_disponibles }} 
-            {% if ejemplares_disponibles == 1 %}
-                ejemplar disponible
-            {% else %}
-                ejemplares disponibles
-            {% endif %}
-        </div>
+            {% if ejemplares_disponibles > 1 %}
+                <div class="badge-stock stock-disponible">
+                    <i class="fas fa-check-circle"></i> {{ ejemplares_disponibles }} ejemplar(es) disponible(s)
+                </div>
+            {% elif ejemplares_disponibles == 1 %}
+                <div class="badge-stock stock-consulta">
+                    <i class="fas fa-info-circle"></i> 1 ejemplar disponible (solo consulta en sala)
+                </div>
             {% else %}
                 <div class="badge-stock stock-no">
                     <i class="fas fa-times-circle"></i> No hay ejemplares disponibles
@@ -192,23 +220,39 @@
             </div>
             {% endif %}
             
-            <div class="mt-4 d-flex gap-3">
-                {% if ejemplares_disponibles > 0 %}
-                    {% with primer_ejemplar=libro.ejemplares.all|first %}
-                        {% if primer_ejemplar %}
-                            <a href="{% url 'registrar_prestamo_usuario' primer_ejemplar.id %}" class="btn-prestar">
-                                <i class="fas fa-hand-holding-heart"></i> Solicitar Préstamo
+            <div class="mt-4 d-flex flex-column">
+                <div class="d-flex gap-3 align-items-center flex-wrap">
+                    {% if ejemplares_disponibles == 0 %}
+                        <a href="{% url 'reservar_libro' libro.id %}" class="btn-reservar">
+                            <i class="fas fa-bookmark"></i> Reservar Libro
+                        </a>
+                        
+                    {% elif ejemplares_disponibles == 1 %}
+                        <div>
+                            <a href="{% url 'reservar_libro' libro.id %}" class="btn-reservar-consulta">
+                                <i class="fas fa-clock"></i> Reservar para más tarde
                             </a>
-                        {% endif %}
-                    {% endwith %}
-                {% else %}
-                    <a href="{% url 'reservar_libro' libro.id %}" class="btn-reservar">
-                        <i class="fas fa-bookmark"></i> Reservar Libro
+                            <div class="alert-warning-custom">
+                                <i class="fas fa-info-circle"></i>
+                                <strong>Ejemplar único disponible solo para consulta en sala.</strong><br>
+                                Puedes reservar este libro y te avisaremos cuando otro ejemplar esté disponible.
+                            </div>
+                        </div>
+                        
+                    {% else %}
+                        {% with primer_ejemplar=libro.ejemplares.all|first %}
+                            {% if primer_ejemplar %}
+                                <a href="{% url 'registrar_prestamo_usuario' primer_ejemplar.id %}" class="btn-prestar">
+                                    <i class="fas fa-hand-holding-heart"></i> Solicitar Préstamo
+                                </a>
+                            {% endif %}
+                        {% endwith %}
+                    {% endif %}
+                    
+                    <a href="{% url 'catalogo_lista' %}" class="btn-volver">
+                        <i class="fas fa-arrow-left"></i> Volver al Catálogo
                     </a>
-                {% endif %}
-                <a href="{% url 'catalogo_lista' %}" class="btn-volver">
-                    <i class="fas fa-arrow-left"></i> Volver al Catálogo
-                </a>
+                </div>
             </div>
         </div>
     </div>
