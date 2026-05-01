@@ -32,9 +32,12 @@ urlpatterns = [
 
 
     # Reportes 
-    path('reporte/prestamos-activos/', views.reporte_prestamos_activos, name='reporte_prestamos_activos'),
-    path('reporte/devoluciones/', views.reporte_devoluciones, name='reporte_devoluciones'),
     path('reporte/reservas-expiradas/', views.reporte_reservas_expiradas, name='reporte_reservas_expiradas'),
+    path('reporte/usuarios-activos/', views.reporte_usuarios_activos, name='reporte_usuarios_activos'),
+    path('reporte/usuarios-morosos/', views.reporte_usuarios_morosos, name='reporte_usuarios_morosos'),
+    path('reporte/usuarios-inhabilitados/', views.reporte_usuarios_inhabilitados, name='reporte_usuarios_inhabilitados'),
+    path('reporte/prestamos-vencidos/', views.reporte_prestamos_vencidos, name='reporte_prestamos_vencidos'),
+    path('reporte/libros-demanda/', views.reporte_libros_demanda, name='reporte_libros_demanda'),
 
 
     #Notificaciones 

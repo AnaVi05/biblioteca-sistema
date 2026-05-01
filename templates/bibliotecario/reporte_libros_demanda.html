@@ -1,0 +1,253 @@
+{% extends 'base/menu_bibliotecario.html' %}
+{% load static %}
+
+{% block main_content %}
+<style>
+    .report-header {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        margin-bottom: 25px;
+    }
+    
+    .filtros {
+        background: #f8fafc;
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+    }
+    
+    .card-libro {
+        background: white;
+        border-radius: 12px;
+        padding: 15px;
+        margin-bottom: 15px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        transition: all 0.3s;
+    }
+    
+    .card-libro:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    
+    .numero-prestamos {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--primary-blue);
+    }
+    
+    .badge-top {
+        background: #10b981;
+        color: white;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+    }
+    
+    .badge-bottom {
+        background: #f59e0b;
+        color: white;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+    }
+    
+    .btn-print {
+        background: #4b5563;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 8px;
+        cursor: pointer;
+    }
+    
+    .tab-libros {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 25px;
+        border-bottom: 1px solid #e2e8f0;
+        padding-bottom: 10px;
+    }
+    
+    .tab-link {
+        padding: 8px 16px;
+        cursor: pointer;
+        color: #64748b;
+        font-weight: 500;
+        transition: all 0.3s;
+    }
+    
+    .tab-link.active {
+        color: var(--primary-blue);
+        border-bottom: 2px solid var(--primary-blue);
+    }
+    
+    .tab-content {
+        display: none;
+    }
+    
+    .tab-content.active {
+        display: block;
+    }
+    
+    @media print {
+        .no-print { display: none; }
+        .sidebar { display: none; }
+        .main-content { margin-left: 0; padding: 0; }
+        .tab-content { display: block !important; }
+    }
+</style>
+
+<div class="report-header">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h1 style="color: var(--primary-blue);">
+                <i class="fas fa-chart-bar"></i> Análisis de Demanda
+            </h1>
+            <p class="text-muted">Libros más y menos prestados para mejorar la administración del catálogo</p>
+        </div>
+        <div class="no-print">
+            <button onclick="window.print()" class="btn-print">
+                <i class="fas fa-print"></i> Imprimir
+            </button>
+            <a href="{% url 'dashboard_bibliotecario' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Volver
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros por período -->
+<div class="filtros no-print">
+    <form method="get" class="row g-3 align-items-end">
+        <div class="col-md-4">
+            <label class="form-label">Período de análisis</label>
+            <select name="periodo" class="form-select" onchange="this.form.submit()">
+                {% for valor, nombre in periodos.items %}
+                    <option value="{{ valor }}" {% if periodo_actual == valor %}selected{% endif %}>
+                        {{ nombre }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-4">
+            <div class="alert alert-info mb-0">
+                <strong>Total préstamos:</strong> {{ total_prestamos }}
+                {% if fecha_inicio %}
+                    <small>(desde {{ fecha_inicio|date:"d/m/Y" }})</small>
+                {% endif %}
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Pestañas -->
+<div class="tab-libros no-print">
+    <div class="tab-link active" onclick="mostrarTab('mas')">📈 Más Prestados</div>
+    <div class="tab-link" onclick="mostrarTab('menos')">📉 Menos Prestados</div>
+</div>
+
+<!-- Más prestados -->
+<div id="tab-mas" class="tab-content active">
+    <div class="row">
+        {% for libro in libros_mas_prestados %}
+        <div class="col-md-6 mb-3">
+            <div class="card-libro">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h5 class="mb-1">{{ libro.titulo }}</h5>
+                        <p class="text-muted small mb-2">
+                            {% for autor in libro.autores.all|slice:":2" %}
+                                {{ autor.nombre_completo }}{% if not forloop.last %}, {% endif %}
+                            {% endfor %}
+                        </p>
+                        <span class="badge-top">
+                            <i class="fas fa-trophy"></i> #{{ forloop.counter }}
+                        </span>
+                    </div>
+                    <div class="text-end">
+                        <div class="numero-prestamos">{{ libro.total_prestamos }}</div>
+                        <small class="text-muted">préstamos</small>
+                    </div>
+                </div>
+                <div class="mt-2 small text-muted">
+                    <i class="fas fa-tag"></i> {{ libro.categoria.nombre }}
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="alert alert-info text-center">
+                No hay datos de préstamos en el período seleccionado.
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Menos prestados -->
+<div id="tab-menos" class="tab-content">
+    <div class="row">
+        {% for libro in libros_menos_prestados %}
+        <div class="col-md-6 mb-3">
+            <div class="card-libro">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h5 class="mb-1">{{ libro.titulo }}</h5>
+                        <p class="text-muted small mb-2">
+                            {% for autor in libro.autores.all|slice:":2" %}
+                                {{ autor.nombre_completo }}{% if not forloop.last %}, {% endif %}
+                            {% endfor %}
+                        </p>
+                        <span class="badge-bottom">
+                            <i class="fas fa-chart-line"></i> #{{ forloop.counter }}
+                        </span>
+                    </div>
+                    <div class="text-end">
+                        <div class="numero-prestamos" style="color: #f59e0b;">{{ libro.total_prestamos }}</div>
+                        <small class="text-muted">préstamos</small>
+                    </div>
+                </div>
+                <div class="mt-2 small text-muted">
+                    <i class="fas fa-tag"></i> {{ libro.categoria.nombre }}
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="alert alert-info text-center">
+                No hay datos de préstamos en el período seleccionado.
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="text-muted mt-3 text-center" style="font-size: 12px;">
+    Reporte generado el {{ ahora|date:"d/m/Y" }} a las {{ ahora|time:"H:i" }}
+</div>
+
+<script>
+    function mostrarTab(tab) {
+        // Ocultar todos
+        document.getElementById('tab-mas').classList.remove('active');
+        document.getElementById('tab-menos').classList.remove('active');
+        
+        // Remover active de todos los tabs
+        document.querySelectorAll('.tab-link').forEach(link => {
+            link.classList.remove('active');
+        });
+        
+        // Mostrar el seleccionado
+        if (tab === 'mas') {
+            document.getElementById('tab-mas').classList.add('active');
+            document.querySelectorAll('.tab-link')[0].classList.add('active');
+        } else {
+            document.getElementById('tab-menos').classList.add('active');
+            document.querySelectorAll('.tab-link')[1].classList.add('active');
+        }
+    }
+</script>
+{% endblock %}

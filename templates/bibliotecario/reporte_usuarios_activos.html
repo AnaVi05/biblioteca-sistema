@@ -1,0 +1,200 @@
+{% extends 'base/menu_bibliotecario.html' %}
+{% load static %}
+
+{% block main_content %}
+<style>
+    .report-header {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        margin-bottom: 25px;
+    }
+    
+    .filtros {
+        background: #f8fafc;
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+    }
+    
+    .table th {
+        background: var(--light-blue);
+        color: var(--primary-blue);
+    }
+    
+    .badge-activo {
+        background: #d4edda;
+        color: #155724;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+    }
+    
+    .badge-prestamo {
+        background: #dbeafe;
+        color: #2563eb;
+    }
+    
+    .badge-multa {
+        background: #fee2e2;
+        color: #dc2626;
+    }
+    
+    .btn-print {
+        background: #4b5563;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 8px;
+        cursor: pointer;
+    }
+    
+    .btn-print:hover {
+        background: #374151;
+    }
+    
+    @media print {
+        .no-print {
+            display: none;
+        }
+        .sidebar {
+            display: none;
+        }
+        .main-content {
+            margin-left: 0;
+            padding: 0;
+        }
+    }
+</style>
+
+<div class="report-header">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h1 style="color: var(--primary-blue);">
+                <i class="fas fa-users"></i> Reporte de Usuarios Activos
+            </h1>
+            <p class="text-muted">Lista de socios con estado activo en el sistema</p>
+        </div>
+        <div class="no-print">
+            <button onclick="window.print()" class="btn-print">
+                <i class="fas fa-print"></i> Imprimir Reporte
+            </button>
+            <a href="{% url 'dashboard_bibliotecario' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Volver
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="filtros no-print">
+    <form method="get" class="row g-3">
+        <div class="col-md-4">
+            <label class="form-label">Buscar por nombre o cédula</label>
+            <input type="text" name="search" class="form-control" 
+                   placeholder="Nombre, apellido o cédula..." 
+                   value="{{ search }}">
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Tipo de usuario</label>
+            <select name="tipo_usuario" class="form-select">
+                <option value="">Todos</option>
+                {% for codigo, nombre in tipos_usuario %}
+                    <option value="{{ codigo }}" {% if tipo_usuario == codigo %}selected{% endif %}>
+                        {{ nombre }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+            <button type="submit" class="btn btn-primary w-100">
+                <i class="fas fa-filter"></i> Filtrar
+            </button>
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+            <a href="{% url 'reporte_usuarios_activos' %}" class="btn btn-secondary w-100">
+                <i class="fas fa-undo"></i> Limpiar
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- Resumen -->
+<div class="row mb-3">
+    <div class="col-md-3">
+        <div class="alert alert-info text-center">
+            <strong>Total Usuarios Activos</strong>
+            <h2 class="mb-0">{{ total_activos }}</h2>
+        </div>
+    </div>
+</div>
+
+<!-- Tabla de usuarios -->
+<div class="table-responsive">
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Nombre Completo</th>
+                <th>Cédula</th>
+                <th>Email</th>
+                <th>Tipo</th>
+                <th>Teléfono</th>
+                <th>Préstamos Activos</th>
+                <th>Multas Pendientes</th>
+                <th>Monto Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for socio in socios %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>
+                    <strong>{{ socio.user.get_full_name }}</strong>
+                </td>
+                <td>{{ socio.cedula }}</td>
+                <td>{{ socio.user.email }}</td>
+                <td>
+                    <span class="badge-activo">{{ socio.get_tipo_usuario_display }}</span>
+                </td>
+                <td>{{ socio.telefono|default:"-" }}</td>
+                <td>
+                    {% if socio.prestamos_activos > 0 %}
+                        <span class="badge-prestamo badge">{{ socio.prestamos_activos }}</span>
+                    {% else %}
+                        <span class="text-muted">0</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if socio.multas_pendientes > 0 %}
+                        <span class="badge-multa badge">{{ socio.multas_pendientes }}</span>
+                    {% else %}
+                        <span class="text-muted">0</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if socio.total_multas > 0 %}
+                        <span class="text-danger">Gs. {{ socio.total_multas|floatformat:0 }}</span>
+                    {% else %}
+                        <span class="text-muted">Gs. 0</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="9" class="text-center py-4">
+                    <i class="fas fa-users fa-2x text-muted mb-2 d-block"></i>
+                    No hay usuarios activos registrados.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Pie de página para impresión -->
+<div class="text-muted mt-3 text-center" style="font-size: 12px;">
+    Reporte generado el {{ hoy|date:"d/m/Y H:i" }}
+</div>
+{% endblock %}
