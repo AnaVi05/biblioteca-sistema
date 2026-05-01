@@ -9,9 +9,13 @@
     </div>
     
     <div class="header-actions">
-        <div class="btn-notification">
+        <div class="btn-notification" id="btnNotificaciones" style="cursor: pointer;">
             <i class="fas fa-bell"></i>
+            {% if total_notificaciones > 0 %}
+            <div class="notification-badge" style="display: flex;">{{ total_notificaciones }}</div>
+            {% else %}
             <div class="notification-badge"></div>
+            {% endif %}
         </div>
         
         <div class="user-menu">
@@ -88,9 +92,9 @@
         <span>Generar Reporte</span>
     </a>
     <a href="{% url 'buscar_usuario' %}" class="action-btn">
-       <i class="fas fa-search"></i>
-       <span>Buscar Usuario</span>
-   </a>
+        <i class="fas fa-search"></i>
+        <span>Buscar Usuario</span>
+    </a>
 </div>
 
 <!-- Solicitudes de préstamo pendientes -->
@@ -124,22 +128,22 @@
                             <td>
                                 <strong>{{ prestamo.socio.user.get_full_name|default:prestamo.socio.user.username }}</strong><br>
                                 <small class="text-muted">Cédula: {{ prestamo.socio.cedula }}</small>
-                            </td>
-                            <td>{{ prestamo.ejemplar.libro.titulo }}</td>
-                            <td>
+                             </td>
+                             <td>{{ prestamo.ejemplar.libro.titulo }}</td>
+                             <td>
                                 <span class="badge bg-secondary">{{ prestamo.ejemplar.codigo_inventario }}</span>
-                            </td>
-                            <td>{{ prestamo.dias_solicitados }} días</td>
-                            <td>{{ prestamo.fecha_prestamo|date:"d/m/Y H:i" }}</td>
-                            <td>
+                             </td>
+                             <td>{{ prestamo.dias_solicitados }} días</td>
+                             <td>{{ prestamo.fecha_prestamo|date:"d/m/Y H:i" }}</td>
+                             <td>
                                 <span class="badge bg-info">{{ prestamo.fecha_vencimiento|date:"d/m/Y" }}</span>
-                            </td>
-                            <td>
+                             </td>
+                             <td>
                                 <a href="{% url 'confirmar_prestamo' prestamo.id %}" class="btn btn-sm btn-success">
                                     <i class="fas fa-check"></i> Confirmar entrega
                                 </a>
-                            </td>
-                        </tr>
+                             </td>
+                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
@@ -250,4 +254,229 @@
         </div>
     </div>
 </div>
+
+<!-- Modal de notificaciones de comprobantes -->
+<div class="modal fade" id="modalNotificaciones" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header" style="background: #2563eb; color: white;">
+                <h5 class="modal-title">
+                    <i class="fas fa-bell"></i> Notificaciones
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                {% if notificaciones_comprobantes %}
+                    {% for notif in notificaciones_comprobantes %}
+                    <div class="alert alert-warning">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <i class="fas fa-upload"></i>
+                                <strong>Nuevo comprobante de pago</strong><br>
+                                <small>{{ notif.mensaje }}</small><br>
+                                <small class="text-muted">Libro: {{ notif.libro }} | Monto: Gs. {{ notif.monto|floatformat:0 }}</small>
+                            </div>
+                            <a href="{% url 'gestionar_multas' %}" class="btn btn-sm btn-primary">
+                                <i class="fas fa-eye"></i> Ver
+                            </a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-bell-slash fa-2x text-muted mb-2"></i>
+                        <p class="text-muted mb-0">No hay notificaciones</p>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <a href="{% url 'gestionar_multas' %}" class="btn btn-primary">Ir a Usuarios Morosos</a>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .card {
+        transition: transform 0.3s;
+        margin-bottom: 20px;
+    }
+    .card:hover {
+        transform: translateY(-5px);
+    }
+    .list-group-item i {
+        margin-right: 10px;
+    }
+    .section-title {
+        font-size: 22px;
+        font-weight: 600;
+        margin-bottom: 20px;
+        color: #1e293b;
+    }
+    .dashboard-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 25px;
+        margin-bottom: 40px;
+    }
+    .card-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        margin-bottom: 20px;
+    }
+    .card-1 .card-icon {
+        background: rgba(37, 99, 235, 0.1);
+        color: #2563eb;
+    }
+    .card-2 .card-icon {
+        background: rgba(16, 185, 129, 0.1);
+        color: #10b981;
+    }
+    .card-3 .card-icon {
+        background: rgba(245, 158, 11, 0.1);
+        color: #f59e0b;
+    }
+    .card-4 .card-icon {
+        background: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+    }
+    .card .number {
+        font-size: 32px;
+        font-weight: 700;
+        margin-bottom: 5px;
+    }
+    .quick-actions {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 20px;
+        margin-bottom: 40px;
+    }
+    .action-btn {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        transition: all 0.3s;
+        cursor: pointer;
+        text-decoration: none;
+        color: #1e293b;
+    }
+    .action-btn:hover {
+        background: #dbeafe;
+        border-color: #2563eb;
+        color: #2563eb;
+        transform: translateY(-3px);
+    }
+    .action-btn i {
+        font-size: 24px;
+        margin-bottom: 12px;
+    }
+    .activity-list {
+        background: white;
+        border-radius: 16px;
+        padding: 25px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        border: 1px solid #f1f5f9;
+    }
+    .activity-item {
+        display: flex;
+        align-items: center;
+        padding: 15px 0;
+        border-bottom: 1px solid #f1f5f9;
+    }
+    .activity-item:last-child {
+        border-bottom: none;
+    }
+    .activity-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 15px;
+        font-size: 18px;
+    }
+    .activity-1 .activity-icon {
+        background: rgba(37, 99, 235, 0.1);
+        color: #2563eb;
+    }
+    .activity-2 .activity-icon {
+        background: rgba(16, 185, 129, 0.1);
+        color: #10b981;
+    }
+    .activity-3 .activity-icon {
+        background: rgba(245, 158, 11, 0.1);
+        color: #f59e0b;
+    }
+    .activity-details {
+        flex: 1;
+    }
+    .activity-details h4 {
+        font-size: 15px;
+        margin-bottom: 4px;
+        font-weight: 600;
+    }
+    .activity-details p {
+        font-size: 13px;
+        color: #64748b;
+    }
+    .activity-time {
+        font-size: 12px;
+        color: #64748b;
+    }
+    .btn-notification {
+        position: relative;
+        cursor: pointer;
+    }
+    .notification-badge {
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        background-color: #ef4444;
+        color: white;
+        border-radius: 50%;
+        width: 18px;
+        height: 18px;
+        font-size: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+    }
+</style>
+
+<script>
+    // Mostrar modal de notificaciones al hacer clic en la campanita
+    document.addEventListener('DOMContentLoaded', function() {
+        const btnNotificaciones = document.getElementById('btnNotificaciones');
+        const modalNotificaciones = document.getElementById('modalNotificaciones');
+        
+        if (btnNotificaciones && modalNotificaciones) {
+            btnNotificaciones.addEventListener('click', function() {
+                var myModal = new bootstrap.Modal(modalNotificaciones);
+                myModal.show();
+            });
+        }
+        
+        // Si hay notificaciones al cargar la página, mostrar modal automáticamente
+        {% if total_notificaciones > 0 and notificaciones_comprobantes %}
+        setTimeout(function() {
+            var myModal = new bootstrap.Modal(document.getElementById('modalNotificaciones'));
+            myModal.show();
+        }, 500);
+        {% endif %}
+    });
+</script>
 {% endblock %}

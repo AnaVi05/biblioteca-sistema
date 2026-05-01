@@ -296,6 +296,10 @@ class Multa(models.Model):
         null=True,
         verbose_name="Comprobante de pago"
     )
+    notificado = models.BooleanField(
+        default=False,
+        verbose_name="Notificado al bibliotecario"
+    )
     
     class Meta:
         verbose_name = "Multa"
