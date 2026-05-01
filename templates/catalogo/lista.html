@@ -106,15 +106,6 @@
         display: inline-block;
     }
     
-    .disponible-badge {
-        background: #28a745;
-        color: white;
-        padding: 0.3rem 0.8rem;
-        border-radius: 20px;
-        font-size: 0.75rem;
-        font-weight: 600;
-    }
-    
     .card-title {
         color: var(--text-dark);
         font-weight: 700;
@@ -240,7 +231,7 @@
         background: #fff3cd;
         padding: 8px 10px;
         border-radius: 8px;
-        margin-top: 12px;
+        margin-top: 8px;
         border-left: 3px solid #ffc107;
         line-height: 1.4;
     }
@@ -263,6 +254,28 @@
         border-radius: 20px;
         font-size: 0.7rem;
         font-weight: 600;
+    }
+    
+    .stock-badge {
+        font-size: 0.7rem;
+        font-weight: 600;
+        padding: 0.3rem 0.8rem;
+        border-radius: 20px;
+    }
+    
+    .stock-disponible {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .stock-consulta {
+        background: #fff3cd;
+        color: #856404;
+    }
+    
+    .stock-no {
+        background: #f8d7da;
+        color: #721c24;
     }
 </style>
 
@@ -335,14 +348,22 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start mb-3">
                     <span class="categoria-badge">{{ libro.categoria.nombre }}</span>
-                    <span class="badge-info">{{ libro.ejemplares_totales }} ejemplares</span>
+                    
+                    <!-- Stock actualizado en tiempo real -->
+                    {% if libro.ejemplares_disponibles >= 2 %}
+                        <span class="stock-badge stock-disponible">{{ libro.ejemplares_disponibles }} ejemplares disponibles</span>
+                    {% elif libro.ejemplares_disponibles == 1 %}
+                        <span class="stock-badge stock-consulta">1 ejemplar (consulta en sala)</span>
+                    {% else %}
+                        <span class="stock-badge stock-no">Sin ejemplares disponibles</span>
+                    {% endif %}
                 </div>
                 
                 <h3 class="card-title">{{ libro.titulo }}</h3>
                 
                 <div class="card-autores">
                     <i class="fas fa-user"></i>
-                    {% for autor in libro.autores.all %}
+                    {% for autor in libro.autores %}
                         {{ autor.nombre_completo }}{% if not forloop.last %}, {% endif %}
                     {% endfor %}
                 </div>
@@ -357,50 +378,57 @@
                 
                 {% if libro.descripcion %}
                     <div class="descripcion-corta">
-                                        {{ libro.descripcion|truncatechars:100 }}
-                                    </div>
-                                {% endif %}
-                                
-                                <div class="acciones-container">
-                                    <a href="{% url 'catalogo_detalle' libro.id %}" class="btn-detalles">
-                                        <i class="fas fa-info-circle"></i> Detalles
-                                    </a>
-                                    
-                                    {% if libro.ejemplares_disponibles == 0 %}
-                                        <a href="{% url 'reservar_libro' libro.id %}" class="btn-reservar">
-                                            <i class="fas fa-bookmark"></i> Reservar
-                                        </a>
-                                        
-                                    {% elif libro.ejemplares_disponibles == 1 %}
-                                        <a href="{% url 'reservar_libro' libro.id %}" class="btn-reservar-consulta">
-                                            <i class="fas fa-clock"></i> Reservar para más tarde
-                                        </a>
-                                        
-                                    {% else %}
-                                        {% with primer_ejemplar=libro.ejemplares.all|first %}
-                                            {% if primer_ejemplar %}
-                                                <a href="{% url 'registrar_prestamo_usuario' primer_ejemplar.id %}" class="btn-prestar">
-                                                    <i class="fas fa-hand-holding-heart"></i> Prestar
-                                                </a>
-                                            {% endif %}
-                                        {% endwith %}
-                                    {% endif %}
-                                </div>
-                                
-                                {% if libro.ejemplares_disponibles == 1 %}
-                                <div class="mensaje-consulta">
-                                    <i class="fas fa-info-circle"></i>
-                                    El único ejemplar disponible es para consulta en sala. Puedes reservarlo para cuando se libere otro ejemplar.
-                                </div>
-                                {% endif %}
+                        {{ libro.descripcion|truncatechars:100 }}
+                    </div>
+                {% endif %}
+                
+                <!-- BOTONES DE ACCIÓN -->
+                <div class="acciones-container">
+                    <a href="{% url 'catalogo_detalle' libro.id %}" class="btn-detalles">
+                        <i class="fas fa-info-circle"></i> Detalles
+                    </a>
+                    
+                    {% if libro.ejemplares_disponibles >= 2 %}
+                        {# 2 o más ejemplares - se puede prestar #}
+                        {% if libro.primer_ejemplar_disponible %}
+                            <a href="{% url 'registrar_prestamo_usuario' libro.primer_ejemplar_disponible.id %}" class="btn-prestar">
+                                <i class="fas fa-hand-holding-heart"></i> Prestar
+                            </a>
+                        {% endif %}
+                        
+                    {% elif libro.ejemplares_disponibles == 1 %}
+                        {# Solo 1 ejemplar - consulta en sala #}
+                        <div class="text-end">
+                            <a href="{% url 'reservar_libro' libro.id %}" class="btn-reservar-consulta">
+                                <i class="fas fa-clock"></i> Reservar para más tarde
+                            </a>
+                            <div class="mensaje-consulta">
+                                <i class="fas fa-info-circle"></i>
+                                El único ejemplar disponible es para consulta en sala. Puedes reservarlo para cuando se libere otro ejemplar.
                             </div>
                         </div>
-                    {% empty %}
-                        <div class="text-center py-5" style="grid-column: 1/-1;">
-                            <i class="fas fa-book-open" style="font-size: 4rem; color: #ccc;"></i>
-                            <h3 class="mt-3">No se encontraron libros</h3>
-                            <p class="text-muted">Probá con otros filtros o términos de búsqueda</p>
-                        </div>
-                    {% endfor %}
+                        
+                    {% elif libro.ejemplares_disponibles == 0 %}
+                        {# No hay ejemplares disponibles - solo reservar #}
+                        <a href="{% url 'reservar_libro' libro.id %}" class="btn-reservar">
+                            <i class="fas fa-bookmark"></i> Reservar
+                        </a>
+                        
+                    {% else %}
+                        {# Sin ejemplares #}
+                        <button class="btn-detalles" disabled style="background: #6c757d; color: white; opacity: 0.6; cursor: not-allowed;">
+                            <i class="fas fa-ban"></i> No disponible
+                        </button>
+                    {% endif %}
                 </div>
-                {% endblock %}
+            </div>
+        </div>
+    {% empty %}
+        <div class="text-center py-5" style="grid-column: 1/-1;">
+            <i class="fas fa-book-open" style="font-size: 4rem; color: #ccc;"></i>
+            <h3 class="mt-3">No se encontraron libros</h3>
+            <p class="text-muted">Probá con otros filtros o términos de búsqueda</p>
+        </div>
+    {% endfor %}
+</div>
+{% endblock %}

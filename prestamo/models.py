@@ -290,6 +290,12 @@ class Multa(models.Model):
         null=True,
         verbose_name="Comprobante de pago"
     )
+    comprobante_imagen = models.ImageField(
+        upload_to='comprobantes/',
+        blank=True,
+        null=True,
+        verbose_name="Comprobante de pago"
+    )
     
     class Meta:
         verbose_name = "Multa"

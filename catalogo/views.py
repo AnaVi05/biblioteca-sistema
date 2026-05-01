@@ -4,7 +4,6 @@ from django.contrib import messages
 from django.http import JsonResponse
 import json
 from .models import Libro, Categoria, Autor, Editorial, Ejemplar
-
 def catalogo_lista(request):
     # Libros ACTIVOS que tengan al menos un ejemplar
     libros = Libro.objects.filter(
@@ -30,16 +29,35 @@ def catalogo_lista(request):
                  libros.filter(autores__nombre__icontains=busqueda) | \
                  libros.filter(autores__apellido__icontains=busqueda)
     
-    # Agregar información de disponibilidad para cada libro
+    # ========== CALCULAR STOCK EN TIEMPO REAL ==========
+    libros_con_stock = []
     for libro in libros:
-        libro.ejemplares_disponibles = Ejemplar.objects.filter(
-            libro=libro, 
-            disponibilidad='DISPONIBLE'
-        ).count()
-        libro.ejemplares_totales = Ejemplar.objects.filter(libro=libro).count()
+        total = Ejemplar.objects.filter(libro=libro).count()
+        disponibles = Ejemplar.objects.filter(libro=libro, disponibilidad='DISPONIBLE').count()
+        
+        # Crear un diccionario con los datos del libro
+        libro_data = {
+            'id': libro.id,
+            'isbn': libro.isbn,
+            'titulo': libro.titulo,
+            'anio_publicacion': libro.anio_publicacion,
+            'descripcion': libro.descripcion,
+            'editorial': libro.editorial,
+            'categoria': libro.categoria,
+            'autores': libro.autores.all(),
+            'imagen': libro.imagen,
+            'ejemplares_totales': total,
+            'ejemplares_disponibles': disponibles,
+            'primer_ejemplar_disponible': Ejemplar.objects.filter(
+                libro=libro, 
+                disponibilidad='DISPONIBLE'
+            ).first(),
+            'activo': libro.activo,
+        }
+        libros_con_stock.append(libro_data)
     
     context = {
-        'libros': libros,
+        'libros': libros_con_stock,
         'categorias': categorias,
         'autores': autores,
     }

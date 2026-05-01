@@ -39,4 +39,5 @@ urlpatterns = [
 
     #Notificaciones 
     path('api/notificaciones/', views.api_notificaciones, name='api_notificaciones'),
-]
+    path('subir-comprobante/<int:multa_id>/', views.subir_comprobante, name='subir_comprobante'),
+ ]
