@@ -558,7 +558,9 @@
                     <span>Buscar Usuario</span>
                 </a>
             </li>
-            <div class="menu-section">REPORTES</div>
+        </ul>
+        
+        <div class="menu-section">REPORTES</div>
         <ul class="sidebar-menu">
             <li class="menu-item">
                 <a href="{% url 'reporte_usuarios_activos' %}">
@@ -597,6 +599,9 @@
                 </a>
             </li>
         </ul>
+        
+        <div class="menu-section">CONFIGURACIÓN</div>
+        <ul class="sidebar-menu">
             <li class="menu-item" id="menu-configuracion">
                 <a href="{% url 'configuracion_panel' %}">
                     <i class="fas fa-cog"></i>
@@ -643,11 +648,14 @@
             '/catalogo/gestion/libros/': 'menu-libros',
             '/catalogo/gestion/ejemplares/': 'menu-stock',
             '/bibliotecario/configuracion/': 'menu-configuracion',
-            '/bibliotecario/buscar-usuario/': 'menu-buscar-usuario'
+            '/bibliotecario/buscar-usuario/': 'menu-buscar-usuario',
+            '/reporte/prestamos-activos/': null,
+            '/reporte/devoluciones/': null,
+            '/reporte/reservas-expiradas/': null
         };
         
         for (const [path, menuId] of Object.entries(menuItems)) {
-            if (currentPath === path || currentPath.startsWith(path)) {
+            if (menuId && (currentPath === path || currentPath.startsWith(path))) {
                 document.getElementById(menuId)?.classList.add('active');
                 break;
             }

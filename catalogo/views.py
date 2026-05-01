@@ -4,11 +4,12 @@ from django.contrib import messages
 from django.http import JsonResponse
 import json
 from .models import Libro, Categoria, Autor, Editorial, Ejemplar
-
-
 def catalogo_lista(request):
-    # Solo libros activos (para usuarios)
-    libros = Libro.objects.filter(activo=True).order_by('-id')
+    # Libros ACTIVOS que tengan al menos un ejemplar
+    libros = Libro.objects.filter(
+        activo=True,
+        ejemplares__isnull=False
+    ).distinct().order_by('-id')
     
     categorias = Categoria.objects.all()
     autores = Autor.objects.all()
@@ -28,14 +29,39 @@ def catalogo_lista(request):
                  libros.filter(autores__nombre__icontains=busqueda) | \
                  libros.filter(autores__apellido__icontains=busqueda)
     
+    # ========== CALCULAR STOCK EN TIEMPO REAL ==========
+    libros_con_stock = []
+    for libro in libros:
+        total = Ejemplar.objects.filter(libro=libro).count()
+        disponibles = Ejemplar.objects.filter(libro=libro, disponibilidad='DISPONIBLE').count()
+        
+        # Crear un diccionario con los datos del libro
+        libro_data = {
+            'id': libro.id,
+            'isbn': libro.isbn,
+            'titulo': libro.titulo,
+            'anio_publicacion': libro.anio_publicacion,
+            'descripcion': libro.descripcion,
+            'editorial': libro.editorial,
+            'categoria': libro.categoria,
+            'autores': libro.autores.all(),
+            'imagen': libro.imagen,
+            'ejemplares_totales': total,
+            'ejemplares_disponibles': disponibles,
+            'primer_ejemplar_disponible': Ejemplar.objects.filter(
+                libro=libro, 
+                disponibilidad='DISPONIBLE'
+            ).first(),
+            'activo': libro.activo,
+        }
+        libros_con_stock.append(libro_data)
+    
     context = {
-        'libros': libros,
+        'libros': libros_con_stock,
         'categorias': categorias,
         'autores': autores,
     }
     return render(request, 'catalogo/lista.html', context)
-
-
 def catalogo_detalle(request, libro_id):
     """Vista detalle de un libro para usuarios"""
     libro = get_object_or_404(Libro, id=libro_id, activo=True)
@@ -55,6 +81,23 @@ def gestionar_libros(request):
     """Lista de libros para administrar (bibliotecario ve todos)"""
     libros = Libro.objects.all().select_related('editorial', 'categoria').order_by('-activo', 'titulo')
     
+    # Agregar información de ejemplares disponibles
+    for libro in libros:
+        libro.tiene_ejemplares_disponibles = Ejemplar.objects.filter(
+            libro=libro, 
+            disponibilidad='DISPONIBLE'
+        ).exists()
+        libro.ejemplares_disponibles_count = Ejemplar.objects.filter(
+            libro=libro, 
+            disponibilidad='DISPONIBLE'
+        ).count()
+    
+    filtro = request.GET.get('filtro', '')
+    if filtro == 'activos':
+        libros = libros.filter(activo=True)
+    elif filtro == 'inactivos':
+        libros = libros.filter(activo=False)
+    
     search = request.GET.get('search', '')
     if search:
         libros = libros.filter(titulo__icontains=search)
@@ -62,16 +105,23 @@ def gestionar_libros(request):
     context = {
         'libros': libros,
         'search': search,
+        'filtro': filtro,
     }
     return render(request, 'bibliotecario/libros_lista.html', context)
 
 
 @staff_member_required
 def libro_crear(request):
-    """Crear nuevo libro con ejemplar automático"""
+    """Crear nuevo libro (ejemplar opcional)"""
     if request.method == 'POST':
         try:
-            # Crear el libro
+            cantidad_total = int(request.POST.get('cantidad_total', 0))
+            inventario_disponible = int(request.POST.get('inventario_disponible', 0))
+            
+            if inventario_disponible > cantidad_total:
+                messages.error(request, '❌ Los ejemplares disponibles no pueden ser mayores que la cantidad total')
+                return redirect('libro_crear')
+            
             libro = Libro(
                 isbn=request.POST.get('isbn'),
                 titulo=request.POST.get('titulo'),
@@ -79,12 +129,11 @@ def libro_crear(request):
                 descripcion=request.POST.get('descripcion'),
                 editorial_id=request.POST.get('editorial'),
                 categoria_id=request.POST.get('categoria'),
-                cantidad_total=1,
-                inventario_disponible=1,
+                cantidad_total=cantidad_total,
+                inventario_disponible=inventario_disponible,
                 activo=True
             )
             
-            # Guardar la imagen si se subió
             if request.FILES.get('imagen'):
                 libro.imagen = request.FILES['imagen']
             
@@ -94,29 +143,30 @@ def libro_crear(request):
             if autores_ids:
                 libro.autores.set(autores_ids)
             
-            # Crear ejemplar con los datos del formulario
+            # ========== CREAR EJEMPLAR SOLO SI SE INGRESÓ CÓDIGO ==========
             codigo_inventario = request.POST.get('codigo_inventario')
-            if not codigo_inventario:
-                codigo_inventario = f"AUTO-{libro.id:04d}"
+            if codigo_inventario:
+                estado_fisico = request.POST.get('estado_fisico', 'BUENO')
+                disponibilidad = request.POST.get('disponibilidad', 'DISPONIBLE')
+                ubicacion = request.POST.get('ubicacion', '')
+                
+                Ejemplar.objects.create(
+                    libro=libro,
+                    codigo_inventario=codigo_inventario,
+                    estado_fisico=estado_fisico,
+                    disponibilidad=disponibilidad,
+                    ubicacion=ubicacion
+                )
+                
+                # Actualizar cantidades
+                libro.cantidad_total = Ejemplar.objects.filter(libro=libro).count()
+                libro.inventario_disponible = Ejemplar.objects.filter(libro=libro, disponibilidad='DISPONIBLE').count()
+                libro.save()
+                
+                messages.success(request, f'✅ Libro "{libro.titulo}" creado exitosamente con un ejemplar.')
+            else:
+                messages.success(request, f'✅ Libro "{libro.titulo}" creado exitosamente. Recuerda agregar ejemplares después para que esté disponible.')
             
-            estado_fisico = request.POST.get('estado_fisico', 'BUENO')
-            disponibilidad = request.POST.get('disponibilidad', 'DISPONIBLE')
-            ubicacion = request.POST.get('ubicacion', '')
-            
-            Ejemplar.objects.create(
-                libro=libro,
-                codigo_inventario=codigo_inventario,
-                estado_fisico=estado_fisico,
-                disponibilidad=disponibilidad,
-                ubicacion=ubicacion
-            )
-            
-            # Actualizar cantidades reales
-            libro.cantidad_total = Ejemplar.objects.filter(libro=libro).count()
-            libro.inventario_disponible = Ejemplar.objects.filter(libro=libro, disponibilidad='DISPONIBLE').count()
-            libro.save()
-            
-            messages.success(request, f'✅ Libro "{libro.titulo}" creado exitosamente con un ejemplar')
             return redirect('gestionar_libros')
             
         except Exception as e:
@@ -146,7 +196,6 @@ def libro_editar(request, libro_id):
             cantidad_total = int(request.POST.get('cantidad_total', 0))
             inventario_disponible = int(request.POST.get('inventario_disponible', 0))
             
-            # Validaciones
             if cantidad_total < 0:
                 messages.error(request, '❌ La cantidad total no puede ser negativa')
                 return redirect('libro_editar', libro_id=libro.id)
@@ -159,13 +208,11 @@ def libro_editar(request, libro_id):
                 messages.error(request, '❌ Los ejemplares disponibles no pueden ser mayores al total')
                 return redirect('libro_editar', libro_id=libro.id)
             
-            # Si hay ejemplares, no permitir cantidad_total = 0
             tiene_ejemplares = Ejemplar.objects.filter(libro=libro).exists()
             if tiene_ejemplares and cantidad_total == 0:
                 messages.error(request, '❌ No puedes establecer cantidad total 0 porque el libro tiene ejemplares')
                 return redirect('libro_editar', libro_id=libro.id)
             
-            # No permitir modificar el ISBN
             isbn_original = libro.isbn
             isbn_nuevo = request.POST.get('isbn')
             
@@ -182,7 +229,6 @@ def libro_editar(request, libro_id):
             libro.cantidad_total = cantidad_total
             libro.inventario_disponible = inventario_disponible
             
-            # Actualizar imagen si se subió una nueva
             if request.FILES.get('imagen'):
                 libro.imagen = request.FILES['imagen']
             
@@ -323,7 +369,6 @@ def ejemplar_editar(request, ejemplar_id):
 
 @staff_member_required
 def api_crear_editorial(request):
-    """API para crear una nueva editorial desde el modal"""
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
@@ -339,7 +384,6 @@ def api_crear_editorial(request):
 
 @staff_member_required
 def api_crear_categoria(request):
-    """API para crear una nueva categoría desde el modal"""
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
@@ -355,7 +399,6 @@ def api_crear_categoria(request):
 
 @staff_member_required
 def api_crear_autor(request):
-    """API para crear un nuevo autor desde el modal"""
     if request.method == 'POST':
         try:
             data = json.loads(request.body)

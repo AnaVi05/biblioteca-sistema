@@ -207,7 +207,7 @@ class Reserva(models.Model):
         verbose_name = "Reserva"
         verbose_name_plural = "Reservas"
         ordering = ['estado', 'orden_prioridad', 'fecha_reserva']
-        unique_together = ['socio', 'libro', 'estado']  
+        #unique_together = ['socio', 'libro', 'estado']  
     
     def __str__(self):
         return f"Reserva {self.id} - {self.socio} - {self.libro.titulo}"
@@ -289,6 +289,16 @@ class Multa(models.Model):
         blank=True,
         null=True,
         verbose_name="Comprobante de pago"
+    )
+    comprobante_imagen = models.ImageField(
+        upload_to='comprobantes/',
+        blank=True,
+        null=True,
+        verbose_name="Comprobante de pago"
+    )
+    notificado = models.BooleanField(
+        default=False,
+        verbose_name="Notificado al bibliotecario"
     )
     
     class Meta:

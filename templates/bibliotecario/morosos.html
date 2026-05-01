@@ -47,7 +47,7 @@
                                 <th>Multas</th>
                                 <th>Total Deuda</th>
                                 <th>Acción</th>
-                            </tr>
+                            </td>
                         </thead>
                         <tbody>
                             {% for item in socios_morosos %}
@@ -119,9 +119,9 @@
                             <tr>
                                 <th>ID Multa</th>
                                 <th>Libro</th>
-                                <th>Fecha vencimiento</th>
                                 <th>Días atraso</th>
                                 <th>Monto</th>
+                                <th>Comprobante</th>
                                 <th>Acción</th>
                             </tr>
                         </thead>
@@ -132,35 +132,53 @@
                                 <td>
                                     <small>{{ multa.prestamo.ejemplar.libro.titulo|truncatechars:30 }}</small>
                                 </td>
-                                <td>{{ multa.prestamo.fecha_vencimiento|date:"d/m/Y" }}</td>
                                 <td>{{ multa.dias_atraso }} días</td>
                                 <td class="text-danger fw-bold">Gs. {{ multa.monto_total|floatformat:0 }}</td>
                                 <td>
-                                    <a href="?accion=pagar&multa_id={{ multa.id }}{% if search %}&search={{ search }}{% endif %}&socio_id={{ socio_seleccionado.id }}" 
-                                       class="btn btn-sm btn-success"
-                                       onclick="return confirm('¿Registrar pago de Gs. {{ multa.monto_total|floatformat:0 }}?')">
-                                        <i class="fas fa-money-bill"></i> Pagar Todo
-                                    </a>
+                                    {% if multa.comprobante_imagen %}
+                                        <a href="{{ multa.comprobante_imagen.url }}" target="_blank" class="btn btn-sm btn-info">
+                                            <i class="fas fa-eye"></i> Ver Comprobante
+                                        </a>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Sin comprobante</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if multa.comprobante_imagen %}
+                                        <a href="?accion=pagar&multa_id={{ multa.id }}{% if search %}&search={{ search }}{% endif %}&socio_id={{ socio_seleccionado.id }}" 
+                                           class="btn btn-sm btn-success"
+                                           onclick="return confirm('¿Confirmar pago de Gs. {{ multa.monto_total|floatformat:0 }}?')">
+                                            <i class="fas fa-check-circle"></i> Confirmar Pago
+                                        </a>
+                                    {% else %}
+                                        <a href="?accion=pagar&multa_id={{ multa.id }}{% if search %}&search={{ search }}{% endif %}&socio_id={{ socio_seleccionado.id }}" 
+                                           class="btn btn-sm btn-success"
+                                           onclick="return confirm('¿Registrar pago sin comprobante?')">
+                                            <i class="fas fa-money-bill"></i> Registrar Pago
+                                        </a>
+                                    {% endif %}
                                 </td>
                             </tr>
                             {% endfor %}
                         </tbody>
                         <tfoot class="table-light">
                             <tr>
-                                <td colspan="4" class="fw-bold">Total a pagar:</td>
+                                <td colspan="3" class="fw-bold">Total a pagar:</td>
                                 <td class="fw-bold text-danger">
                                     Gs. {{ total_multas_socio|floatformat:0 }}
                                 </td>
-                                <!-- 
-                                <td>
+                                <td colspan="2">
                                     {% if multas_detalle %}
-                                    <a href="?accion=pagar_todo&socio_id={{ socio_seleccionado.id }}{% if search %}&search={{ search }}{% endif %}" 
-                                       class="btn btn-sm btn-primary"
-                                       onclick="return confirm('¿Pagar todas las multas de este socio?')">
+                                    <button class="btn btn-sm btn-primary" 
+                                            onclick="if(confirm('¿Pagar todas las multas?')) { 
+                                                {% for multa in multas_detalle %}
+                                                    window.location.href='?accion=pagar&multa_id={{ multa.id }}{% if search %}&search={{ search }}{% endif %}&socio_id={{ socio_seleccionado.id }}';
+                                                {% endfor %}
+                                            }">
                                         <i class="fas fa-check-circle"></i> Pagar Todo
-                                    </a>
+                                    </button>
                                     {% endif %}
-                                </td>--> 
+                                </td>
                             </tr>
                         </tfoot>
                     </table>

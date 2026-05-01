@@ -10,6 +10,8 @@ from django.db.models import Count, Sum
 from usuario.models import Socio 
 from django.db import transaction
 from django.http import JsonResponse
+from decimal import Decimal
+from .models import Prestamo, Multa, Reserva
 
 @login_required
 def api_notificaciones(request):
@@ -178,8 +180,39 @@ def registrar_prestamo_usuario(request, ejemplar_id):
         messages.error(request, f'El ejemplar con ID {ejemplar_id} no existe')
         return redirect('catalogo_lista')
     
-    if ejemplar.disponibilidad.upper() != 'DISPONIBLE':
+    if ejemplar.disponibilidad != 'DISPONIBLE':
         messages.error(request, f'El ejemplar {ejemplar.codigo_inventario} no está disponible')
+        return redirect('catalogo_lista')
+    
+    # ========== VALIDAR MULTAS PENDIENTES ==========
+    multas_pendientes = Multa.objects.filter(
+        prestamo__socio=request.user.socio,
+        estado='PENDIENTE'
+    )
+    
+    if multas_pendientes.exists():
+        total_multa = sum(multa.monto_total for multa in multas_pendientes)
+        messages.error(
+            request, 
+            f'❌ No puedes solicitar préstamos porque tienes {multas_pendientes.count()} multa(s) pendiente(s) por un total de Gs. {total_multa:,.0f}. '
+            f'Debes pagar tu deuda para continuar.'
+        )
+        return redirect('catalogo_lista')
+    
+    # ========== VALIDAR PRÉSTAMOS VENCIDOS ==========
+    hoy = date.today()
+    prestamos_vencidos = Prestamo.objects.filter(
+        socio=request.user.socio,
+        estado='ACTIVO',
+        fecha_vencimiento__lt=hoy
+    )
+    
+    if prestamos_vencidos.exists():
+        messages.error(
+            request, 
+            f'❌ No puedes solicitar préstamos porque tienes {prestamos_vencidos.count()} préstamo(s) vencido(s) sin devolver. '
+            f'Debes devolver los libros atrasados para continuar.'
+        )
         return redirect('catalogo_lista')
     
     if request.method == 'POST':
@@ -211,8 +244,6 @@ def registrar_prestamo_usuario(request, ejemplar_id):
         'max_dias': 5
     }
     return render(request, 'prestamo/registrar_prestamo.html', context)
-
-
 @login_required
 def mis_prestamos(request):
     """Vista para que el usuario vea sus préstamos"""
@@ -224,10 +255,17 @@ def mis_prestamos(request):
     prestamos_solicitados = prestamos.filter(estado='SOLICITADO')
     historial = prestamos.filter(estado__in=['DEVUELTO', 'EXTRAVIADO'])
     
+    # ========== MULTAS PENDIENTES ==========
+    multas_pendientes = Multa.objects.filter(
+        prestamo__socio=request.user.socio,
+        estado='PENDIENTE'
+    ).select_related('prestamo__ejemplar__libro')
+    
     context = {
         'activos': prestamos_activos,
         'solicitados': prestamos_solicitados,
         'historial': historial,
+        'multas_pendientes': multas_pendientes,  # ← Agrega esta línea
         'hoy': date.today(),
     }
     return render(request, 'prestamo/mis_prestamos.html', context)
@@ -297,15 +335,61 @@ def cancelar_solicitud(request, prestamo_id):
 
 @login_required
 def reservar_libro(request, libro_id):
-    """Permite al usuario reservar un libro no disponible"""
+    """Permite al usuario reservar un libro"""
     libro = get_object_or_404(Libro, id=libro_id)
     
+    # ========== VALIDAR MULTAS PENDIENTES ==========
+    multas_pendientes = Multa.objects.filter(
+        prestamo__socio=request.user.socio,
+        estado='PENDIENTE'
+    )
+    
+    if multas_pendientes.exists():
+        total_multa = sum(multa.monto_total for multa in multas_pendientes)
+        messages.error(
+            request, 
+            f'❌ No puedes reservar libros porque tienes {multas_pendientes.count()} multa(s) pendiente(s) por un total de Gs. {total_multa:,.0f}. '
+            f'Debes pagar tu deuda para continuar.'
+        )
+        return redirect('catalogo_lista')
+    
+    # ========== VALIDAR PRÉSTAMOS VENCIDOS ==========
+    hoy = date.today()
+    prestamos_vencidos = Prestamo.objects.filter(
+        socio=request.user.socio,
+        estado='ACTIVO',
+        fecha_vencimiento__lt=hoy
+    )
+    
+    if prestamos_vencidos.exists():
+        messages.error(
+            request, 
+            f'❌ No puedes reservar libros porque tienes {prestamos_vencidos.count()} préstamo(s) vencido(s) sin devolver. '
+            f'Debes devolver los libros atrasados para continuar.'
+        )
+        return redirect('catalogo_lista')
+    
+    # ========== VALIDAR LÍMITE DE RESERVAS ACTIVAS ==========
+    reservas_activas_total = Reserva.objects.filter(
+        socio=request.user.socio,
+        estado__in=['PENDIENTE', 'ACTIVA']
+    ).count()
+    
+    if reservas_activas_total >= 3:
+        messages.warning(
+            request, 
+            f'⚠️ Tienes {reservas_activas_total} reservas activas. El límite máximo es 3 reservas simultáneas.'
+        )
+        return redirect('mis_reservas')
+    
+    # Contar ejemplares disponibles
     ejemplares_disponibles = Ejemplar.objects.filter(
         libro=libro, 
         disponibilidad='DISPONIBLE'
     ).count()
     
-    if ejemplares_disponibles > 0:
+    # Si hay 2 o más ejemplares, redirigir a préstamo (no a reserva)
+    if ejemplares_disponibles >= 2:
         messages.info(request, 'Este libro tiene ejemplares disponibles. ¿Querés solicitarlo en préstamo?')
         return redirect('catalogo_lista')
     
@@ -329,21 +413,28 @@ def reservar_libro(request, libro_id):
             messages.error(request, 'La fecha límite no puede ser mayor a 30 días')
             return redirect('reservar_libro', libro_id=libro.id)
         
-        reserva_existente = Reserva.objects.filter(
+        # ========== VALIDAR QUE NO TENGA RESERVA ACTIVA PARA ESTE MISMO LIBRO ==========
+        reserva_activa = Reserva.objects.filter(
             socio=request.user.socio,
             libro=libro,
             estado__in=['PENDIENTE', 'ACTIVA']
         ).exists()
         
-        if reserva_existente:
-            messages.warning(request, 'Ya tenés una reserva activa para este libro')
+        if reserva_activa:
+            messages.warning(
+                request, 
+                f'⚠️ Ya tienes una reserva activa o pendiente para el libro "{libro.titulo}". '
+                f'Debes cancelarla o esperar a que expire para hacer una nueva reserva.'
+            )
             return redirect('mis_reservas')
         
+        # Calcular posición en cola
         ultima_posicion = Reserva.objects.filter(
             libro=libro,
             estado__in=['PENDIENTE', 'ACTIVA']
         ).count()
         
+        # Crear reserva
         reserva = Reserva.objects.create(
             socio=request.user.socio,
             libro=libro,
@@ -352,10 +443,19 @@ def reservar_libro(request, libro_id):
             estado='PENDIENTE'
         )
         
-        messages.success(
-            request, 
-            f'✅ ¡Libro reservado! Estás en la posición {reserva.orden_prioridad} de la cola.'
-        )
+        # Mensaje según la situación
+        if ejemplares_disponibles == 1:
+            messages.success(
+                request, 
+                f'✅ ¡Libro reservado! El único ejemplar disponible es para consulta en sala. '
+                f'Te avisaremos cuando se libere otro ejemplar para préstamo. Estás en la posición {reserva.orden_prioridad} de la cola.'
+            )
+        else:
+            messages.success(
+                request, 
+                f'✅ ¡Libro reservado! Estás en la posición {reserva.orden_prioridad} de la cola.'
+            )
+        
         return redirect('mis_reservas')
     
     fecha_min = date.today() + timedelta(days=1)
@@ -368,8 +468,6 @@ def reservar_libro(request, libro_id):
         'ejemplares_disponibles': ejemplares_disponibles
     }
     return render(request, 'prestamo/reservar_libro.html', context)
-
-
 @login_required
 def mis_reservas(request):
     """Lista las reservas del usuario"""
@@ -432,7 +530,7 @@ def dashboard_bibliotecario(request):
     """Dashboard principal para bibliotecarios"""
     hoy = timezone.now().date()
     
-    # Estadísticas
+    # ========== ESTADÍSTICAS PRINCIPALES ==========
     prestamos_activos = Prestamo.objects.filter(estado='ACTIVO').count()
     prestamos_hoy = Prestamo.objects.filter(fecha_prestamo__date=hoy).count()
     prestamos_vencidos = Prestamo.objects.filter(estado='ACTIVO', fecha_vencimiento__lt=hoy).count()
@@ -448,11 +546,12 @@ def dashboard_bibliotecario(request):
         fecha_vencimiento__lte=hoy + timedelta(days=3)
     ).count()
     
+    # Solicitudes pendientes
     solicitudes_pendientes = Prestamo.objects.filter(
         estado='SOLICITADO'
     ).select_related('socio__user', 'ejemplar__libro').order_by('fecha_prestamo')
     
-    # Tareas pendientes
+    # ========== TAREAS PENDIENTES ==========
     tareas_pendientes = []
     
     for prestamo in Prestamo.objects.filter(estado='ACTIVO', fecha_vencimiento__lt=hoy).select_related('socio__user', 'ejemplar__libro')[:3]:
@@ -473,7 +572,7 @@ def dashboard_bibliotecario(request):
             'descripcion': f"{reserva.socio.user.get_full_name()} - \"{reserva.libro.titulo}\""
         })
     
-    # Actividad reciente
+    # ========== ACTIVIDAD RECIENTE ==========
     actividades_recientes = []
     
     for prestamo in Prestamo.objects.select_related('socio__user', 'ejemplar__libro').order_by('-fecha_prestamo')[:2]:
@@ -494,7 +593,30 @@ def dashboard_bibliotecario(request):
             'descripcion': f"{reserva.socio.user.get_full_name()} - \"{reserva.libro.titulo}\""
         })
     
+    # ========== NOTIFICACIONES DE COMPROBANTES ==========
+    comprobantes_pendientes = Multa.objects.filter(
+        comprobante_imagen__isnull=False,
+        notificado=False,
+        estado='PENDIENTE'
+    ).select_related('prestamo__socio__user', 'prestamo__ejemplar__libro')
+    
+    notificaciones_comprobantes = []
+    for multa in comprobantes_pendientes:
+        notificaciones_comprobantes.append({
+            'id': multa.id,
+            'mensaje': f'El usuario {multa.prestamo.socio.user.get_full_name()} ha subido un comprobante de pago',
+            'monto': multa.monto_total,
+            'libro': multa.prestamo.ejemplar.libro.titulo,
+            'fecha': multa.fecha_generacion,
+        })
+    
+    # Marcar como notificadas
+    for multa in comprobantes_pendientes:
+        multa.notificado = True
+        multa.save()
+    
     context = {
+        # Estadísticas principales
         'prestamos_activos': prestamos_activos,
         'prestamos_hoy': prestamos_hoy,
         'prestamos_vencidos': prestamos_vencidos,
@@ -506,9 +628,17 @@ def dashboard_bibliotecario(request):
         'total_morosos': usuarios_morosos,
         'socios_activos': socios_activos,
         'proximos_a_vencer': proximos_a_vencer,
+        
+        # Solicitudes
         'solicitudes_pendientes': solicitudes_pendientes,
+        
+        # Tareas y actividades
         'tareas_pendientes': tareas_pendientes,
         'actividades_recientes': actividades_recientes,
+        
+        # Notificaciones de comprobantes
+        'notificaciones_comprobantes': notificaciones_comprobantes,
+        'total_notificaciones': len(notificaciones_comprobantes),
     }
     
     return render(request, 'bibliotecario/dashboard.html', context)
@@ -532,6 +662,7 @@ def confirmar_prestamo(request, prestamo_id):
             ejemplar.disponibilidad = 'PRESTADO'
             ejemplar.save()
             
+            # Actualizar inventario del libro
             libro = ejemplar.libro
             libro.inventario_disponible = Ejemplar.objects.filter(
                 libro=libro, 
@@ -545,8 +676,6 @@ def confirmar_prestamo(request, prestamo_id):
     
     context = {'prestamo': prestamo}
     return render(request, 'bibliotecario/confirmar_prestamo.html', context)
-
-
 @staff_member_required
 def prestamo_nuevo_bibliotecario(request):
     """Registrar un nuevo préstamo desde el panel bibliotecario"""
@@ -613,15 +742,29 @@ def prestamo_nuevo_bibliotecario(request):
                         messages.error(request, 'El ejemplar ya no está disponible')
                         return redirect('prestamo_nuevo_bibliotecario')
                     
+                    # ========== VALIDAR MULTAS PENDIENTES ==========
                     tiene_multas = Multa.objects.filter(
                         prestamo__socio=socio,
                         estado='PENDIENTE'
                     ).exists()
                     
                     if tiene_multas:
-                        messages.warning(request, 'El socio tiene multas pendientes')
+                        messages.warning(request, '⚠️ El socio tiene multas pendientes')
                         return redirect('prestamo_nuevo_bibliotecario')
                     
+                    # ========== VALIDAR PRÉSTAMOS VENCIDOS ==========
+                    hoy = date.today()
+                    prestamos_vencidos = Prestamo.objects.filter(
+                        socio=socio,
+                        estado='ACTIVO',
+                        fecha_vencimiento__lt=hoy
+                    ).exists()
+                    
+                    if prestamos_vencidos:
+                        messages.warning(request, '⚠️ El socio tiene préstamos vencidos sin devolver')
+                        return redirect('prestamo_nuevo_bibliotecario')
+                    
+                    # Crear préstamo
                     fecha_prestamo = timezone.now()
                     fecha_vencimiento = fecha_prestamo.date() + timedelta(days=dias)
                     
@@ -637,7 +780,7 @@ def prestamo_nuevo_bibliotecario(request):
                     ejemplar.disponibilidad = 'PRESTADO'
                     ejemplar.save()
                     
-                    messages.success(request, f'Préstamo #{prestamo.id} registrado exitosamente')
+                    messages.success(request, f'✅ Préstamo #{prestamo.id} registrado exitosamente')
                     return redirect('dashboard_bibliotecario')
                     
             except Exception as e:
@@ -655,20 +798,20 @@ def prestamo_nuevo_bibliotecario(request):
     }
     
     return render(request, 'bibliotecario/prestamo_nuevo.html', context)
-
-
 # ========== REGISTRAR DEVOLUCIÓN (PRINCIPAL) ==========
 @staff_member_required
 def registrar_devolucion(request):
     """Registrar devolución de un préstamo desde el panel"""
     from decimal import Decimal
     
+    # Obtener préstamos activos
     prestamos_activos = Prestamo.objects.filter(
         estado='ACTIVO'
     ).select_related(
         'socio__user', 'ejemplar__libro'
     ).order_by('fecha_vencimiento')
     
+    # Búsqueda
     search = request.GET.get('search', '')
     if search:
         prestamos_activos = prestamos_activos.filter(
@@ -681,6 +824,7 @@ def registrar_devolucion(request):
             ejemplar__codigo_inventario__icontains=search
         )
     
+    # Si se selecciona un préstamo para devolver
     prestamo_id = request.GET.get('devolver_id')
     prestamo_seleccionado = None
     multa_calculada = None
@@ -704,6 +848,7 @@ def registrar_devolucion(request):
         except Prestamo.DoesNotExist:
             pass
     
+    # Procesar devolución
     if request.method == 'POST':
         prestamo_id = request.POST.get('prestamo_id')
         
@@ -717,20 +862,22 @@ def registrar_devolucion(request):
                 dias_atraso = 0
                 monto_multa = Decimal('0')
                 
+                # Calcular atraso
                 if prestamo.fecha_vencimiento < hoy:
                     dias_atraso = (hoy - prestamo.fecha_vencimiento).days
                     monto_por_dia = Decimal('1000')
                     monto_multa = dias_atraso * monto_por_dia
                 
+                # Registrar fecha de devolución
                 prestamo.fecha_devolucion_real = hoy
                 prestamo.estado = 'DEVUELTO'
                 prestamo.save()
                 
-                # ✅ ACTUALIZAR DISPONIBILIDAD DEL EJEMPLAR
+                # Actualizar disponibilidad del ejemplar
                 prestamo.ejemplar.disponibilidad = 'DISPONIBLE'
                 prestamo.ejemplar.save()
                 
-                # ✅ ACTUALIZAR INVENTARIO DEL LIBRO
+                # ========== ACTUALIZAR INVENTARIO DEL LIBRO ==========
                 libro = prestamo.ejemplar.libro
                 libro.inventario_disponible = Ejemplar.objects.filter(
                     libro=libro, 
@@ -738,6 +885,7 @@ def registrar_devolucion(request):
                 ).count()
                 libro.save()
                 
+                # Crear multa si hay atraso
                 if dias_atraso > 0:
                     Multa.objects.create(
                         prestamo=prestamo,
@@ -748,16 +896,16 @@ def registrar_devolucion(request):
                         fecha_generacion=hoy,
                         estado='PENDIENTE'
                     )
-                    messages.warning(request, f'Devolución registrada. Multa generada: Gs. {monto_multa:,.0f} por {dias_atraso} días de atraso.')
+                    messages.warning(request, f'⚠️ Devolución registrada. Multa generada: Gs. {monto_multa:,.0f} por {dias_atraso} días de atraso.')
                 else:
-                    messages.success(request, f'Devolución registrada exitosamente.')
+                    messages.success(request, f'✅ Devolución registrada exitosamente. Préstamo #{prestamo.id} completado.')
                 
                 return redirect('registrar_devolucion')
                 
         except Prestamo.DoesNotExist:
-            messages.error(request, 'Préstamo no encontrado')
+            messages.error(request, '❌ Préstamo no encontrado')
         except Exception as e:
-            messages.error(request, f'Error: {str(e)}')
+            messages.error(request, f'❌ Error al procesar devolución: {str(e)}')
     
     context = {
         'prestamos_activos': prestamos_activos,
@@ -909,6 +1057,7 @@ def gestionar_multas(request):
     socio_id = request.GET.get('socio_id')
     search = request.GET.get('search', '')
     
+    # Procesar pago de multa (confirmar pago por bibliotecario)
     if accion == 'pagar' and multa_id:
         try:
             with transaction.atomic():
@@ -922,6 +1071,7 @@ def gestionar_multas(request):
                 
                 multa.save()
                 
+                # Verificar si el socio ya no tiene más multas pendientes
                 otras_multas = Multa.objects.filter(
                     prestamo__socio=multa.prestamo.socio,
                     estado='PENDIENTE'
@@ -933,13 +1083,14 @@ def gestionar_multas(request):
                         socio.estado_socio = 'activo'
                         socio.save()
                 
-                messages.success(request, f'Multa #{multa.id} pagada correctamente. Monto: Gs. {multa.monto_total:,.0f}')
+                messages.success(request, f'✅ Multa #{multa.id} pagada correctamente. Monto: Gs. {multa.monto_total:,.0f}')
                 
         except Multa.DoesNotExist:
-            messages.error(request, 'Multa no encontrada')
+            messages.error(request, '❌ Multa no encontrada')
         
         return redirect('gestionar_multas')
     
+    # Ver detalle de multas de un socio específico
     multas_detalle = None
     socio_seleccionado = None
     total_multas_socio = 0
@@ -950,11 +1101,12 @@ def gestionar_multas(request):
             multas_detalle = Multa.objects.filter(
                 prestamo__socio=socio_seleccionado,
                 estado='PENDIENTE'
-            ).select_related('prestamo__ejemplar__libro').order_by('fecha_generacion')
+            ).select_related('prestamo__ejemplar__libro', 'prestamo__socio__user').order_by('fecha_generacion')
             total_multas_socio = multas_detalle.aggregate(total=Sum('monto_total'))['total'] or 0
         except Socio.DoesNotExist:
             pass
     
+    # Obtener todos los socios con multas pendientes
     socios_morosos = Socio.objects.filter(
         prestamos__multas__estado='PENDIENTE'
     ).distinct().select_related('user')
@@ -968,6 +1120,7 @@ def gestionar_multas(request):
             cedula__icontains=search
         )
     
+    # Calcular total de multas por socio
     socios_con_total = []
     for socio in socios_morosos:
         total_multas = Multa.objects.filter(
@@ -1139,6 +1292,7 @@ def admin_dashboard(request):
         'hoy': hoy,
     }
     return render(request, 'admin/dashboard.html', context)
+<<<<<<< HEAD
 
 
 #reportes de usuarios activos 
@@ -1372,3 +1526,25 @@ def reporte_libros_demanda(request):
         'ahora': timezone.now(),
     }
     return render(request, 'bibliotecario/reporte_libros_demanda.html', context)
+=======
+@login_required
+def subir_comprobante(request, multa_id):
+    """Usuario sube comprobante de pago para una multa"""
+    multa = get_object_or_404(
+        Multa, 
+        id=multa_id, 
+        prestamo__socio=request.user.socio,
+        estado='PENDIENTE'
+    )
+    
+    if request.method == 'POST':
+        if request.FILES.get('comprobante'):
+            multa.comprobante_imagen = request.FILES['comprobante']
+            multa.notificado = False  # Nueva notificación pendiente
+            multa.save()
+            messages.success(request, '✅ Comprobante subido correctamente. El bibliotecario será notificado.')
+        else:
+            messages.error(request, '❌ Debes seleccionar una imagen')
+    
+    return redirect('mis_prestamos')
+>>>>>>> origin/feature/mejora-libros

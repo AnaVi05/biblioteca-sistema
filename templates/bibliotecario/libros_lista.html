@@ -13,6 +13,32 @@
     </div>
 </div>
 
+<!-- Filtro de estado -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-center">
+            <div class="col-auto">
+                <label class="fw-bold">Filtrar por estado:</label>
+            </div>
+            <div class="col-auto">
+                <select name="filtro" class="form-select" onchange="this.form.submit()" style="width: auto;">
+                    <option value="" {% if not filtro %}selected{% endif %}>Todos</option>
+                    <option value="activos" {% if filtro == 'activos' %}selected{% endif %}>Activos</option>
+                    <option value="inactivos" {% if filtro == 'inactivos' %}selected{% endif %}>Dados de baja</option>
+                </select>
+            </div>
+            {% if search %}
+            <input type="hidden" name="search" value="{{ search }}">
+            {% endif %}
+            <div class="col-auto">
+                <a href="{% url 'gestionar_libros' %}" class="btn btn-sm btn-secondary">
+                    <i class="fas fa-undo"></i> Limpiar filtros
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
 <!-- Buscador -->
 <div class="card mb-4">
     <div class="card-body">
@@ -27,6 +53,9 @@
                     <i class="fas fa-search"></i> Buscar
                 </button>
             </div>
+            {% if filtro %}
+            <input type="hidden" name="filtro" value="{{ filtro }}">
+            {% endif %}
         </form>
     </div>
 </div>
@@ -47,6 +76,8 @@
                         <th>Categoría</th>
                         <th>Total</th>
                         <th>Disponibles</th>
+                        <th>Disponibilidad</th>
+                        <th>Estado</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
@@ -62,10 +93,37 @@
                         <td>{{ libro.categoria.nombre }}</td>
                         <td>{{ libro.cantidad_total }}</td>
                         <td>
-                            {% if libro.inventario_disponible > 0 %}
-                                <span class="badge bg-success">{{ libro.inventario_disponible }}</span>
+                            {% if libro.activo %}
+                                {% if libro.inventario_disponible > 0 %}
+                                    <span class="badge bg-success">{{ libro.inventario_disponible }}</span>
+                                {% else %}
+                                    <span class="badge bg-warning">0</span>
+                                {% endif %}
                             {% else %}
-                                <span class="badge bg-danger">0</span>
+                                <span class="badge bg-secondary">N/A</span>
+                            {% endif %}
+                        </td>
+                        <!-- Columna de disponibilidad (si tiene ejemplares para usuarios) -->
+                        <td>
+                            {% if libro.tiene_ejemplares_disponibles %}
+                                <span class="badge bg-success">
+                                    <i class="fas fa-check-circle"></i> {{ libro.ejemplares_disponibles_count }} disponibles
+                                </span>
+                                <br>
+                                <small class="text-muted">Visible para usuarios</small>
+                            {% else %}
+                                <span class="badge bg-danger">
+                                    <i class="fas fa-exclamation-triangle"></i> Sin ejemplares
+                                </span>
+                                <br>
+                                <small class="text-muted">Agrega ejemplares desde <strong>Gestionar Stock</strong></small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if libro.activo %}
+                                <span class="badge bg-success">Activo</span>
+                            {% else %}
+                                <span class="badge bg-danger">Dado de baja</span>
                             {% endif %}
                         </td>
                         <td>
@@ -81,7 +139,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="7" class="text-center py-4">
+                        <td colspan="9" class="text-center py-4">
                             <i class="fas fa-inbox fa-2x text-muted mb-2 d-block"></i>
                             <p class="text-muted mb-0">No hay libros registrados</p>
                             <a href="{% url 'libro_crear' %}" class="btn btn-sm btn-primary mt-2">
