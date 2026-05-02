@@ -1292,7 +1292,6 @@ def admin_dashboard(request):
         'hoy': hoy,
     }
     return render(request, 'admin/dashboard.html', context)
-<<<<<<< HEAD
 
 
 #reportes de usuarios activos 
@@ -1526,7 +1525,7 @@ def reporte_libros_demanda(request):
         'ahora': timezone.now(),
     }
     return render(request, 'bibliotecario/reporte_libros_demanda.html', context)
-=======
+
 @login_required
 def subir_comprobante(request, multa_id):
     """Usuario sube comprobante de pago para una multa"""
@@ -1547,4 +1546,3 @@ def subir_comprobante(request, multa_id):
             messages.error(request, '❌ Debes seleccionar una imagen')
     
     return redirect('mis_prestamos')
->>>>>>> origin/feature/mejora-libros
