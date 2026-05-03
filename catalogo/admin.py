@@ -1,5 +1,8 @@
 from django.contrib import admin
 from .models import Autor,Editorial,Ejemplar
+from django.contrib import admin
+from .models import Autor, Editorial, Categoria  
+from .models import Autor, Editorial, Categoria, Libro, LibroAutor
 
 @admin.register(Autor)
 class AutorAdmin(admin.ModelAdmin):
@@ -11,11 +14,6 @@ class EditorialAdmin(admin.ModelAdmin):
     list_display = ('id', 'nombre')
     search_fields = ('nombre',)
     
-from django.contrib import admin
-from .models import Autor, Editorial, Categoria  
-from .models import Autor, Editorial, Categoria, Libro, LibroAutor
-
-# ... tus registros existentes de Autor y Editorial ...
 
 @admin.register(Categoria)
 class CategoriaAdmin(admin.ModelAdmin):
