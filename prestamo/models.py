@@ -207,10 +207,32 @@ class Reserva(models.Model):
         verbose_name = "Reserva"
         verbose_name_plural = "Reservas"
         ordering = ['estado', 'orden_prioridad', 'fecha_reserva']
-        #unique_together = ['socio', 'libro', 'estado']  
     
     def __str__(self):
         return f"Reserva {self.id} - {self.socio} - {self.libro.titulo}"
+    
+    @classmethod
+    def reordenar_prioridades(cls, libro, reserva_excluida=None):
+        """
+        Reordena las prioridades de las reservas PENDIENTES para un libro específico.
+        reserva_excluida: reserva que se está eliminando/cancelando (opcional)
+        """
+        reservas = cls.objects.filter(
+            libro=libro,
+            estado='PENDIENTE'
+        ).order_by('orden_prioridad', 'fecha_reserva')
+        
+        # Excluir reserva si se pasa como parámetro (para caso de delete)
+        if reserva_excluida:
+            reservas = reservas.exclude(id=reserva_excluida.id)
+        
+        # Reasignar prioridades empezando desde 1
+        nueva_prioridad = 1
+        for reserva in reservas:
+            if reserva.orden_prioridad != nueva_prioridad:
+                reserva.orden_prioridad = nueva_prioridad
+                reserva.save(update_fields=['orden_prioridad'])
+            nueva_prioridad += 1
     
     def activar(self, ejemplar):
         """Activa la reserva asignando un ejemplar"""
@@ -218,24 +240,29 @@ class Reserva(models.Model):
         self.ejemplar_asignado = ejemplar
         self.save()
         
-        
-    
     def cancelar(self):
-        """Cancela la reserva"""
+        """Cancela la reserva y reordena prioridades"""
+        libro = self.libro
         self.estado = 'CANCELADA'
         self.save()
+        # Reordenar las reservas pendientes del mismo libro
+        Reserva.reordenar_prioridades(libro)
     
     def expirar(self):
-        """Marca la reserva como expirada"""
+        """Marca la reserva como expirada y reordena prioridades"""
+        libro = self.libro
         self.estado = 'EXPIRADA'
         self.save()
+        # Reordenar las reservas pendientes del mismo libro
+        Reserva.reordenar_prioridades(libro)
     
     def completar(self):
-        """Marca la reserva como completada (el usuario retiró el libro)"""
+        """Marca la reserva como completada (el usuario retiró el libro) y reordena prioridades"""
+        libro = self.libro
         self.estado = 'COMPLETADA'
         self.save()
-
-
+        # Reordenar las reservas pendientes del mismo libro
+        Reserva.reordenar_prioridades(libro)
 class Multa(models.Model):
     """Multas por devoluciones tardías o extravío"""
     

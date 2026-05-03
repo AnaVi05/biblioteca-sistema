@@ -482,8 +482,7 @@ def mis_reservas(request):
     )
     
     for reserva in reservas_expiradas:
-        reserva.estado = 'EXPIRADA'
-        reserva.save()
+        reserva.expirar()  # <--- SOLO CAMBIA ESTO (antes era reserva.estado = 'EXPIRADA' + save())
         messages.warning(request, f'⚠️ Tu reserva de "{reserva.libro.titulo}" ha expirado porque no la retiraste a tiempo.')
     
     reservas_activas = Reserva.objects.filter(
@@ -502,8 +501,6 @@ def mis_reservas(request):
         'hoy': hoy,
     }
     return render(request, 'prestamo/mis_reservas.html', context)
-
-
 @login_required
 def cancelar_reserva(request, reserva_id):
     """Cancela una reserva activa"""
@@ -515,14 +512,12 @@ def cancelar_reserva(request, reserva_id):
     )
     
     if request.method == 'POST':
-        reserva.delete()
+        reserva.cancelar()  # <--- SOLO CAMBIA ESTO (antes era reserva.delete())
         messages.success(request, 'Reserva cancelada exitosamente')
         return redirect('mis_reservas')
     
     context = {'reserva': reserva}
     return render(request, 'prestamo/cancelar_reserva.html', context)
-
-
 # ========== PANEL BIBLIOTECARIO ==========
 
 @staff_member_required
@@ -931,8 +926,7 @@ def gestionar_reservas(request):
         
         expiradas_count = reservas_expiradas.count()
         for reserva in reservas_expiradas:
-            reserva.estado = 'EXPIRADA'
-            reserva.save()
+            reserva.expirar()  # <--- CAMBIO 1: usar el método en lugar de asignar estado
             # Si tenía un ejemplar asignado, liberarlo
             if reserva.ejemplar_asignado:
                 reserva.ejemplar_asignado.disponibilidad = 'DISPONIBLE'
@@ -958,10 +952,7 @@ def gestionar_reservas(request):
                         ).first()
                         
                         if ejemplar_disponible:
-                            reserva.estado = 'ACTIVA'
-                            reserva.ejemplar_asignado = ejemplar_disponible
-                            reserva.save()
-                            
+                            reserva.activar(ejemplar_disponible)  # <--- CAMBIO 2: usar el método activar
                             ejemplar_disponible.disponibilidad = 'RESERVADO'
                             ejemplar_disponible.save()
                             
@@ -975,8 +966,7 @@ def gestionar_reservas(request):
                             reserva.ejemplar_asignado.disponibilidad = 'DISPONIBLE'
                             reserva.ejemplar_asignado.save()
                         
-                        reserva.estado = 'CANCELADA'
-                        reserva.save()
+                        reserva.cancelar()  # <--- CAMBIO 3: usar el método cancelar
                         messages.success(request, f'✅ Reserva #{reserva.id} cancelada correctamente.')
                         
                 elif accion == 'completar':
@@ -984,13 +974,6 @@ def gestionar_reservas(request):
                         if not reserva.ejemplar_asignado:
                             messages.error(request, '❌ Esta reserva no tiene un ejemplar asignado.')
                             return redirect('gestionar_reservas')
-                        
-                        reserva.estado = 'COMPLETADA'
-                        reserva.save()
-                        
-                        ejemplar = reserva.ejemplar_asignado
-                        ejemplar.disponibilidad = 'PRESTADO'
-                        ejemplar.save()
                         
                         # Obtener días de préstamo desde configuración
                         try:
@@ -1004,12 +987,18 @@ def gestionar_reservas(request):
                         
                         prestamo = Prestamo.objects.create(
                             socio=reserva.socio,
-                            ejemplar=ejemplar,
+                            ejemplar=reserva.ejemplar_asignado,
                             dias_solicitados=dias_prestamo,
                             fecha_prestamo=fecha_prestamo,
                             fecha_vencimiento=fecha_vencimiento,
                             estado='ACTIVO'
                         )
+                        
+                        reserva.completar()  # <--- CAMBIO 4: usar el método completar
+                        
+                        ejemplar = reserva.ejemplar_asignado
+                        ejemplar.disponibilidad = 'PRESTADO'
+                        ejemplar.save()
                         
                         messages.success(request, f'✅ Reserva #{reserva.id} completada. Préstamo #{prestamo.id} creado.')
                         
