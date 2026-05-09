@@ -1,0 +1,189 @@
+{% extends 'base/menu_bibliotecario.html' %}
+{% load static %}
+
+{% block main_content %}
+<style>
+    .report-header {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        margin-bottom: 25px;
+    }
+    
+    .filtros {
+        background: #f8fafc;
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+    }
+    
+    .total-card {
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+        border-radius: 12px;
+        padding: 20px;
+        text-align: center;
+    }
+    
+    .total-card .numero {
+        font-size: 32px;
+        font-weight: 700;
+    }
+    
+    .btn-print {
+        background: #4b5563;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 8px;
+        cursor: pointer;
+    }
+    
+    @media print {
+        .no-print { display: none; }
+        .sidebar { display: none; }
+        .main-content { margin-left: 0; padding: 0; }
+    }
+</style>
+
+<div class="report-header">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h1 style="color: var(--primary-blue);">
+                <i class="fas fa-history"></i> Historial de Pagos de Multas
+            </h1>
+            <p class="text-muted">Registro de todas las multas pagadas</p>
+        </div>
+        <div class="no-print">
+            <button onclick="window.print()" class="btn-print">
+                <i class="fas fa-print"></i> Imprimir
+            </button>
+            <a href="{% url 'dashboard_bibliotecario' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Volver
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="filtros no-print">
+    <form method="get" class="row g-3">
+        <div class="col-md-3">
+            <label class="form-label">Fecha desde</label>
+            <input type="date" name="fecha_desde" class="form-control" value="{{ fecha_desde }}">
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Fecha hasta</label>
+            <input type="date" name="fecha_hasta" class="form-control" value="{{ fecha_hasta }}">
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Buscar socio</label>
+            <input type="text" name="search" class="form-control" placeholder="Nombre, apellido o cédula..." value="{{ search }}">
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+            <button type="submit" class="btn btn-primary w-100">
+                <i class="fas fa-search"></i> Filtrar
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Tarjetas de totales -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="total-card">
+            <div class="numero">Gs. {{ total_pagado|floatformat:0 }}</div>
+            <div>Total recaudado</div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="total-card" style="background: linear-gradient(135deg, #3b82f6, #1e40af);">
+            <div class="numero">{{ cantidad_pagos }}</div>
+            <div>Pagos registrados</div>
+        </div>
+    </div>
+</div>
+
+<!-- Resumen por mes -->
+{% if pagos_por_mes %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h6 class="mb-0">Resumen por mes</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for mes in pagos_por_mes %}
+                    <div class="col-md-3 mb-2">
+                        <div class="alert alert-info text-center mb-0">
+                            <strong>{{ mes.mes|date:"F Y" }}</strong><br>
+                            Gs. {{ mes.total|floatformat:0 }}<br>
+                            <small>{{ mes.cantidad }} pago(s)</small>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Tabla de pagos -->
+<div class="table-responsive">
+    <table class="table table-hover">
+        <thead class="table-light">
+            <tr>
+                <th>Fecha pago</th>
+                <th>Socio</th>
+                <th>Cédula</th>
+                <th>Libro</th>
+                <th>Días atraso</th>
+                <th>Monto pagado</th>
+                <th>Comprobante</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for multa in multas_pagadas %}
+            <tr>
+                <td>{{ multa.fecha_pago|date:"d/m/Y" }}</td>
+                <td>
+                    <strong>{{ multa.prestamo.socio.user.get_full_name }}</strong>
+                </td>
+                <td>{{ multa.prestamo.socio.cedula }}</td>
+                <td>{{ multa.prestamo.ejemplar.libro.titulo|truncatechars:40 }}</td>
+                <td>{{ multa.dias_atraso }} día{{ multa.dias_atraso|pluralize }}</td>
+                <td class="text-success fw-bold">Gs. {{ multa.monto_total|floatformat:0 }}</td>
+                <td>
+                    {% if multa.comprobante_imagen %}
+                        <span class="badge bg-info">Registrado</span>
+                    {% else %}
+                        <span class="badge bg-secondary">Manual</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="7" class="text-center py-4">
+                    <i class="fas fa-receipt fa-2x text-muted mb-2 d-block"></i>
+                    No hay pagos registrados
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot class="table-light">
+            <tr>
+                <td colspan="5" class="fw-bold text-end">Total:</td>
+                <td class="fw-bold text-success">Gs. {{ total_pagado|floatformat:0 }}</td>
+                <td></td>
+            </tr>
+        </tfoot>
+    </table>
+</div>
+
+<div class="text-muted mt-3 text-center" style="font-size: 12px;">
+    Reporte generado el {{ hoy|date:"d/m/Y" }}
+</div>
+{% endblock %}

@@ -1515,6 +1515,59 @@ def reporte_libros_demanda(request):
     }
     return render(request, 'bibliotecario/reporte_libros_demanda.html', context)
 
+@staff_member_required
+def reporte_historial_pagos(request):
+    """Reporte de multas pagadas (historial de pagos)"""
+    from datetime import date, timedelta
+    
+    # Filtros
+    fecha_desde = request.GET.get('fecha_desde', '')
+    fecha_hasta = request.GET.get('fecha_hasta', '')
+    search = request.GET.get('search', '')
+    
+    # Multas pagadas
+    multas_pagadas = Multa.objects.filter(estado='PAGADA').select_related(
+        'prestamo__socio__user', 'prestamo__ejemplar__libro'
+    ).order_by('-fecha_pago')
+    
+    # Aplicar filtros
+    if fecha_desde:
+        multas_pagadas = multas_pagadas.filter(fecha_pago__gte=fecha_desde)
+    if fecha_hasta:
+        multas_pagadas = multas_pagadas.filter(fecha_pago__lte=fecha_hasta)
+    if search:
+        multas_pagadas = multas_pagadas.filter(
+            Q(prestamo__socio__user__first_name__icontains=search) |
+            Q(prestamo__socio__user__last_name__icontains=search) |
+            Q(prestamo__socio__cedula__icontains=search)
+        )
+    
+    # Totales
+    total_pagado = multas_pagadas.aggregate(total=Sum('monto_total'))['total'] or 0
+    cantidad_pagos = multas_pagadas.count()
+    
+    # Resumen por mes
+    from django.db.models.functions import TruncMonth
+    pagos_por_mes = multas_pagadas.annotate(
+        mes=TruncMonth('fecha_pago')
+    ).values('mes').annotate(
+        total=Sum('monto_total'),
+        cantidad=Count('id')
+    ).order_by('-mes')
+    
+    context = {
+        'multas_pagadas': multas_pagadas,
+        'total_pagado': total_pagado,
+        'cantidad_pagos': cantidad_pagos,
+        'pagos_por_mes': pagos_por_mes,
+        'fecha_desde': fecha_desde,
+        'fecha_hasta': fecha_hasta,
+        'search': search,
+        'hoy': date.today(),
+    }
+    return render(request, 'bibliotecario/reporte_historial_pagos.html', context)
+
+
 @login_required
 def subir_comprobante(request, multa_id):
     """Usuario sube comprobante de pago para una multa"""
@@ -1535,3 +1588,4 @@ def subir_comprobante(request, multa_id):
             messages.error(request, '❌ Debes seleccionar una imagen')
     
     return redirect('mis_prestamos')
+

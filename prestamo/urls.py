@@ -38,6 +38,7 @@ urlpatterns = [
     path('reporte/usuarios-inhabilitados/', views.reporte_usuarios_inhabilitados, name='reporte_usuarios_inhabilitados'),
     path('reporte/prestamos-vencidos/', views.reporte_prestamos_vencidos, name='reporte_prestamos_vencidos'),
     path('reporte/libros-demanda/', views.reporte_libros_demanda, name='reporte_libros_demanda'),
+    path('reporte/historial-pagos/', views.reporte_historial_pagos, name='reporte_historial_pagos'),
 
 
     #Notificaciones 
