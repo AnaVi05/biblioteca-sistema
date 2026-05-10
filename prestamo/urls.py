@@ -25,6 +25,10 @@ urlpatterns = [
     path('bibliotecario/devoluciones/', views.registrar_devolucion, name='registrar_devolucion'),
     path('bibliotecario/reservas/', views.gestionar_reservas, name='gestionar_reservas'),
     path('bibliotecario/multas/', views.gestionar_multas, name='gestionar_multas'),
+    # Gestión de comprobantes y tickets
+    path('bibliotecario/multas/generar-ticket/<int:multa_id>/', views.generar_ticket_pago, name='generar_ticket_pago'),
+    path('bibliotecario/multas/aprobar/<int:multa_id>/', views.aprobar_comprobante, name='aprobar_comprobante'),
+    path('bibliotecario/multas/rechazar/<int:multa_id>/', views.rechazar_comprobante, name='rechazar_comprobante'),
     path('confirmar-prestamo/<int:prestamo_id>/', views.confirmar_prestamo, name='confirmar_prestamo'),
     path('bibliotecario/configuracion/', views.configuracion_panel, name='configuracion_panel'),
     path('bibliotecario/perfil/', views.mi_perfil, name='mi_perfil'),
@@ -44,4 +48,6 @@ urlpatterns = [
     #Notificaciones 
     path('api/notificaciones/', views.api_notificaciones, name='api_notificaciones'),
     path('subir-comprobante/<int:multa_id>/', views.subir_comprobante, name='subir_comprobante'),
+    path('api/notificaciones/marcar/<int:notificacion_id>/', views.marcar_notificacion_leida, name='marcar_notificacion_leida'),
+    path('multa/ticket/<int:multa_id>/', views.usuario_ticket_multa, name='usuario_ticket_multa'),
  ]

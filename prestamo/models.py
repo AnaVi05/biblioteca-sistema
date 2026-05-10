@@ -327,6 +327,18 @@ class Multa(models.Model):
         default=False,
         verbose_name="Notificado al bibliotecario"
     )
+    # NUEVOS CAMPOS
+    ticket_generado = models.BooleanField(
+        default=False,
+        verbose_name="Ticket de pago generado"
+    )
+    numero_ticket = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        unique=True,
+        verbose_name="Número de ticket"
+    )
     
     class Meta:
         verbose_name = "Multa"
@@ -370,3 +382,33 @@ class Configuracion(models.Model):
     def get_config(cls):
         config, created = cls.objects.get_or_create(id=1)
         return config
+class Notificacion(models.Model):
+    """Notificaciones para usuarios"""
+    
+    TIPO_CHOICES = [
+        ('MULTA_RECHAZADA', 'Multa Rechazada'),
+        ('MULTA_APROBADA', 'Multa Aprobada'),
+        ('MULTA_GENERADA', 'Multa Generada'),
+        ('PRESTAMO_VENCE', 'Préstamo por vencer'),
+        ('RESERVA_LISTA', 'Reserva lista'),
+    ]
+    
+    usuario = models.ForeignKey(
+        'usuario.Socio',
+        on_delete=models.CASCADE,
+        related_name='notificaciones_sistema',
+        verbose_name="Usuario"
+    )
+    titulo = models.CharField(max_length=200, verbose_name="Título")
+    mensaje = models.TextField(verbose_name="Mensaje")
+    tipo = models.CharField(max_length=50, choices=TIPO_CHOICES, verbose_name="Tipo")
+    leida = models.BooleanField(default=False, verbose_name="Leída")
+    fecha_creacion = models.DateTimeField(auto_now_add=True, verbose_name="Fecha de creación")
+    
+    class Meta:
+        verbose_name = "Notificación"
+        verbose_name_plural = "Notificaciones"
+        ordering = ['-fecha_creacion']
+    
+    def __str__(self):
+        return f"{self.titulo} - {self.usuario.user.get_full_name()}"

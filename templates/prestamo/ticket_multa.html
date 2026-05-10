@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ticket de Pago - Multa #{{ multa.id }}</title>
+    <style>
+        @media print {
+            .no-print { display: none; }
+            body { margin: 0; padding: 20px; }
+        }
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .ticket {
+            max-width: 500px;
+            margin: 0 auto;
+            background: white;
+            border: 2px dashed #333;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            margin: 0;
+            color: #1e40af;
+        }
+        .header p {
+            margin: 5px 0 0;
+            font-size: 12px;
+        }
+        .info {
+            margin-bottom: 20px;
+        }
+        .info p {
+            margin: 5px 0;
+        }
+        .monto {
+            text-align: center;
+            margin: 20px 0;
+            padding: 10px;
+            background: #fee2e2;
+            border-radius: 8px;
+        }
+        .monto .label {
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .monto .valor {
+            font-size: 28px;
+            font-weight: bold;
+            color: #dc2626;
+        }
+        .instrucciones {
+            background: #f3f4f6;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .instrucciones h4 {
+            margin: 0 0 10px 0;
+        }
+        .instrucciones ol {
+            margin: 0;
+            padding-left: 20px;
+        }
+        .footer {
+            text-align: center;
+            font-size: 11px;
+            color: #666;
+            margin-top: 20px;
+            padding-top: 10px;
+            border-top: 1px solid #ccc;
+        }
+        button {
+            display: block;
+            width: 200px;
+            margin: 20px auto;
+            padding: 10px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #1e40af;
+        }
+        .numero {
+            font-size: 12px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="ticket">
+        <div class="header">
+            <h1>🎫 TICKET DE PAGO</h1>
+            <p>Biblioteca - Sistema de Multas</p>
+        </div>
+        
+        <div class="info">
+            <p><strong>Número Ticket:</strong> {{ multa.numero_ticket }}</p>
+            <p><strong>Fecha emisión:</strong> {{ fecha_emision|date:"d/m/Y H:i:s" }}</p>
+            <p><strong>ID Multa:</strong> #{{ multa.id }}</p>
+        </div>
+        
+        <hr>
+        
+        <div class="info">
+            <h4>DATOS DEL USUARIO</h4>
+            <p><strong>Nombre:</strong> {{ multa.prestamo.socio.user.get_full_name }}</p>
+            <p><strong>Cédula:</strong> {{ multa.prestamo.socio.cedula }}</p>
+        </div>
+        
+        <div class="info">
+            <h4>DETALLE DE LA MULTA</h4>
+            <p><strong>Libro:</strong> {{ multa.prestamo.ejemplar.libro.titulo }}</p>
+            <p><strong>Fecha préstamo:</strong> {{ multa.prestamo.fecha_prestamo|date:"d/m/Y" }}</p>
+            <p><strong>Fecha vencimiento:</strong> {{ multa.prestamo.fecha_vencimiento|date:"d/m/Y" }}</p>
+            <p><strong>Días de atraso:</strong> {{ multa.dias_atraso }}</p>
+            <p><strong>Monto base:</strong> Gs. {{ multa.monto_base|floatformat:0 }}</p>
+            <p><strong>Monto por día:</strong> Gs. {{ multa.monto_por_dia|floatformat:0 }}</p>
+        </div>
+        
+        <div class="monto">
+            <div class="label">MONTO TOTAL A PAGAR</div>
+            <div class="valor">Gs. {{ multa.monto_total|floatformat:0 }}</div>
+        </div>
+        
+        <div class="instrucciones">
+            <h4>📋 INSTRUCCIONES</h4>
+            <ol>
+                <li>Presentar este ticket en la oficina de Perceptoria</li>
+                <li>Realizar el pago del monto indicado</li>
+                <li>Recibir el comprobante de pago</li>
+                <li>Subir el comprobante en el sistema</li>
+            </ol>
+        </div>
+        
+        <div class="footer">
+            <p>Este ticket es válido por 15 días desde su emisión.</p>
+            <p>Una vez pagado, suba su comprobante para regularizar su situación.</p>
+            <p class="numero">Ticket generado automáticamente - Biblioteca Central</p>
+        </div>
+    </div>
+    
+    <button class="no-print" onclick="window.print()">
+        🖨️ Imprimir / Guardar como PDF
+    </button>
+    
+    <script>
+        // Auto-imprimir al cargar (opcional - descomentar si quieres)
+        // window.print();
+    </script>
+</body>
+</html>

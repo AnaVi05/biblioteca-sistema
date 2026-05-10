@@ -47,7 +47,7 @@
                                 <th>Multas</th>
                                 <th>Total Deuda</th>
                                 <th>Acción</th>
-                            </td>
+                            </tr>
                         </thead>
                         <tbody>
                             {% for item in socios_morosos %}
@@ -55,27 +55,27 @@
                                 <td>
                                     <strong>{{ item.socio.user.get_full_name }}</strong><br>
                                     <small class="text-muted">{{ item.socio.tipo_usuario|title }}</small>
-                                </td>
-                                <td>{{ item.socio.cedula }}</td>
+                                </small>
+                                <td>{{ item.socio.cedula }}</small>
                                 <td>
                                     <span class="badge bg-warning">{{ item.cantidad_multas }}</span>
-                                </td>
+                                </small>
                                 <td class="text-danger fw-bold">
                                     Gs. {{ item.total_multas|floatformat:0 }}
-                                </td>
+                                </small>
                                 <td>
                                     <a href="?socio_id={{ item.socio.id }}{% if search %}&search={{ search }}{% endif %}" 
                                        class="btn btn-sm btn-outline-primary">
                                         <i class="fas fa-eye"></i> Ver Detalle
                                     </a>
-                                </td>
+                                </small>
                             </tr>
                             {% empty %}
                             <tr>
                                 <td colspan="5" class="text-center py-4">
                                     <i class="fas fa-check-circle fa-2x text-success mb-2 d-block"></i>
                                     <p class="text-muted mb-0">No hay usuarios con multas pendientes</p>
-                                </td>
+                                </small>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -92,70 +92,85 @@
             <div class="card-header bg-white d-flex justify-content-between align-items-center" style="border-bottom: 1px solid #e2e8f0;">
                 <h5 class="mb-0">
                     <i class="fas fa-receipt me-2" style="color: #2563eb;"></i>
-                    Detalle de Multas
+                    Detalle de Multas - {{ socio_seleccionado.user.get_full_name }}
                 </h5>
                 <a href="?{% if search %}search={{ search }}{% endif %}" class="btn btn-sm btn-secondary">
                     <i class="fas fa-times"></i> Cerrar
                 </a>
             </div>
             <div class="card-body">
-                <div class="mb-3 p-3 bg-light rounded">
-                    <div class="d-flex align-items-center">
-                        <div class="me-3">
-                            <i class="fas fa-user-circle fa-3x text-primary"></i>
-                        </div>
-                        <div>
-                            <h6 class="mb-1">{{ socio_seleccionado.user.get_full_name }}</h6>
-                            <small class="text-muted">Cédula: {{ socio_seleccionado.cedula }}</small><br>
-                            <small class="text-muted">Teléfono: {{ socio_seleccionado.telefono|default:"No registrado" }}</small>
-                        </div>
-                    </div>
-                </div>
-                
                 {% if multas_detalle %}
                 <div class="table-responsive">
                     <table class="table table-sm">
                         <thead>
                             <tr>
-                                <th>ID Multa</th>
+                                <th>ID</th>
                                 <th>Libro</th>
-                                <th>Días atraso</th>
+                                <th>Días</th>
                                 <th>Monto</th>
                                 <th>Comprobante</th>
-                                <th>Acción</th>
+                                <th>Ticket</th>
+                                <th>Verificación</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for multa in multas_detalle %}
                             <tr>
-                                <td>#{{ multa.id }}</td>
-                                <td>
-                                    <small>{{ multa.prestamo.ejemplar.libro.titulo|truncatechars:30 }}</small>
+                                <td class="align-middle">#{{ multa.id }}</td>
+                                <td class="align-middle">
+                                    <small>{{ multa.prestamo.ejemplar.libro.titulo|truncatechars:25 }}</small>
                                 </td>
-                                <td>{{ multa.dias_atraso }} días</td>
-                                <td class="text-danger fw-bold">Gs. {{ multa.monto_total|floatformat:0 }}</td>
-                                <td>
+                                <td class="align-middle">{{ multa.dias_atraso }} días</td>
+                                <td class="text-danger fw-bold align-middle">Gs. {{ multa.monto_total|floatformat:0 }}</td>
+                                
+                                <!-- Columna Comprobante -->
+                                <td class="align-middle">
                                     {% if multa.comprobante_imagen %}
-                                        <a href="{{ multa.comprobante_imagen.url }}" target="_blank" class="btn btn-sm btn-info">
+                                        <a href="{{ multa.comprobante_imagen.url }}" target="_blank" class="btn btn-sm btn-info w-100">
                                             <i class="fas fa-eye"></i> Ver Comprobante
                                         </a>
                                     {% else %}
                                         <span class="badge bg-secondary">Sin comprobante</span>
                                     {% endif %}
                                 </td>
-                                <td>
-                                    {% if multa.comprobante_imagen %}
-                                        <a href="?accion=pagar&multa_id={{ multa.id }}{% if search %}&search={{ search }}{% endif %}&socio_id={{ socio_seleccionado.id }}" 
-                                           class="btn btn-sm btn-success"
-                                           onclick="return confirm('¿Confirmar pago de Gs. {{ multa.monto_total|floatformat:0 }}?')">
-                                            <i class="fas fa-check-circle"></i> Confirmar Pago
+                                
+                                <!-- Columna Ticket -->
+                                <td class="align-middle">
+                                    {% if not multa.ticket_generado %}
+                                        <a href="{% url 'generar_ticket_pago' multa.id %}?socio_id={{ socio_seleccionado.id }}" 
+                                           class="btn btn-sm btn-primary w-100"
+                                           onclick="return confirm('¿Generar ticket de pago para esta multa?')">
+                                            <i class="fas fa-receipt"></i> Generar Ticket
                                         </a>
                                     {% else %}
-                                        <a href="?accion=pagar&multa_id={{ multa.id }}{% if search %}&search={{ search }}{% endif %}&socio_id={{ socio_seleccionado.id }}" 
-                                           class="btn btn-sm btn-success"
-                                           onclick="return confirm('¿Registrar pago sin comprobante?')">
-                                            <i class="fas fa-money-bill"></i> Registrar Pago
+                                        <a href="{% url 'generar_ticket_pago' multa.id %}?socio_id={{ socio_seleccionado.id }}" 
+                                           class="btn btn-sm btn-outline-primary w-100">
+                                            <i class="fas fa-download"></i> Re-generar Ticket
                                         </a>
+                                    {% endif %}
+                                </td>
+                                
+                                <!-- Columna Verificación (Aprobar/Rechazar) -->
+                                <td class="align-middle">
+                                    {% if multa.comprobante_imagen %}
+                                        {% if multa.estado == 'PENDIENTE' %}
+                                            <div class="d-flex gap-1">
+                                                <a href="{% url 'aprobar_comprobante' multa.id %}?socio_id={{ socio_seleccionado.id }}" 
+                                                   class="btn btn-sm btn-success flex-grow-1"
+                                                   onclick="return confirm('¿Aprobar este comprobante? La multa quedará como PAGADA.')">
+                                                    <i class="fas fa-check-circle"></i> Aprobar
+                                                </a>
+                                                <button type="button" 
+                                                        class="btn btn-sm btn-danger" 
+                                                        onclick="rechazarComprobante({{ multa.id }}, {{ socio_seleccionado.id }})">
+                                                    <i class="fas fa-times-circle"></i> Rechazar
+                                                </button>
+                                            </div>
+                                        {% elif multa.estado == 'PAGADA' %}
+                                            <span class="badge bg-success w-100 py-2">✓ PAGADA</span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="badge bg-secondary w-100 py-2">Esperando comprobante</span>
                                     {% endif %}
                                 </td>
                             </tr>
@@ -164,21 +179,8 @@
                         <tfoot class="table-light">
                             <tr>
                                 <td colspan="3" class="fw-bold">Total a pagar:</td>
-                                <td class="fw-bold text-danger">
-                                    Gs. {{ total_multas_socio|floatformat:0 }}
-                                </td>
-                                <td colspan="2">
-                                    {% if multas_detalle %}
-                                    <button class="btn btn-sm btn-primary" 
-                                            onclick="if(confirm('¿Pagar todas las multas?')) { 
-                                                {% for multa in multas_detalle %}
-                                                    window.location.href='?accion=pagar&multa_id={{ multa.id }}{% if search %}&search={{ search }}{% endif %}&socio_id={{ socio_seleccionado.id }}';
-                                                {% endfor %}
-                                            }">
-                                        <i class="fas fa-check-circle"></i> Pagar Todo
-                                    </button>
-                                    {% endif %}
-                                </td>
+                                <td class="fw-bold text-danger">Gs. {{ total_multas_socio|floatformat:0 }}</td>
+                                <td colspan="3"></td>
                             </tr>
                         </tfoot>
                     </table>
@@ -199,5 +201,71 @@
     .table tbody tr:hover {
         background-color: #f8fafc;
     }
+    .btn-sm {
+        margin: 1px 0;
+    }
+    .d-flex {
+        display: flex;
+    }
+    .gap-1 {
+        gap: 4px;
+    }
+    .flex-grow-1 {
+        flex-grow: 1;
+    }
+    .w-100 {
+        width: 100%;
+    }
+    .align-middle {
+        vertical-align: middle;
+    }
+    .py-2 {
+        padding-top: 8px;
+        padding-bottom: 8px;
+    }
 </style>
+
+<!-- SweetAlert2 para el rechazo sin parpadeos -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    function rechazarComprobante(multaId, socioId) {
+        Swal.fire({
+            title: 'Rechazar Comprobante',
+            input: 'textarea',
+            inputLabel: 'Motivo del rechazo:',
+            inputPlaceholder: 'Ej: Comprobante ilegible, monto incorrecto...',
+            showCancelButton: true,
+            confirmButtonText: 'Rechazar',
+            confirmButtonColor: '#dc2626',
+            cancelButtonText: 'Cancelar',
+            inputValidator: (value) => {
+                if (!value) {
+                    return 'Debes ingresar un motivo';
+                }
+            }
+        }).then((result) => {
+            if (result.isConfirmed && result.value) {
+                // Crear formulario y enviar
+                var form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/bibliotecario/multas/rechazar/' + multaId + '/?socio_id=' + socioId;
+                
+                var csrf = document.createElement('input');
+                csrf.type = 'hidden';
+                csrf.name = 'csrfmiddlewaretoken';
+                csrf.value = '{{ csrf_token }}';
+                
+                var observacion = document.createElement('input');
+                observacion.type = 'hidden';
+                observacion.name = 'observacion';
+                observacion.value = result.value;
+                
+                form.appendChild(csrf);
+                form.appendChild(observacion);
+                document.body.appendChild(form);
+                form.submit();
+            }
+        });
+    }
+</script>
 {% endblock %}

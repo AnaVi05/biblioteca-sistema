@@ -443,6 +443,20 @@
             object-fit: cover;
         }
         
+        /* Botón de ticket */
+        .btn-ticket {
+            background-color: #10b981 !important;
+            margin-top: 10px;
+            width: 100%;
+            transition: all 0.3s;
+            border: none;
+        }
+        
+        .btn-ticket:hover {
+            background-color: #059669 !important;
+            transform: translateY(-2px);
+        }
+        
         /* Responsive */
         @media (max-width: 992px) {
             .sidebar {
@@ -667,6 +681,7 @@
                     {% endif %}
                 </div>
                 
+                <!-- Tarjeta de Multas Pendientes con botón de ticket -->
                 <div class="card card-4">
                     <div class="card-icon">
                         <i class="fas fa-exclamation-triangle"></i>
@@ -675,8 +690,21 @@
                     <p>Tienes</p>
                     <div class="number">{{ multas_pendientes|length }}</div>
                     <p>multa{% if multas_pendientes|length != 1 %}s{% endif %}</p>
+                    
                     {% if total_multas > 0 %}
                         <small class="text-danger">Total: Gs. {{ total_multas|floatformat:0 }}</small>
+                        
+                        <!-- Botón para generar ticket de la primera multa pendiente -->
+                        {% with primera_multa=multas_pendientes|first %}
+                            {% if primera_multa %}
+                                <hr>
+                                <a href="{% url 'usuario_ticket_multa' primera_multa.id %}" target="_blank" class="btn btn-success btn-ticket">
+                                    <i class="fas fa-receipt"></i> Generar Ticket de Pago
+                                </a>
+                            {% endif %}
+                        {% endwith %}
+                    {% else %}
+                        <small class="text-success">¡Sin multas pendientes!</small>
                     {% endif %}
                 </div>
             </div>

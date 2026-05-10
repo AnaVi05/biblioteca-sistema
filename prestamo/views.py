@@ -12,6 +12,10 @@ from django.db import transaction
 from django.http import JsonResponse
 from decimal import Decimal
 from .models import Prestamo, Multa, Reserva
+from django.core.mail import send_mail
+from django.conf import settings
+from django.urls import reverse
+from .models import Multa, Prestamo, Reserva, Notificacion
 
 @login_required
 def api_notificaciones(request):
@@ -20,6 +24,25 @@ def api_notificaciones(request):
     socio = request.user.socio
     
     notificaciones = []
+    
+    # Notificaciones del sistema (rechazos, aprobaciones, etc.)
+    from .models import Notificacion
+    notificaciones_sistema = Notificacion.objects.filter(
+        usuario=socio,
+        leida=False
+    ).order_by('-fecha_creacion')[:20]
+    
+    for n in notificaciones_sistema:
+        notificaciones.append({
+            'id': n.id,
+            'titulo': n.titulo,
+            'mensaje': n.mensaje,
+            'fecha': n.fecha_creacion.strftime("%d/%m/%Y"),
+            'icono': 'fa-bell',
+            'color': '#2563eb',
+            'leida': n.leida,
+            'tipo': n.tipo
+        })
     
     # Préstamos próximos a vencer
     prestamos_proximos = Prestamo.objects.filter(
@@ -70,10 +93,27 @@ def api_notificaciones(request):
             'leida': False
         })
     
+    # Ordenar por fecha (más recientes primero)
     notificaciones.sort(key=lambda x: x['fecha'], reverse=True)
+    
+    # Limitar a 20 notificaciones
+    notificaciones = notificaciones[:20]
+    
     return JsonResponse({'notificaciones': notificaciones})
 
-
+@login_required
+def marcar_notificacion_leida(request, notificacion_id):
+    """Marca una notificación como leída"""
+    from .models import Notificacion
+    
+    try:
+        notificacion = Notificacion.objects.get(id=notificacion_id, usuario=request.user.socio)
+        notificacion.leida = True
+        notificacion.save()
+        return JsonResponse({'status': 'ok'})
+    except Notificacion.DoesNotExist:
+        return JsonResponse({'status': 'error'}, status=404)
+    
 @staff_member_required
 def lista_prestamos(request):
     """Lista todos los préstamos (para bibliotecarios)"""
@@ -203,15 +243,15 @@ def registrar_prestamo_usuario(request, ejemplar_id):
     hoy = date.today()
     prestamos_vencidos = Prestamo.objects.filter(
         socio=request.user.socio,
-        estado='ACTIVO',
+        estado__in=['ACTIVO', 'VENCIDO'],  # <--- CAMBIADO: incluye ACTIVO y VENCIDO
         fecha_vencimiento__lt=hoy
     )
     
     if prestamos_vencidos.exists():
         messages.error(
             request, 
-            f'❌ No puedes solicitar préstamos porque tienes {prestamos_vencidos.count()} préstamo(s) vencido(s) sin devolver. '
-            f'Debes devolver los libros atrasados para continuar.'
+            f'❌ No puedes solicitar préstamos porque tienes {prestamos_vencidos.count()} préstamo(s) vencido(s) sin regularizar. '
+            f'Debes pagar las multas correspondientes para continuar.'
         )
         return redirect('catalogo_lista')
     
@@ -1140,8 +1180,120 @@ def gestionar_multas(request):
     }
     
     return render(request, 'bibliotecario/morosos.html', context)
+@staff_member_required
+def generar_ticket_pago(request, multa_id):
+    """Generar ticket de pago en HTML para imprimir"""
+    from datetime import datetime
+    import random
+    import string
+    
+    multa = get_object_or_404(Multa, id=multa_id, estado='PENDIENTE')
+    
+    # Crear número de ticket único si no existe
+    if not multa.numero_ticket:
+        timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+        random_chars = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+        multa.numero_ticket = f"TKT-{timestamp}-{random_chars}"
+        multa.ticket_generado = True
+        multa.save()
+    
+    context = {
+        'multa': multa,
+        'fecha_emision': datetime.now(),
+    }
+    
+    return render(request, 'bibliotecario/ticket_pago.html', context)
+@staff_member_required
+def aprobar_comprobante(request, multa_id):
+    """Aprobar comprobante de pago y registrar multa como pagada"""
+    from django.utils import timezone
+    
+    try:
+        with transaction.atomic():
+            multa = Multa.objects.select_related('prestamo__socio__user').get(id=multa_id)
+            
+            if multa.estado == 'PAGADA':
+                messages.warning(request, f'⚠️ La multa #{multa.id} ya estaba pagada.')
+                return redirect('gestionar_multas')
+            
+            # Marcar multa como pagada
+            multa.estado = 'PAGADA'
+            multa.fecha_pago = timezone.now().date()
+            multa.save()
+            
+            # Crear notificación para el usuario
+            from .models import Notificacion
+            
+            Notificacion.objects.create(
+                usuario=multa.prestamo.socio,
+                titulo="✅ Comprobante Aprobado",
+                mensaje=f"Tu comprobante de pago para la multa #{multa.id} ha sido APROBADO.\nMonto pagado: Gs. {multa.monto_total:,.0f}\nFecha: {multa.fecha_pago}\n\nTu situación está regularizada.",
+                tipo='MULTA_APROBADA',
+                leida=False
+            )
+            
+            # Verificar si el socio ya no tiene más multas pendientes
+            otras_multas = Multa.objects.filter(
+                prestamo__socio=multa.prestamo.socio,
+                estado='PENDIENTE'
+            ).exclude(id=multa.id).count()
+            
+            if otras_multas == 0:
+                socio = multa.prestamo.socio
+                if socio.estado_socio == 'moroso':
+                    socio.estado_socio = 'activo'
+                    socio.save()
+            
+            messages.success(request, f'✅ Comprobante aprobado. Multa #{multa.id} pagada correctamente.')
+            
+    except Multa.DoesNotExist:
+        messages.error(request, '❌ Multa no encontrada')
+    
+    socio_id = request.GET.get('socio_id')
+    if socio_id:
+        return redirect(f'{reverse("gestionar_multas")}?socio_id={socio_id}')
+    return redirect('gestionar_multas')
 
-
+@staff_member_required
+def rechazar_comprobante(request, multa_id):
+    """Rechazar comprobante de pago con observación"""
+    if request.method == 'POST':
+        try:
+            with transaction.atomic():
+                multa = Multa.objects.select_related('prestamo__socio__user').get(id=multa_id)
+                observacion = request.POST.get('observacion', 'Comprobante no válido')
+                
+                # Crear notificación para el usuario
+                from .models import Notificacion
+                
+                Notificacion.objects.create(
+                    usuario=multa.prestamo.socio,
+                    titulo="❌ Comprobante Rechazado",
+                    mensaje=f"Tu comprobante de pago para la multa #{multa.id} ha sido RECHAZADO.\nMotivo: {observacion}\n\nPor favor, vuelve a subir un comprobante válido.",
+                    tipo='MULTA_RECHAZADA',
+                    leida=False
+                )
+                
+                # Eliminar el comprobante
+                if multa.comprobante_imagen:
+                    import os
+                    if os.path.isfile(multa.comprobante_imagen.path):
+                        os.remove(multa.comprobante_imagen.path)
+                    multa.comprobante_imagen = None
+                    multa.comprobante_pago = None
+                    multa.save()
+                
+                messages.warning(request, f'⚠️ Comprobante rechazado. Se notificó al usuario.')
+                
+        except Multa.DoesNotExist:
+            messages.error(request, '❌ Multa no encontrada')
+        
+        socio_id = request.GET.get('socio_id')
+        if socio_id:
+            return redirect(f'{reverse("gestionar_multas")}?socio_id={socio_id}')
+        return redirect('gestionar_multas')
+    
+    return redirect('gestionar_multas')
 @staff_member_required
 def configuracion_panel(request):
     """Página de configuración del bibliotecario"""
@@ -1588,4 +1740,35 @@ def subir_comprobante(request, multa_id):
             messages.error(request, '❌ Debes seleccionar una imagen')
     
     return redirect('mis_prestamos')
-
+@login_required
+def usuario_ticket_multa(request, multa_id):
+    from datetime import datetime
+    from django.shortcuts import get_object_or_404
+    from .models import Multa
+    
+    print("=== FUNCIÓN usuario_ticket_multa LLAMADA ===")
+    print(f"Multa ID: {multa_id}")
+    print(f"Usuario: {request.user}")
+    
+    multa = get_object_or_404(Multa, id=multa_id, prestamo__socio=request.user.socio, estado='PENDIENTE')
+    
+    print(f"Multa encontrada: {multa.id}")
+    print(f"Template a renderizar: prestamo/ticket_multa.html")
+    
+    # Crear número de ticket si no existe
+    if not multa.numero_ticket:
+        import random
+        import string
+        timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+        random_chars = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+        multa.numero_ticket = f"TKT-{timestamp}-{random_chars}"
+        multa.save()
+        print(f"Ticket creado: {multa.numero_ticket}")
+    
+    context = {
+        'multa': multa,
+        'fecha_emision': datetime.now(),
+    }
+    
+    print("Renderizando template...")
+    return render(request, 'prestamo/ticket_multa.html', context)
