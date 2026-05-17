@@ -3,187 +3,223 @@
 
 {% block main_content %}
 <style>
-    .report-header {
+    @media print {
+        .no-print { display: none !important; }
+        .sidebar { display: none !important; }
+        .main-content { margin-left: 0 !important; padding: 0 !important; }
+        .container { width: 100%; margin: 0; }
+        .filtros { display: none !important; }
+        .btn-print { display: none !important; }
+        .btn-limpiar { display: none !important; }
+        .hide-on-print { display: none !important; }
+        .report-periodo { display: none !important; }
+    }
+    
+    .report-container {
         background: white;
         padding: 20px;
-        border-radius: 12px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        margin: 0 auto;
+    }
+    
+    .report-header {
+        text-align: center;
         margin-bottom: 25px;
+        border-bottom: 2px solid #3b82f6;
+        padding-bottom: 15px;
+    }
+    
+    .report-title {
+        font-size: 28px;
+        font-weight: 700;
+        color: #3b82f6;
+        text-transform: uppercase;
+        margin-bottom: 8px;
+    }
+    
+    .report-subtitle {
+        font-size: 16px;
+        font-weight: 500;
+        color: #444;
+        margin-bottom: 5px;
+    }
+    
+    .report-fecha {
+        font-size: 16px;
+        color: #888;
+        margin-top: 5px;
     }
     
     .filtros {
         background: #f8fafc;
         padding: 15px;
-        border-radius: 10px;
-        margin-bottom: 20px;
-    }
-    
-    .total-card {
-        background: linear-gradient(135deg, #10b981, #059669);
-        color: white;
         border-radius: 12px;
-        padding: 20px;
-        text-align: center;
+        margin-bottom: 25px;
+        border: 1px solid #e2e8f0;
     }
     
-    .total-card .numero {
-        font-size: 32px;
-        font-weight: 700;
+    .tabla-reporte {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+    }
+    
+    .tabla-reporte th {
+        background: #3b82f6;
+        color: white;
+        padding: 10px;
+        text-align: center;
+        font-weight: 600;
+        border: 1px solid #2563eb;
+    }
+    
+    .tabla-reporte td {
+        padding: 8px 10px;
+        text-align: center;
+        border: 1px solid #e2e8f0;
+    }
+    
+    .tabla-reporte td:first-child,
+    .tabla-reporte td:nth-child(2) {
+        white-space: nowrap;
+    }
+    
+    .total-row {
+        background: #dbeafe;
+        font-weight: bold;
     }
     
     .btn-print {
-        background: #4b5563;
+        background: #3b82f6;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+    }
+    
+    .btn-print:hover {
+        background: #2563eb;
+    }
+    
+    .btn-limpiar {
+        background: #adb5bd;
         color: white;
         border: none;
         padding: 8px 16px;
-        border-radius: 8px;
+        border-radius: 6px;
         cursor: pointer;
     }
     
-    @media print {
-        .no-print { display: none; }
-        .sidebar { display: none; }
-        .main-content { margin-left: 0; padding: 0; }
+    .badge-manual {
+        background: #e2e8f0;
+        color: #475569;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+    }
+    
+    .badge-registrado {
+        background: #d1fae5;
+        color: #059669;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
     }
 </style>
 
-<div class="report-header">
-    <div class="d-flex justify-content-between align-items-center">
-        <div>
-            <h1 style="color: var(--primary-blue);">
-                <i class="fas fa-history"></i> Historial de Pagos de Multas
-            </h1>
-            <p class="text-muted">Registro de todas las multas pagadas</p>
+<div class="report-container">
+    <div class="report-header">
+        <div class="report-title">
+            <i class="fas fa-history"></i> HISTORIAL DE PAGOS DE MULTAS
         </div>
-        <div class="no-print">
-            <button onclick="window.print()" class="btn-print">
-                <i class="fas fa-print"></i> Imprimir
-            </button>
-            <a href="{% url 'dashboard_bibliotecario' %}" class="btn btn-secondary">
-                <i class="fas fa-arrow-left"></i> Volver
-            </a>
+        <div class="report-subtitle">
+            Biblioteca FPUNA - Registro de multas pagadas
+        </div>
+        <div class="report-fecha">
+            Fecha de emisión: {{ ahora|date:"d/m/Y H:i" }}
         </div>
     </div>
-</div>
-
-<!-- Filtros -->
-<div class="filtros no-print">
-    <form method="get" class="row g-3">
-        <div class="col-md-3">
-            <label class="form-label">Fecha desde</label>
-            <input type="date" name="fecha_desde" class="form-control" value="{{ fecha_desde }}">
-        </div>
-        <div class="col-md-3">
-            <label class="form-label">Fecha hasta</label>
-            <input type="date" name="fecha_hasta" class="form-control" value="{{ fecha_hasta }}">
-        </div>
-        <div class="col-md-4">
-            <label class="form-label">Buscar socio</label>
-            <input type="text" name="search" class="form-control" placeholder="Nombre, apellido o cédula..." value="{{ search }}">
-        </div>
-        <div class="col-md-2 d-flex align-items-end">
-            <button type="submit" class="btn btn-primary w-100">
-                <i class="fas fa-search"></i> Filtrar
-            </button>
-        </div>
-    </form>
-</div>
-
-<!-- Tarjetas de totales -->
-<div class="row mb-4">
-    <div class="col-md-6">
-        <div class="total-card">
-            <div class="numero">Gs. {{ total_pagado|floatformat:0 }}</div>
-            <div>Total recaudado</div>
-        </div>
-    </div>
-    <div class="col-md-6">
-        <div class="total-card" style="background: linear-gradient(135deg, #3b82f6, #1e40af);">
-            <div class="numero">{{ cantidad_pagos }}</div>
-            <div>Pagos registrados</div>
-        </div>
-    </div>
-</div>
-
-<!-- Resumen por mes -->
-{% if pagos_por_mes %}
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header bg-white">
-                <h6 class="mb-0">Resumen por mes</h6>
+    
+    <div class="filtros no-print">
+        <h5><i class="fas fa-filter"></i> Filtros de búsqueda</h5>
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">Fecha desde (pago)</label>
+                <input type="date" name="fecha_desde" class="form-control" value="{{ fecha_desde }}">
             </div>
-            <div class="card-body">
-                <div class="row">
-                    {% for mes in pagos_por_mes %}
-                    <div class="col-md-3 mb-2">
-                        <div class="alert alert-info text-center mb-0">
-                            <strong>{{ mes.mes|date:"F Y" }}</strong><br>
-                            Gs. {{ mes.total|floatformat:0 }}<br>
-                            <small>{{ mes.cantidad }} pago(s)</small>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
+            <div class="col-md-3">
+                <label class="form-label">Fecha hasta (pago)</label>
+                <input type="date" name="fecha_hasta" class="form-control" value="{{ fecha_hasta }}">
             </div>
-        </div>
+            <div class="col-md-4">
+                <label class="form-label">Buscar socio</label>
+                <input type="text" name="search" class="form-control" placeholder="Nombre, apellido o cédula" value="{{ search }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">&nbsp;</label>
+                <button type="submit" class="btn-print w-100">
+                    <i class="fas fa-search"></i> Filtrar
+                </button>
+            </div>
+            <div class="col-12">
+                <a href="{% url 'reporte_historial_pagos' %}" class="btn-limpiar">
+                    <i class="fas fa-undo"></i> Limpiar filtros
+                </a>
+                <button type="button" class="btn-print" onclick="window.print()" style="background: #28a745;">
+                    <i class="fas fa-print"></i> Imprimir Reporte
+                </button>
+            </div>
+        </form>
     </div>
-</div>
-{% endif %}
-
-<!-- Tabla de pagos -->
-<div class="table-responsive">
-    <table class="table table-hover">
-        <thead class="table-light">
+    
+    <table class="tabla-reporte">
+        <thead>
             <tr>
-                <th>Fecha pago</th>
+                <th>#</th>
+                <th>Fecha Pago</th>
                 <th>Socio</th>
                 <th>Cédula</th>
-                <th>Libro</th>
-                <th>Días atraso</th>
-                <th>Monto pagado</th>
-                <th>Comprobante</th>
+                <th class="hide-on-print">Libro</th>
+                <th>Días Atraso</th>
+                <th>Monto Pagado</th>
+                <th class="hide-on-print">Comprobante</th>
             </tr>
         </thead>
         <tbody>
             {% for multa in multas_pagadas %}
             <tr>
+                <td>{{ forloop.counter }}</td>
                 <td>{{ multa.fecha_pago|date:"d/m/Y" }}</td>
-                <td>
-                    <strong>{{ multa.prestamo.socio.user.get_full_name }}</strong>
-                </td>
+                <td>{{ multa.prestamo.socio.user.get_full_name }}</td>
                 <td>{{ multa.prestamo.socio.cedula }}</td>
-                <td>{{ multa.prestamo.ejemplar.libro.titulo|truncatechars:40 }}</td>
+                <td class="hide-on-print">{{ multa.prestamo.ejemplar.libro.titulo|truncatechars:35 }}</td>
                 <td>{{ multa.dias_atraso }} día{{ multa.dias_atraso|pluralize }}</td>
                 <td class="text-success fw-bold">Gs. {{ multa.monto_total|floatformat:0 }}</td>
-                <td>
+                <td class="hide-on-print">
                     {% if multa.comprobante_imagen %}
-                        <span class="badge bg-info">Registrado</span>
+                        <span class="badge-registrado">✓ Registrado</span>
                     {% else %}
-                        <span class="badge bg-secondary">Manual</span>
+                        <span class="badge-manual">✎ Manual</span>
                     {% endif %}
                 </td>
             </tr>
             {% empty %}
             <tr>
-                <td colspan="7" class="text-center py-4">
-                    <i class="fas fa-receipt fa-2x text-muted mb-2 d-block"></i>
-                    No hay pagos registrados
-                </td>
+                <td colspan="8">No hay pagos registrados en el período seleccionado</td>
             </tr>
             {% endfor %}
         </tbody>
-        <tfoot class="table-light">
-            <tr>
-                <td colspan="5" class="fw-bold text-end">Total:</td>
-                <td class="fw-bold text-success">Gs. {{ total_pagado|floatformat:0 }}</td>
-                <td></td>
+        <tfoot>
+            <tr class="total-row">
+                <td colspan="6" style="text-align: right;"><strong>TOTAL RECAUDADO:</strong></td>
+                <td colspan="2"><strong>Gs. {{ total_pagado|floatformat:0 }}</strong></td>
+            </tr>
+            <tr class="total-row">
+                <td colspan="6" style="text-align: right;"><strong>TOTAL DE PAGOS:</strong></td>
+                <td colspan="2"><strong>{{ cantidad_pagos }}</strong></td>
             </tr>
         </tfoot>
     </table>
-</div>
-
-<div class="text-muted mt-3 text-center" style="font-size: 12px;">
-    Reporte generado el {{ hoy|date:"d/m/Y" }}
 </div>
 {% endblock %}

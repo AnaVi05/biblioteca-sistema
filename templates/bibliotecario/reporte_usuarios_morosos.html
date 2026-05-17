@@ -3,197 +3,212 @@
 
 {% block main_content %}
 <style>
-    .report-header {
+    @media print {
+        .no-print { display: none !important; }
+        .sidebar { display: none !important; }
+        .main-content { margin-left: 0 !important; padding: 0 !important; }
+        .container { width: 100%; margin: 0; }
+        .filtros { display: none !important; }
+        .btn-print { display: none !important; }
+        .btn-limpiar { display: none !important; }
+        .report-periodo { display: none !important; }
+    }
+    
+    .report-container {
         background: white;
         padding: 20px;
-        border-radius: 12px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        margin: 0 auto;
+    }
+    
+    .report-header {
+        text-align: center;
         margin-bottom: 25px;
+        border-bottom: 2px solid #dc2626;
+        padding-bottom: 15px;
+    }
+    
+    .report-title {
+        font-size: 28px;
+        font-weight: 700;
+        color: #dc2626;
+        text-transform: uppercase;
+        margin-bottom: 8px;
+    }
+    
+    .report-subtitle {
+        font-size: 16px;
+        font-weight: 500;
+        color: #444;
+        margin-bottom: 5px;
+    }
+    
+    .report-fecha {
+        font-size: 16px;
+        color: #888;
+        margin-top: 5px;
     }
     
     .filtros {
         background: #f8fafc;
         padding: 15px;
-        border-radius: 10px;
-        margin-bottom: 20px;
-    }
-    
-    .card-moroso {
-        background: white;
         border-radius: 12px;
-        padding: 20px;
-        margin-bottom: 20px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        border-left: 4px solid #dc2626;
+        margin-bottom: 25px;
+        border: 1px solid #e2e8f0;
     }
     
-    .badge-moroso {
+    .tabla-reporte {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+    }
+    
+    .tabla-reporte th {
+        background: #dc2626;
+        color: white;
+        padding: 10px;
+        text-align: center;
+        font-weight: 600;
+        border: 1px solid #b91c1c;
+    }
+    
+    .tabla-reporte td {
+        padding: 8px 10px;
+        text-align: center;
+        border: 1px solid #e2e8f0;
+    }
+    
+    .tabla-reporte td:first-child,
+    .tabla-reporte td:nth-child(2) {
+        white-space: nowrap;
+    }
+    
+    .tabla-reporte tr:hover {
+        background-color: #f1f5f9;
+    }
+    
+    .total-row {
         background: #fee2e2;
-        color: #dc2626;
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 0.8rem;
-    }
-    
-    .subtable {
-        background: #f8fafc;
-        border-radius: 8px;
-        margin-top: 10px;
-    }
-    
-    .subtable th {
-        font-size: 0.8rem;
-        padding: 8px;
-    }
-    
-    .subtable td {
-        font-size: 0.85rem;
-        padding: 8px;
+        font-weight: bold;
     }
     
     .btn-print {
-        background: #4b5563;
+        background: #dc2626;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+    }
+    
+    .btn-print:hover {
+        background: #b91c1c;
+    }
+    
+    .btn-limpiar {
+        background: #6c757d;
         color: white;
         border: none;
         padding: 8px 16px;
-        border-radius: 8px;
+        border-radius: 6px;
         cursor: pointer;
     }
     
-    @media print {
-        .no-print { display: none; }
-        .sidebar { display: none; }
-        .main-content { margin-left: 0; padding: 0; }
+    .badge-multa {
+        background: #fee2e2;
+        color: #dc2626;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
     }
 </style>
 
-<div class="report-header">
-    <div class="d-flex justify-content-between align-items-center">
-        <div>
-            <h1 style="color: var(--primary-blue);">
-                <i class="fas fa-exclamation-triangle"></i> Reporte de Usuarios Morosos
-            </h1>
-            <p class="text-muted">Usuarios con multas pendientes y préstamos vencidos</p>
+<div class="report-container">
+    <div class="report-header">
+        <div class="report-title">
+            <i class="fas fa-exclamation-triangle"></i> REPORTE DE USUARIOS MOROSOS
         </div>
-        <div class="no-print">
-            <button onclick="window.print()" class="btn-print">
-                <i class="fas fa-print"></i> Imprimir
-            </button>
-            <a href="{% url 'dashboard_bibliotecario' %}" class="btn btn-secondary">
-                <i class="fas fa-arrow-left"></i> Volver
-            </a>
+        <div class="report-subtitle">
+            Biblioteca FPUNA - Usuarios con multas pendientes
         </div>
-    </div>
-</div>
-
-<!-- Filtros -->
-<div class="filtros no-print">
-    <form method="get" class="row g-3">
-        <div class="col-md-8">
-            <input type="text" name="search" class="form-control" 
-                   placeholder="Buscar por nombre, apellido o cédula..." 
-                   value="{{ search }}">
-        </div>
-        <div class="col-md-2">
-            <button type="submit" class="btn btn-primary w-100">
-                <i class="fas fa-search"></i> Buscar
-            </button>
-        </div>
-        <div class="col-md-2">
-            <a href="{% url 'reporte_usuarios_morosos' %}" class="btn btn-secondary w-100">
-                <i class="fas fa-undo"></i> Limpiar
-            </a>
-        </div>
-    </form>
-</div>
-
-<!-- Resumen -->
-<div class="alert alert-danger mb-3">
-    <strong>Total de Usuarios Morosos:</strong> {{ total_morosos }}
-    {% if search %} (filtrado por "{{ search }}"){% endif %}
-</div>
-
-<!-- Lista de usuarios morosos -->
-{% for socio in socios_morosos %}
-<div class="card-moroso">
-    <div class="d-flex justify-content-between align-items-start mb-3">
-        <div>
-            <h4 class="mb-1">{{ socio.user.get_full_name }}</h4>
-            <p class="mb-0 text-muted">
-                <i class="fas fa-id-card"></i> Cédula: {{ socio.cedula }} |
-                <i class="fas fa-envelope"></i> {{ socio.user.email }} |
-                <i class="fas fa-phone"></i> {{ socio.telefono|default:"No registrado" }}
-            </p>
-        </div>
-        <div class="text-end">
-            <span class="badge-moroso">
-                <i class="fas fa-money-bill"></i> Total Multas: Gs. {{ socio.total_multas|floatformat:0 }}
-            </span>
-            <div class="mt-1">
-                <small class="text-muted">
-                    <i class="fas fa-clock"></i> {{ socio.total_dias_atraso }} días de atraso acumulados
-                </small>
-            </div>
+        <div class="report-fecha">
+            Fecha de emisión: {{ ahora|date:"d/m/Y H:i" }}
         </div>
     </div>
     
-    <!-- Tabla de multas detalladas -->
-    <table class="table table-sm subtable">
+    <div class="filtros no-print">
+        <h5><i class="fas fa-filter"></i> Filtros de búsqueda</h5>
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">Fecha desde (multa)</label>
+                <input type="date" name="fecha_desde" class="form-control" value="{{ fecha_desde }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Fecha hasta (multa)</label>
+                <input type="date" name="fecha_hasta" class="form-control" value="{{ fecha_hasta }}">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Buscar socio</label>
+                <input type="text" name="search" class="form-control" placeholder="Nombre, apellido o cédula" value="{{ search }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">&nbsp;</label>
+                <button type="submit" class="btn-print w-100">
+                    <i class="fas fa-search"></i> Filtrar
+                </button>
+            </div>
+            <div class="col-12">
+                <a href="{% url 'reporte_usuarios_morosos' %}" class="btn-limpiar">
+                    <i class="fas fa-undo"></i> Limpiar filtros
+                </a>
+                <button type="button" class="btn-print" onclick="window.print()" style="background: #28a745;">
+                    <i class="fas fa-print"></i> Imprimir Reporte
+                </button>
+            </div>
+        </form>
+    </div>
+    
+    <table class="tabla-reporte">
         <thead>
             <tr>
-                <th>Libro</th>
-                <th>Ejemplar</th>
-                <th>Fecha préstamo</th>
-                <th>Fecha vencimiento</th>
-                <th>Fecha devolución</th>
-                <th>Días atraso</th>
-                <th>Monto</th>
+                <th>#</th>
+                <th>Nombre Completo</th>
+                <th>Cédula</th>
+                <th>Correo Electrónico</th>
+                <th>Teléfono</th>
+                <th>Multas</th>
+                <th>Total Deuda</th>
+                <th>Días Atraso</th>
             </tr>
         </thead>
         <tbody>
-            {% for multa in socio.detalle_multas %}
+            {% for socio in socios_morosos %}
             <tr>
-                <td>{{ multa.prestamo.ejemplar.libro.titulo }}</td>
-                <td>{{ multa.prestamo.ejemplar.codigo_inventario }}</td>
-                <td>{{ multa.prestamo.fecha_prestamo|date:"d/m/Y" }}</td>
-                <td>{{ multa.prestamo.fecha_vencimiento|date:"d/m/Y" }}</td>
-                <td>{{ multa.prestamo.fecha_devolucion_real|date:"d/m/Y"|default:"-" }}</td>
-                <td>{{ multa.dias_atraso }} día{{ multa.dias_atraso|pluralize }}</td>
-                <td class="text-danger fw-bold">Gs. {{ multa.monto_total|floatformat:0 }}</td>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ socio.user.get_full_name }}</td>
+                <td>{{ socio.cedula }}</td>
+                <td>{{ socio.user.email }}</td>
+                <td>{{ socio.telefono|default:"-" }}</td>
+                <td><span class="badge-multa">{{ socio.cantidad_multas }}</span></td>
+                <td class="text-danger fw-bold">Gs. {{ socio.total_multas|floatformat:0 }}</td>
+                <td>{{ socio.total_dias_atraso }} días</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="8">No hay usuarios morosos</td>
             </tr>
             {% endfor %}
         </tbody>
-        <tfoot class="table-light">
-            <tr>
-                <td colspan="6" class="fw-bold text-end">Total:</td>
-                <td class="fw-bold text-danger">Gs. {{ socio.total_multas|floatformat:0 }}</td>
+        <tfoot>
+            <tr class="total-row">
+                <td colspan="7" style="text-align: right;"><strong>TOTAL DE MULTAS PENDIENTES:</strong></td>
+                <td><strong>Gs. {{ total_general_multas|floatformat:0 }}</strong></td>
+            </tr>
+            <tr class="total-row">
+                <td colspan="7" style="text-align: right;"><strong>TOTAL DE USUARIOS MOROSOS:</strong></td>
+                <td><strong>{{ total_morosos }}</strong></td>
             </tr>
         </tfoot>
     </table>
-    
-    <!-- Préstamos vencidos (si tiene) -->
-    {% if socio.prestamos_vencidos %}
-    <div class="mt-2">
-        <strong class="text-warning">
-            <i class="fas fa-clock"></i> Préstamos vencidos sin devolver:
-        </strong>
-        <ul class="mb-0 mt-1">
-            {% for p in socio.prestamos_vencidos %}
-            <li>"{{ p.ejemplar.libro.titulo }}" - Vence: {{ p.fecha_vencimiento|date:"d/m/Y" }}</li>
-            {% endfor %}
-        </ul>
-    </div>
-    {% endif %}
-</div>
-{% empty %}
-<div class="alert alert-success text-center">
-    <i class="fas fa-check-circle fa-2x mb-2 d-block"></i>
-    <h5>No hay usuarios morosos en el sistema</h5>
-    <p class="mb-0">Todos los usuarios están al día con sus préstamos y multas.</p>
-</div>
-{% endfor %}
-
-<div class="text-muted mt-3 text-center" style="font-size: 12px;">
-    Reporte generado el {{ hoy|date:"d/m/Y" }} a las {{ ahora|time:"H:i" }}
 </div>
 {% endblock %}

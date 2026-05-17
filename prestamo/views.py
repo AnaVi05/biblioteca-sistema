@@ -5,7 +5,7 @@ from django.contrib import messages
 from django.utils import timezone
 from datetime import date, timedelta
 from .models import Prestamo, Multa, Reserva
-from catalogo.models import Ejemplar, Libro
+from catalogo.models import Ejemplar, Libro, Categoria
 from django.db.models import Count, Sum
 from usuario.models import Socio 
 from django.db import transaction
@@ -1436,34 +1436,30 @@ def admin_dashboard(request):
 
 
 #reportes de usuarios activos 
-from usuario.models import Socio
-from django.db.models import Count, Q
-
 @staff_member_required
 def reporte_usuarios_activos(request):
-    """Reporte de usuarios activos (estado_socio = 'activo')"""
+    """Reporte de usuarios activos con filtros de fecha"""
+    from datetime import date, timedelta
+    from django.db.models import Q
     
-    # Obtener todos los socios activos
+    hoy = date.today()
+    
+    # Parámetros de filtro
+    fecha_desde = request.GET.get('fecha_desde', '')
+    fecha_hasta = request.GET.get('fecha_hasta', '')
+    search = request.GET.get('search', '')
+    tipo_usuario = request.GET.get('tipo_usuario', '')
+    
+    # Base de usuarios activos
     socios = Socio.objects.filter(estado_socio='activo').select_related('user')
     
-    # Agregar información adicional (cantidad de préstamos activos, multas, etc.)
-    for socio in socios:
-        socio.prestamos_activos = Prestamo.objects.filter(
-            socio=socio, 
-            estado='ACTIVO'
-        ).count()
-        socio.multas_pendientes = Multa.objects.filter(
-            prestamo__socio=socio,
-            estado='PENDIENTE'
-        ).count()
-        socio.total_multas = sum(m.monto_total for m in Multa.objects.filter(
-            prestamo__socio=socio, estado='PENDIENTE'
-        ))
+    # Aplicar filtro de fecha (por fecha_registro)
+    if fecha_desde:
+        socios = socios.filter(fecha_registro__gte=fecha_desde)
+    if fecha_hasta:
+        socios = socios.filter(fecha_registro__lte=fecha_hasta)
     
-    # Filtros opcionales (por tipo de usuario, por búsqueda)
-    tipo_usuario = request.GET.get('tipo_usuario', '')
-    search = request.GET.get('search', '')
-    
+    # Aplicar filtros adicionales
     if tipo_usuario:
         socios = socios.filter(tipo_usuario=tipo_usuario)
     
@@ -1474,95 +1470,111 @@ def reporte_usuarios_activos(request):
             Q(cedula__icontains=search)
         )
     
+    # Calcular totales
+    total_activos = socios.count()
+    
+    # Calcular préstamos activos por socio (opcional, si es necesario)
+    for socio in socios:
+        socio.prestamos_activos = Prestamo.objects.filter(
+            socio=socio, estado='ACTIVO'
+        ).count()
+    
     context = {
         'socios': socios,
-        'tipo_usuario': tipo_usuario,
+        'total_activos': total_activos,
+        'fecha_desde': fecha_desde,
+        'fecha_hasta': fecha_hasta,
         'search': search,
-        'total_activos': socios.count(),
+        'tipo_usuario': tipo_usuario,
         'tipos_usuario': Socio.TIPO_USUARIO_CHOICES,
+        'hoy': hoy,
+        'ahora': timezone.now(),
     }
     return render(request, 'bibliotecario/reporte_usuarios_activos.html', context)
 
+#Reporte para usuarios morosos 
 @staff_member_required
 def reporte_usuarios_morosos(request):
-    """Reporte de usuarios morosos con detalle de atrasos"""
+    """Reporte de usuarios morosos con detalle de atrasos y filtros de fecha"""
     from datetime import date
-    from django.db.models import Q
+    from django.db.models import Q, Sum
     from decimal import Decimal
     
     hoy = date.today()
     
-    # Usuarios con multas pendientes
-    socios_con_multas = Socio.objects.filter(
-        prestamos__multas__estado='PENDIENTE'
-    ).distinct().select_related('user')
+    # Parámetros de filtro
+    fecha_desde = request.GET.get('fecha_desde', '')
+    fecha_hasta = request.GET.get('fecha_hasta', '')
+    search = request.GET.get('search', '')
     
-    # También usuarios con préstamos vencidos (aunque no tengan multa aún)
-    socios_vencidos = Socio.objects.filter(
-        prestamos__estado='ACTIVO',
-        prestamos__fecha_vencimiento__lt=hoy
-    ).distinct().select_related('user')
+    # Base de multas pendientes
+    multas_query = Multa.objects.filter(estado='PENDIENTE')
     
-    # Combinar ambos
-    socios_morosos = list(socios_con_multas) + list(socios_vencidos)
-    socios_morosos = list({s.id: s for s in socios_morosos}.values())  # Eliminar duplicados
+    # Aplicar filtro de fecha (por fecha_generacion)
+    if fecha_desde:
+        multas_query = multas_query.filter(fecha_generacion__gte=fecha_desde)
+    if fecha_hasta:
+        multas_query = multas_query.filter(fecha_generacion__lte=fecha_hasta)
+    
+    # ========== TOTAL GENERAL DE MULTAS PENDIENTES ==========
+    total_general_multas = multas_query.aggregate(total=Sum('monto_total'))['total'] or 0
+    
+    # Usuarios con multas pendientes (distintos)
+    socios_ids = multas_query.values_list('prestamo__socio_id', flat=True).distinct()
+    socios_morosos = Socio.objects.filter(id__in=socios_ids).select_related('user')
+    
+    # Aplicar búsqueda
+    if search:
+        socios_morosos = socios_morosos.filter(
+            Q(user__first_name__icontains=search) |
+            Q(user__last_name__icontains=search) |
+            Q(cedula__icontains=search)
+        )
     
     for socio in socios_morosos:
-        # Multas pendientes del socio
-        multas = Multa.objects.filter(
-            prestamo__socio=socio,
-            estado='PENDIENTE'
-        ).select_related('prestamo__ejemplar__libro')
+        # Multas del socio (con los filtros de fecha aplicados)
+        multas = multas_query.filter(prestamo__socio=socio)
         
-        socio.detalle_multas = multas
-        socio.total_multas = sum(m.monto_total for m in multas)
+        socio.total_multas = multas.aggregate(total=Sum('monto_total'))['total'] or 0
         socio.cantidad_multas = multas.count()
-        
-        # Préstamos vencidos (ACTIVOS con fecha vencimiento pasada)
-        prestamos_vencidos = Prestamo.objects.filter(
-            socio=socio,
-            estado='ACTIVO',
-            fecha_vencimiento__lt=hoy
-        )
-        
-        socio.prestamos_vencidos = prestamos_vencidos
-        socio.total_dias_atraso = sum(
-            (hoy - p.fecha_vencimiento).days for p in prestamos_vencidos
-        )
-    
-    # Filtro por búsqueda
-    search = request.GET.get('search', '')
-    if search:
-        socios_morosos = [
-            s for s in socios_morosos if 
-            search.lower() in s.user.get_full_name().lower() or
-            search in s.cedula
-        ]
+        socio.total_dias_atraso = sum(m.dias_atraso for m in multas)
     
     context = {
         'socios_morosos': socios_morosos,
+        'total_morosos': socios_morosos.count(),
+        'total_general_multas': total_general_multas,  # ← NUEVO
+        'fecha_desde': fecha_desde,
+        'fecha_hasta': fecha_hasta,
         'search': search,
-        'total_morosos': len(socios_morosos),
         'hoy': hoy,
         'ahora': timezone.now(),
     }
     return render(request, 'bibliotecario/reporte_usuarios_morosos.html', context)
 
+#Reporte usuario inhabilitados 
 @staff_member_required
 def reporte_usuarios_inhabilitados(request):
-    """Reporte de usuarios inhabilitados (estado_socio = 'inhabilitado')"""
+    """Reporte de usuarios inhabilitados con filtros de fecha"""
+    from datetime import date
     from django.db.models import Q
     
-    # Usuarios con estado inhabilitado
+    hoy = date.today()
+    
+    # Parámetros de filtro
+    fecha_desde = request.GET.get('fecha_desde', '')
+    fecha_hasta = request.GET.get('fecha_hasta', '')
+    search = request.GET.get('search', '')
+    
+    # Usuarios inhabilitados
     socios = Socio.objects.filter(estado_socio='inhabilitado').select_related('user')
     
-    for socio in socios:
-        # Motivo de inhabilitación (si lo tienes en algún campo)
-        socio.motivo = socio.observaciones if hasattr(socio, 'observaciones') else "No especificado"
-        socio.fecha_inhabilitacion = socio.fecha_registro  # o un campo específico
+    # Aplicar filtro de fecha (por fecha_registro o un campo específico)
+    if fecha_desde:
+        socios = socios.filter(fecha_registro__gte=fecha_desde)
+    if fecha_hasta:
+        socios = socios.filter(fecha_registro__lte=fecha_hasta)
     
-    # Filtros
-    search = request.GET.get('search', '')
+    # Aplicar búsqueda
     if search:
         socios = socios.filter(
             Q(user__first_name__icontains=search) |
@@ -1570,22 +1582,35 @@ def reporte_usuarios_inhabilitados(request):
             Q(cedula__icontains=search)
         )
     
+    # Agregar motivo (si no hay campo, usar texto por defecto)
+    for socio in socios:
+        socio.motivo = getattr(socio, 'observaciones', 'No especificado')
+        socio.fecha_inhabilitacion = socio.fecha_registro
+    
     context = {
         'socios': socios,
-        'search': search,
         'total_inhabilitados': socios.count(),
-        'hoy': date.today(),
+        'fecha_desde': fecha_desde,
+        'fecha_hasta': fecha_hasta,
+        'search': search,
+        'hoy': hoy,
         'ahora': timezone.now(),
     }
     return render(request, 'bibliotecario/reporte_usuarios_inhabilitados.html', context)
 
+#reportes prestamos vecidos 
 @staff_member_required
 def reporte_prestamos_vencidos(request):
     """Reporte de préstamos vencidos que no han sido devueltos"""
-    from datetime import date
+    from datetime import date, timedelta
     from django.db.models import Q
     
     hoy = date.today()
+    
+    # Parámetros de filtro
+    fecha_desde = request.GET.get('fecha_desde', '')
+    fecha_hasta = request.GET.get('fecha_hasta', '')
+    search = request.GET.get('search', '')
     
     # Préstamos ACTIVOS con fecha de vencimiento anterior a hoy
     prestamos = Prestamo.objects.filter(
@@ -1593,21 +1618,31 @@ def reporte_prestamos_vencidos(request):
         fecha_vencimiento__lt=hoy
     ).select_related('socio__user', 'ejemplar__libro')
     
+    # Aplicar filtro de fecha (por fecha_vencimiento)
+    if fecha_desde:
+        prestamos = prestamos.filter(fecha_vencimiento__gte=fecha_desde)
+    if fecha_hasta:
+        prestamos = prestamos.filter(fecha_vencimiento__lte=fecha_hasta)
     
-    
-    # Filtros
-    search = request.GET.get('search', '')
+    # Aplicar búsqueda
     if search:
         prestamos = prestamos.filter(
             Q(socio__user__first_name__icontains=search) |
             Q(socio__user__last_name__icontains=search) |
+            Q(socio__cedula__icontains=search) |
             Q(ejemplar__libro__titulo__icontains=search)
         )
     
+    # Calcular días de atraso
+    #for p in prestamos:
+        #p.dias_atraso = (hoy - p.fecha_vencimiento).days
+    
     context = {
         'prestamos': prestamos,
-        'search': search,
         'total_vencidos': prestamos.count(),
+        'fecha_desde': fecha_desde,
+        'fecha_hasta': fecha_hasta,
+        'search': search,
         'hoy': hoy,
         'ahora': timezone.now(),
     }
@@ -1615,62 +1650,89 @@ def reporte_prestamos_vencidos(request):
 
 from django.db.models import Count
 
+# ========== REPORTE DE LIBROS MÁS Y MENOS PRESTADOS ==========
 @staff_member_required
 def reporte_libros_demanda(request):
-    """Reporte de libros más y menos prestados para análisis de demanda"""
-    from datetime import date, timedelta
+    """Reporte de libros más prestados con filtro por rango de fechas"""
+    from datetime import date
+    from django.db.models import Count, Q
     
-    # Período de análisis (últimos 30 días por defecto)
-    periodos = {
-        '30': 'Últimos 30 días',
-        '90': 'Últimos 90 días',
-        '365': 'Último año',
-        'todo': 'Todo el historial'
-    }
-    
-    periodo = request.GET.get('periodo', '30')
     hoy = date.today()
     
-    # Filtrar por fecha según período
-    fecha_inicio = None
-    if periodo != 'todo':
-        dias = int(periodo)
-        fecha_inicio = hoy - timedelta(days=dias)
+    # Parámetros de filtro por rango de fechas
+    fecha_desde = request.GET.get('fecha_desde', '')
+    fecha_hasta = request.GET.get('fecha_hasta', '')
+    categoria_id = request.GET.get('categoria', '')
+    search = request.GET.get('search', '')
     
-    # Base de datos de préstamos
-    prestamos_query = Prestamo.objects.all()
-    if fecha_inicio:
-        prestamos_query = prestamos_query.filter(fecha_prestamo__date__gte=fecha_inicio)
+    # Base de libros
+    libros = Libro.objects.all()
     
-    # Libros más prestados (top 10)
-    libros_mas_prestados = Libro.objects.annotate(
-        total_prestamos=Count('ejemplares__prestamos', distinct=True)
-    ).filter(total_prestamos__gt=0).order_by('-total_prestamos')[:10]
+    # Filtrar por rango de fechas
+    if fecha_desde and fecha_hasta:
+        libros = libros.annotate(
+            total_prestamos=Count('ejemplares__prestamos', 
+                filter=Q(ejemplares__prestamos__fecha_prestamo__date__gte=fecha_desde) &
+                       Q(ejemplares__prestamos__fecha_prestamo__date__lte=fecha_hasta),
+                distinct=True
+            )
+        )
+    elif fecha_desde:
+        libros = libros.annotate(
+            total_prestamos=Count('ejemplares__prestamos', 
+                filter=Q(ejemplares__prestamos__fecha_prestamo__date__gte=fecha_desde),
+                distinct=True
+            )
+        )
+    elif fecha_hasta:
+        libros = libros.annotate(
+            total_prestamos=Count('ejemplares__prestamos', 
+                filter=Q(ejemplares__prestamos__fecha_prestamo__date__lte=fecha_hasta),
+                distinct=True
+            )
+        )
+    else:
+        libros = libros.annotate(total_prestamos=Count('ejemplares__prestamos', distinct=True))
     
-    # Libros menos prestados (bottom 10, que tengan al menos 1 ejemplar)
-    libros_menos_prestados = Libro.objects.annotate(
-        total_prestamos=Count('ejemplares__prestamos', distinct=True)
-    ).filter(ejemplares__isnull=False).distinct().order_by('total_prestamos')[:10]
+    # Aplicar filtros adicionales
+    if categoria_id:
+        libros = libros.filter(categoria_id=categoria_id)
+    if search:
+        libros = libros.filter(titulo__icontains=search)
     
-    # Calcular total de préstamos en el período
-    total_prestamos_periodo = prestamos_query.count()
+    # Filtrar solo libros con préstamos y ordenar
+    libros_mas_prestados = libros.filter(total_prestamos__gt=0).order_by('-total_prestamos')[:20]
+    
+    # Calcular total de préstamos para porcentajes
+    total_prestamos_periodo = sum(l.total_prestamos for l in libros_mas_prestados)
+    
+    for libro in libros_mas_prestados:
+        libro.porcentaje = (libro.total_prestamos / total_prestamos_periodo * 100) if total_prestamos_periodo > 0 else 0
+    
+    # Categorías para filtro
+    categorias = Categoria.objects.all()  # ← Ahora Categoria está importado
     
     context = {
         'libros_mas_prestados': libros_mas_prestados,
-        'libros_menos_prestados': libros_menos_prestados,
-        'periodos': periodos,
-        'periodo_actual': periodo,
+        'categorias': categorias,
+        'categoria_seleccionada': categoria_id,
+        'search': search,
+        'fecha_desde': fecha_desde,
+        'fecha_hasta': fecha_hasta,
         'total_prestamos': total_prestamos_periodo,
-        'fecha_inicio': fecha_inicio,
         'hoy': hoy,
         'ahora': timezone.now(),
     }
     return render(request, 'bibliotecario/reporte_libros_demanda.html', context)
 
+
+# ========== REPORTE HISTORIAL DE PAGOS ==========
 @staff_member_required
 def reporte_historial_pagos(request):
     """Reporte de multas pagadas (historial de pagos)"""
     from datetime import date, timedelta
+    from django.db.models import Q, Sum, Count  # ← AGREGAR 'Q' y 'Sum'
+    from django.db.models.functions import TruncMonth
     
     # Filtros
     fecha_desde = request.GET.get('fecha_desde', '')
@@ -1699,7 +1761,6 @@ def reporte_historial_pagos(request):
     cantidad_pagos = multas_pagadas.count()
     
     # Resumen por mes
-    from django.db.models.functions import TruncMonth
     pagos_por_mes = multas_pagadas.annotate(
         mes=TruncMonth('fecha_pago')
     ).values('mes').annotate(
@@ -1716,6 +1777,7 @@ def reporte_historial_pagos(request):
         'fecha_hasta': fecha_hasta,
         'search': search,
         'hoy': date.today(),
+        'ahora': timezone.now(),
     }
     return render(request, 'bibliotecario/reporte_historial_pagos.html', context)
 

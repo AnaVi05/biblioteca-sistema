@@ -3,133 +3,199 @@
 
 {% block main_content %}
 <style>
-    .report-header {
+    @media print {
+        .no-print { display: none !important; }
+        .sidebar { display: none !important; }
+        .main-content { margin-left: 0 !important; padding: 0 !important; }
+        .container { width: 100%; margin: 0; }
+        .filtros { display: none !important; }
+        .btn-print { display: none !important; }
+        .btn-limpiar { display: none !important; }
+        .report-periodo { display: none !important; }
+    }
+    
+    .report-container {
         background: white;
         padding: 20px;
-        border-radius: 12px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        margin: 0 auto;
+    }
+    
+    .report-header {
+        text-align: center;
         margin-bottom: 25px;
+        border-bottom: 2px solid #6c757d;
+        padding-bottom: 15px;
+    }
+    
+    .report-title {
+        font-size: 28px;
+        font-weight: 700;
+        color: #6c757d;
+        text-transform: uppercase;
+        margin-bottom: 8px;
+    }
+    
+    .report-subtitle {
+        font-size: 16px;
+        font-weight: 500;
+        color: #444;
+        margin-bottom: 5px;
+    }
+    
+    .report-fecha {
+        font-size: 16px;
+        color: #888;
+        margin-top: 5px;
     }
     
     .filtros {
         background: #f8fafc;
         padding: 15px;
-        border-radius: 10px;
-        margin-bottom: 20px;
+        border-radius: 12px;
+        margin-bottom: 25px;
+        border: 1px solid #e2e8f0;
     }
     
-    .card-inhabilitado {
-        background: white;
-        border-radius: 12px;
-        padding: 20px;
-        margin-bottom: 20px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        border-left: 4px solid #6c757d;
+    .tabla-reporte {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+    }
+    
+    .tabla-reporte th {
+        background: #6c757d;
+        color: white;
+        padding: 10px;
+        text-align: center;
+        font-weight: 600;
+        border: 1px solid #5a6268;
+    }
+    
+    .tabla-reporte td {
+        padding: 8px 10px;
+        text-align: center;
+        border: 1px solid #e2e8f0;
+    }
+    
+    .tabla-reporte td:first-child,
+    .tabla-reporte td:nth-child(2) {
+        white-space: nowrap;
+    }
+    
+    .total-row {
+        background: #e9ecef;
+        font-weight: bold;
+    }
+    
+    .btn-print {
+        background: #6c757d;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+    }
+    
+    .btn-print:hover {
+        background: #5a6268;
+    }
+    
+    .btn-limpiar {
+        background: #adb5bd;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        cursor: pointer;
     }
     
     .badge-inhabilitado {
         background: #e9ecef;
         color: #495057;
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 0.8rem;
-    }
-    
-    .btn-print {
-        background: #4b5563;
-        color: white;
-        border: none;
-        padding: 8px 16px;
-        border-radius: 8px;
-        cursor: pointer;
-    }
-    
-    @media print {
-        .no-print { display: none; }
-        .sidebar { display: none; }
-        .main-content { margin-left: 0; padding: 0; }
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
     }
 </style>
 
-<div class="report-header">
-    <div class="d-flex justify-content-between align-items-center">
-        <div>
-            <h1 style="color: var(--primary-blue);">
-                <i class="fas fa-user-slash"></i> Reporte de Usuarios Inhabilitados
-            </h1>
-            <p class="text-muted">Usuarios que no pueden realizar préstamos</p>
+<div class="report-container">
+    <div class="report-header">
+        <div class="report-title">
+            <i class="fas fa-user-slash"></i> REPORTE DE USUARIOS INHABILITADOS
         </div>
-        <div class="no-print">
-            <button onclick="window.print()" class="btn-print">
-                <i class="fas fa-print"></i> Imprimir
-            </button>
-            <a href="{% url 'dashboard_bibliotecario' %}" class="btn btn-secondary">
-                <i class="fas fa-arrow-left"></i> Volver
-            </a>
+        <div class="report-subtitle">
+            Biblioteca FPUNA - Usuarios sin acceso al sistema
+        </div>
+        <div class="report-fecha">
+            Fecha de emisión: {{ ahora|date:"d/m/Y H:i" }}
         </div>
     </div>
-</div>
-
-<!-- Filtros -->
-<div class="filtros no-print">
-    <form method="get" class="row g-3">
-        <div class="col-md-8">
-            <input type="text" name="search" class="form-control" 
-                   placeholder="Buscar por nombre, apellido o cédula..." 
-                   value="{{ search }}">
-        </div>
-        <div class="col-md-2">
-            <button type="submit" class="btn btn-primary w-100">
-                <i class="fas fa-search"></i> Buscar
-            </button>
-        </div>
-        <div class="col-md-2">
-            <a href="{% url 'reporte_usuarios_inhabilitados' %}" class="btn btn-secondary w-100">
-                <i class="fas fa-undo"></i> Limpiar
-            </a>
-        </div>
-    </form>
-</div>
-
-<!-- Resumen -->
-<div class="alert alert-secondary mb-3">
-    <strong>Total de Usuarios Inhabilitados:</strong> {{ total_inhabilitados }}
-    {% if search %} (filtrado por "{{ search }}"){% endif %}
-</div>
-
-<!-- Lista de usuarios inhabilitados -->
-{% for socio in socios %}
-<div class="card-inhabilitado">
-    <div class="d-flex justify-content-between align-items-start">
-        <div>
-            <h4 class="mb-1">{{ socio.user.get_full_name }}</h4>
-            <p class="mb-0 text-muted">
-                <i class="fas fa-id-card"></i> Cédula: {{ socio.cedula }} |
-                <i class="fas fa-envelope"></i> {{ socio.user.email }} |
-                <i class="fas fa-phone"></i> {{ socio.telefono|default:"No registrado" }}
-            </p>
-            <p class="mb-0 mt-2">
-                <span class="badge-inhabilitado">
-                    <i class="fas fa-ban"></i> Usuario Inhabilitado
-                </span>
-            </p>
-        </div>
-        <div class="text-end">
-            <small class="text-muted">
-                Inhabilitado desde: {{ socio.fecha_inhabilitacion|date:"d/m/Y" }}
-            </small>
-        </div>
+    
+    <div class="filtros no-print">
+        <h5><i class="fas fa-filter"></i> Filtros de búsqueda</h5>
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label">Fecha desde (registro)</label>
+                <input type="date" name="fecha_desde" class="form-control" value="{{ fecha_desde }}">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Fecha hasta (registro)</label>
+                <input type="date" name="fecha_hasta" class="form-control" value="{{ fecha_hasta }}">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Buscar usuario</label>
+                <input type="text" name="search" class="form-control" placeholder="Nombre, apellido o cédula" value="{{ search }}">
+            </div>
+            <div class="col-12">
+                <button type="submit" class="btn-print">
+                    <i class="fas fa-search"></i> Filtrar
+                </button>
+                <a href="{% url 'reporte_usuarios_inhabilitados' %}" class="btn-limpiar">
+                    <i class="fas fa-undo"></i> Limpiar filtros
+                </a>
+                <button type="button" class="btn-print" onclick="window.print()" style="background: #28a745;">
+                    <i class="fas fa-print"></i> Imprimir Reporte
+                </button>
+            </div>
+        </form>
     </div>
-</div>
-{% empty %}
-<div class="alert alert-success text-center">
-    <i class="fas fa-check-circle fa-2x mb-2 d-block"></i>
-    <h5>No hay usuarios inhabilitados</h5>
-    <p class="mb-0">Todos los usuarios están activos en el sistema.</p>
-</div>
-{% endfor %}
-
-<div class="text-muted mt-3 text-center" style="font-size: 12px;">
-    Reporte generado el {{ ahora|date:"d/m/Y" }} a las {{ ahora|time:"H:i" }}
+    
+    <table class="tabla-reporte">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Nombre Completo</th>
+                <th>Cédula</th>
+                <th>Correo Electrónico</th>
+                <th>Teléfono</th>
+                <th>Fecha Inhabilitación</th>
+                <th>Motivo</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for socio in socios %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ socio.user.get_full_name }}</td>
+                <td>{{ socio.cedula }}</td>
+                <td>{{ socio.user.email }}</td>
+                <td>{{ socio.telefono|default:"-" }}</td>
+                <td>{{ socio.fecha_inhabilitacion|date:"d/m/Y" }}</td>
+                <td>{{ socio.motivo }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="7">No hay usuarios inhabilitados</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr class="total-row">
+                <td colspan="6" style="text-align: right;"><strong>TOTAL DE USUARIOS INHABILITADOS:</strong></td>
+                <td><strong>{{ total_inhabilitados }}</strong></td>
+            </tr>
+        </tfoot>
+    </table>
 </div>
 {% endblock %}

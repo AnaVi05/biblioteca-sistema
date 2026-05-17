@@ -3,198 +3,224 @@
 
 {% block main_content %}
 <style>
-    .report-header {
+    @media print {
+        .no-print { display: none !important; }
+        .hide-on-print { display: none !important; }
+        .sidebar { display: none !important; }
+        .main-content { margin-left: 0 !important; padding: 0 !important; }
+        .container { width: 100%; margin: 0; }
+        .filtros { display: none !important; }
+        .btn-print { display: none !important; }
+        .btn-limpiar { display: none !important; }
+        .nav-links { display: none !important; }
+        .header-actions { display: none !important; }
+        .content-header { display: none !important; }
+        .report-periodo { display: none !important; }
+        .page-break { page-break-before: always; }
+    }
+    
+    .report-container {
         background: white;
         padding: 20px;
-        border-radius: 12px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        margin: 0 auto;
+    }
+    
+    .report-header {
+        text-align: center;
         margin-bottom: 25px;
+        border-bottom: 2px solid #2c5aa0;
+        padding-bottom: 15px;
+    }
+    
+    .report-title {
+        font-size: 28px;
+        font-weight: 700;
+        color: #2c5aa0;
+        text-transform: uppercase;
+        margin-bottom: 8px;
+    }
+    
+    .report-subtitle {
+        font-size: 16px;
+        font-weight: 500;
+        color: #444;
+        margin-bottom: 5px;
+    }
+    
+    .report-fecha {
+        font-size: 16px;
+        color: #888;
+        margin-top: 5px;
     }
     
     .filtros {
         background: #f8fafc;
         padding: 15px;
-        border-radius: 10px;
-        margin-bottom: 20px;
+        border-radius: 12px;
+        margin-bottom: 25px;
+        border: 1px solid #e2e8f0;
     }
     
-    .table th {
-        background: var(--light-blue);
-        color: var(--primary-blue);
+    .tabla-reporte {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
     }
     
-    .badge-activo {
-        background: #d4edda;
-        color: #155724;
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 0.8rem;
+    .tabla-reporte th {
+        background: #2c5aa0;
+        color: white;
+        padding: 10px;
+        text-align: center;
+        font-weight: 600;
+        border: 1px solid #1e40af;
     }
     
-    .badge-prestamo {
-        background: #dbeafe;
-        color: #2563eb;
+    .tabla-reporte td {
+        padding: 8px 10px;
+        text-align: center;
+        border: 1px solid #e2e8f0;
     }
     
-    .badge-multa {
-        background: #fee2e2;
-        color: #dc2626;
+    .tabla-reporte td:first-child,
+    .tabla-reporte td:nth-child(2) {
+        white-space: nowrap;
+    }
+    
+    .tabla-reporte tr:hover {
+        background-color: #f1f5f9;
+    }
+    
+    .total-row {
+        background: #e8f0fe;
+        font-weight: bold;
     }
     
     .btn-print {
-        background: #4b5563;
+        background: #2c5aa0;
         color: white;
         border: none;
-        padding: 8px 16px;
+        padding: 10px 20px;
         border-radius: 8px;
         cursor: pointer;
+        font-size: 14px;
     }
     
     .btn-print:hover {
-        background: #374151;
+        background: #1e40af;
     }
     
-    @media print {
-        .no-print {
-            display: none;
-        }
-        .sidebar {
-            display: none;
-        }
-        .main-content {
-            margin-left: 0;
-            padding: 0;
-        }
+    .btn-limpiar {
+        background: #6c757d;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        cursor: pointer;
+    }
+    
+    .badge-tipo {
+        background: #dbeafe;
+        color: #2c5aa0;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
     }
 </style>
 
-<div class="report-header">
-    <div class="d-flex justify-content-between align-items-center">
-        <div>
-            <h1 style="color: var(--primary-blue);">
-                <i class="fas fa-users"></i> Reporte de Usuarios Activos
-            </h1>
-            <p class="text-muted">Lista de socios con estado activo en el sistema</p>
+<div class="report-container">
+    <!-- Encabezado del reporte -->
+    <div class="report-header">
+        <div class="report-title">
+            <i class="fas fa-users"></i> REPORTE DE USUARIOS ACTIVOS
         </div>
-        <div class="no-print">
-            <button onclick="window.print()" class="btn-print">
-                <i class="fas fa-print"></i> Imprimir Reporte
-            </button>
-            <a href="{% url 'dashboard_bibliotecario' %}" class="btn btn-secondary">
-                <i class="fas fa-arrow-left"></i> Volver
-            </a>
+        <div class="report-subtitle">
+            Biblioteca FPUNA - Sistema de Gestión de Préstamos
+        </div>
+        <div class="report-fecha">
+            Fecha de emisión: {{ ahora|date:"d/m/Y H:i" }}
         </div>
     </div>
-</div>
-
-<!-- Filtros -->
-<div class="filtros no-print">
-    <form method="get" class="row g-3">
-        <div class="col-md-4">
-            <label class="form-label">Buscar por nombre o cédula</label>
-            <input type="text" name="search" class="form-control" 
-                   placeholder="Nombre, apellido o cédula..." 
-                   value="{{ search }}">
-        </div>
-        <div class="col-md-3">
-            <label class="form-label">Tipo de usuario</label>
-            <select name="tipo_usuario" class="form-select">
-                <option value="">Todos</option>
-                {% for codigo, nombre in tipos_usuario %}
-                    <option value="{{ codigo }}" {% if tipo_usuario == codigo %}selected{% endif %}>
-                        {{ nombre }}
-                    </option>
-                {% endfor %}
-            </select>
-        </div>
-        <div class="col-md-2 d-flex align-items-end">
-            <button type="submit" class="btn btn-primary w-100">
-                <i class="fas fa-filter"></i> Filtrar
-            </button>
-        </div>
-        <div class="col-md-2 d-flex align-items-end">
-            <a href="{% url 'reporte_usuarios_activos' %}" class="btn btn-secondary w-100">
-                <i class="fas fa-undo"></i> Limpiar
-            </a>
-        </div>
-    </form>
-</div>
-
-<!-- Resumen -->
-<div class="row mb-3">
-    <div class="col-md-3">
-        <div class="alert alert-info text-center">
-            <strong>Total Usuarios Activos</strong>
-            <h2 class="mb-0">{{ total_activos }}</h2>
-        </div>
+    
+    <!-- Filtros (solo en pantalla, no se imprimen) -->
+    <div class="filtros no-print">
+        <h5><i class="fas fa-filter"></i> Filtros de búsqueda</h5>
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">Fecha desde (registro)</label>
+                <input type="date" name="fecha_desde" class="form-control" value="{{ fecha_desde }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Fecha hasta (registro)</label>
+                <input type="date" name="fecha_hasta" class="form-control" value="{{ fecha_hasta }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Tipo de usuario</label>
+                <select name="tipo_usuario" class="form-select">
+                    <option value="">Todos</option>
+                    {% for codigo, nombre in tipos_usuario %}
+                        <option value="{{ codigo }}" {% if tipo_usuario == codigo %}selected{% endif %}>
+                            {{ nombre }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Buscar</label>
+                <input type="text" name="search" class="form-control" placeholder="Nombre, apellido o cédula" value="{{ search }}">
+            </div>
+            <div class="col-12">
+                <button type="submit" class="btn-print">
+                    <i class="fas fa-search"></i> Filtrar
+                </button>
+                <a href="{% url 'reporte_usuarios_activos' %}" class="btn-limpiar">
+                    <i class="fas fa-undo"></i> Limpiar filtros
+                </a>
+                <button type="button" class="btn-print" onclick="window.print()" style="background: #28a745;">
+                    <i class="fas fa-print"></i> Imprimir Reporte
+                </button>
+            </div>
+        </form>
     </div>
-</div>
-
-<!-- Tabla de usuarios -->
-<div class="table-responsive">
-    <table class="table table-hover">
+    
+    <!-- Tabla de datos -->
+    <table class="tabla-reporte">
         <thead>
             <tr>
                 <th>#</th>
                 <th>Nombre Completo</th>
                 <th>Cédula</th>
-                <th>Email</th>
-                <th>Tipo</th>
+                <th>Correo Electrónico</th>
                 <th>Teléfono</th>
-                <th>Préstamos Activos</th>
-                <th>Multas Pendientes</th>
-                <th>Monto Total</th>
+                <th class="hide-on-print">Tipo</th>
+                <th>Fecha Registro</th>
             </tr>
         </thead>
         <tbody>
             {% for socio in socios %}
             <tr>
                 <td>{{ forloop.counter }}</td>
-                <td>
-                    <strong>{{ socio.user.get_full_name }}</strong>
-                </td>
+                <td>{{ socio.user.get_full_name }}</td>
                 <td>{{ socio.cedula }}</td>
                 <td>{{ socio.user.email }}</td>
-                <td>
-                    <span class="badge-activo">{{ socio.get_tipo_usuario_display }}</span>
-                </td>
                 <td>{{ socio.telefono|default:"-" }}</td>
-                <td>
-                    {% if socio.prestamos_activos > 0 %}
-                        <span class="badge-prestamo badge">{{ socio.prestamos_activos }}</span>
-                    {% else %}
-                        <span class="text-muted">0</span>
-                    {% endif %}
+                <td class="hide-on-print">
+                    <span class="badge-tipo">{{ socio.get_tipo_usuario_display }}</span>
                 </td>
-                <td>
-                    {% if socio.multas_pendientes > 0 %}
-                        <span class="badge-multa badge">{{ socio.multas_pendientes }}</span>
-                    {% else %}
-                        <span class="text-muted">0</span>
-                    {% endif %}
-                </td>
-                <td>
-                    {% if socio.total_multas > 0 %}
-                        <span class="text-danger">Gs. {{ socio.total_multas|floatformat:0 }}</span>
-                    {% else %}
-                        <span class="text-muted">Gs. 0</span>
-                    {% endif %}
-                </td>
+                <td>{{ socio.fecha_registro|date:"d/m/Y" }}</td>
             </tr>
             {% empty %}
             <tr>
-                <td colspan="9" class="text-center py-4">
-                    <i class="fas fa-users fa-2x text-muted mb-2 d-block"></i>
-                    No hay usuarios activos registrados.
-                </td>
+                <td colspan="7" style="text-align: center;">No hay usuarios activos registrados</td>
             </tr>
             {% endfor %}
         </tbody>
+        <tfoot>
+            <tr class="total-row">
+                <td colspan="6" style="text-align: right;"><strong>TOTAL DE USUARIOS ACTIVOS:</strong></td>
+                <td><strong>{{ total_activos }}</strong></td>
+            </tr>
+        </tfoot>
     </table>
-</div>
-
-<!-- Pie de página para impresión -->
-<div class="text-muted mt-3 text-center" style="font-size: 12px;">
-    Reporte generado el {{ hoy|date:"d/m/Y H:i" }}
 </div>
 {% endblock %}

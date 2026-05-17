@@ -3,155 +3,196 @@
 
 {% block main_content %}
 <style>
-    .report-header {
+    @media print {
+        .no-print { display: none !important; }
+        .sidebar { display: none !important; }
+        .main-content { margin-left: 0 !important; padding: 0 !important; }
+        .container { width: 100%; margin: 0; }
+        .filtros { display: none !important; }
+        .btn-print { display: none !important; }
+        .btn-limpiar { display: none !important; }
+        .report-periodo { display: none !important; }
+    }
+    
+    .report-container {
         background: white;
         padding: 20px;
-        border-radius: 12px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        margin: 0 auto;
+    }
+    
+    .report-header {
+        text-align: center;
         margin-bottom: 25px;
+        border-bottom: 2px solid #1e40af;
+        padding-bottom: 15px;
+    }
+    
+    .report-title {
+        font-size: 28px;
+        font-weight: 700;
+        color: #1e40af;
+        text-transform: uppercase;
+        margin-bottom: 8px;
+    }
+    
+    .report-subtitle {
+        font-size: 16px;
+        font-weight: 500;
+        color: #444;
+        margin-bottom: 5px;
+    }
+    
+    .report-fecha {
+        font-size: 16px;
+        color: #888;
+        margin-top: 5px;
     }
     
     .filtros {
         background: #f8fafc;
         padding: 15px;
-        border-radius: 10px;
-        margin-bottom: 20px;
-    }
-    
-    .card-vencido {
-        background: white;
         border-radius: 12px;
-        padding: 20px;
-        margin-bottom: 20px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        border-left: 4px solid #dc2626;
+        margin-bottom: 25px;
+        border: 1px solid #e2e8f0;
     }
     
-    .badge-vencido {
-        background: #fee2e2;
-        color: #dc2626;
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 0.8rem;
+    .tabla-reporte {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+    }
+    
+    .tabla-reporte th {
+        background: #1e40af;
+        color: white;
+        padding: 10px;
+        text-align: center;
+        font-weight: 600;
+        border: 1px solid #1e40af;
+    }
+    
+    .tabla-reporte td {
+        padding: 8px 10px;
+        text-align: center;
+        border: 1px solid #e2e8f0;
+    }
+    
+    .tabla-reporte td:first-child,
+    .tabla-reporte td:nth-child(2) {
+        white-space: nowrap;
+    }
+    
+    .total-row {
+        background: #5879e7;
+        font-weight: bold;
     }
     
     .btn-print {
-        background: #4b5563;
+        background:#5a7cea;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+    }
+    
+    .btn-print:hover {
+        background:#1e40af;
+    }
+    
+    .btn-limpiar {
+        background: #adb5bd;
         color: white;
         border: none;
         padding: 8px 16px;
-        border-radius: 8px;
+        border-radius: 6px;
         cursor: pointer;
-    }
-    
-    @media print {
-        .no-print { display: none; }
-        .sidebar { display: none; }
-        .main-content { margin-left: 0; padding: 0; }
     }
 </style>
 
-<div class="report-header">
-    <div class="d-flex justify-content-between align-items-center">
-        <div>
-            <h1 style="color: var(--primary-blue);">
-                <i class="fas fa-clock"></i> Préstamos Vencidos
-            </h1>
-            <p class="text-muted">Libros que no han sido devueltos y superaron la fecha de devolución</p>
+<div class="report-container">
+    <div class="report-header">
+        <div class="report-title">
+            <i class="fas fa-clock"></i> REPORTE DE PRÉSTAMOS VENCIDOS
         </div>
-        <div class="no-print">
-            <button onclick="window.print()" class="btn-print">
-                <i class="fas fa-print"></i> Imprimir
-            </button>
-            <a href="{% url 'dashboard_bibliotecario' %}" class="btn btn-secondary">
-                <i class="fas fa-arrow-left"></i> Volver
-            </a>
+        <div class="report-subtitle">
+            Biblioteca FPUNA - Libros no devueltos que superaron la fecha de devolución
         </div>
-    </div>
-</div>
-
-<!-- Filtros -->
-<div class="filtros no-print">
-    <form method="get" class="row g-3">
-        <div class="col-md-8">
-            <input type="text" name="search" class="form-control" 
-                   placeholder="Buscar por socio o título del libro..." 
-                   value="{{ search }}">
-        </div>
-        <div class="col-md-2">
-            <button type="submit" class="btn btn-primary w-100">
-                <i class="fas fa-search"></i> Buscar
-            </button>
-        </div>
-        <div class="col-md-2">
-            <a href="{% url 'reporte_prestamos_vencidos' %}" class="btn btn-secondary w-100">
-                <i class="fas fa-undo"></i> Limpiar
-            </a>
-        </div>
-    </form>
-</div>
-
-<!-- Resumen -->
-<div class="alert alert-danger mb-3">
-    <strong>Total de Préstamos Vencidos:</strong> {{ total_vencidos }}
-    {% if search %} (filtrado por "{{ search }}"){% endif %}
-</div>
-
-<!-- Lista de préstamos vencidos -->
-{% for prestamo in prestamos %}
-<div class="card-vencido">
-    <div class="d-flex justify-content-between align-items-start">
-        <div>
-            <h4 class="mb-1">{{ prestamo.socio.user.get_full_name }}</h4>
-            <p class="mb-0 text-muted">
-                <i class="fas fa-id-card"></i> {{ prestamo.socio.cedula }} |
-                <i class="fas fa-envelope"></i> {{ prestamo.socio.user.email }}
-            </p>
-        </div>
-        <div>
-            <span class="badge-vencido">
-            <i class="fas fa-exclamation-triangle"></i> 
-            {% with dias=prestamo.fecha_vencimiento|timesince %}
-                {{ dias }} de atraso
-            {% endwith %}
-        </span>
+        <div class="report-fecha">
+            Fecha de emisión: {{ ahora|date:"d/m/Y H:i" }}
         </div>
     </div>
     
-    <div class="mt-3">
-        <table class="table table-sm">
-            <tr>
-                <th style="width: 150px;">Libro:</th>
-                <td>{{ prestamo.ejemplar.libro.titulo }}</td>
-            </tr>
-            <tr>
-                <th>Ejemplar:</th>
-                <td><code>{{ prestamo.ejemplar.codigo_inventario }}</code></td>
-            </tr>
-            <tr>
-                <th>Fecha préstamo:</th>
-                <td>{{ prestamo.fecha_prestamo|date:"d/m/Y" }}</td>
-            </tr>
-            <tr>
-                <th>Fecha vencimiento:</th>
-                <td>{{ prestamo.fecha_vencimiento|date:"d/m/Y" }}</td>
-            </tr>
-            <tr>
-                <th>Días solicitados:</th>
-                <td>{{ prestamo.dias_solicitados }} días</td>
-            </tr>
-        </table>
+    <div class="filtros no-print">
+        <h5><i class="fas fa-filter"></i> Filtros de búsqueda</h5>
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">Fecha desde (vencimiento)</label>
+                <input type="date" name="fecha_desde" class="form-control" value="{{ fecha_desde }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Fecha hasta (vencimiento)</label>
+                <input type="date" name="fecha_hasta" class="form-control" value="{{ fecha_hasta }}">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Buscar socio o libro</label>
+                <input type="text" name="search" class="form-control" placeholder="Nombre, cédula o título" value="{{ search }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">&nbsp;</label>
+                <button type="submit" class="btn-print w-100">
+                    <i class="fas fa-search"></i> Filtrar
+                </button>
+            </div>
+            <div class="col-12">
+                <a href="{% url 'reporte_prestamos_vencidos' %}" class="btn-limpiar">
+                    <i class="fas fa-undo"></i> Limpiar filtros
+                </a>
+                <button type="button" class="btn-print" onclick="window.print()" style="background: #28a745;">
+                    <i class="fas fa-print"></i> Imprimir Reporte
+                </button>
+            </div>
+        </form>
     </div>
-</div>
-{% empty %}
-<div class="alert alert-success text-center">
-    <i class="fas fa-check-circle fa-2x mb-2 d-block"></i>
-    <h5>No hay préstamos vencidos</h5>
-    <p class="mb-0">Todos los préstamos están dentro de la fecha de devolución.</p>
-</div>
-{% endfor %}
-
-<div class="text-muted mt-3 text-center" style="font-size: 12px;">
-    Reporte generado el {{ ahora|date:"d/m/Y" }} a las {{ ahora|time:"H:i" }}
+    
+    <table class="tabla-reporte">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Socio</th>
+                <th>Cédula</th>
+                <th>Libro</th>
+                <th>Ejemplar</th>
+                <th>Fecha Préstamo</th>
+                <th>Fecha Vencimiento</th>
+                <th>Días Atraso</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for prestamo in prestamos %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ prestamo.socio.user.get_full_name }}</td>
+                <td>{{ prestamo.socio.cedula }}</td>
+                <td>{{ prestamo.ejemplar.libro.titulo|truncatechars:40 }}</td>
+                <td>{{ prestamo.ejemplar.codigo_inventario }}</td>
+                <td>{{ prestamo.fecha_prestamo|date:"d/m/Y" }}</td>
+                <td>{{ prestamo.fecha_vencimiento|date:"d/m/Y" }}</td>
+                <td>{{ prestamo.fecha_vencimiento|timesince }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="8">No hay préstamos vencidos</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr class="total-row">
+                <td colspan="7" style="text-align: right;"><strong>TOTAL DE PRÉSTAMOS VENCIDOS:</strong></td>
+                <td><strong>{{ total_vencidos }}</strong></td>
+            </tr>
+        </tfoot>
+    </table>
 </div>
 {% endblock %}
