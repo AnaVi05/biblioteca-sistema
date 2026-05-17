@@ -16,6 +16,7 @@ from django.core.mail import send_mail
 from django.conf import settings
 from django.urls import reverse
 from .models import Multa, Prestamo, Reserva, Notificacion
+from .utils import sumar_dias_habiles, es_dia_habil
 
 @login_required
 def api_notificaciones(request):
@@ -243,7 +244,7 @@ def registrar_prestamo_usuario(request, ejemplar_id):
     hoy = date.today()
     prestamos_vencidos = Prestamo.objects.filter(
         socio=request.user.socio,
-        estado__in=['ACTIVO', 'VENCIDO'],  # <--- CAMBIADO: incluye ACTIVO y VENCIDO
+        estado__in=['ACTIVO', 'VENCIDO'],
         fecha_vencimiento__lt=hoy
     )
     
@@ -267,12 +268,14 @@ def registrar_prestamo_usuario(request, ejemplar_id):
             return redirect('registrar_prestamo_usuario', ejemplar_id=ejemplar.id)
         
         # Crear préstamo en estado SOLICITADO
+        from .utils import sumar_dias_habiles
+        
         prestamo = Prestamo.objects.create(
             socio=request.user.socio,
             ejemplar=ejemplar,
             dias_solicitados=dias_solicitados,
             fecha_prestamo=timezone.now(),
-            fecha_vencimiento=date.today() + timedelta(days=dias_solicitados),
+            fecha_vencimiento=sumar_dias_habiles(date.today(), dias_solicitados),  # <--- CAMBIADO
             estado='SOLICITADO'   
         )
         
@@ -800,8 +803,10 @@ def prestamo_nuevo_bibliotecario(request):
                         return redirect('prestamo_nuevo_bibliotecario')
                     
                     # Crear préstamo
+                    from .utils import sumar_dias_habiles
+                    
                     fecha_prestamo = timezone.now()
-                    fecha_vencimiento = fecha_prestamo.date() + timedelta(days=dias)
+                    fecha_vencimiento = sumar_dias_habiles(fecha_prestamo.date(), dias)  # <--- CAMBIADO
                     
                     prestamo = Prestamo.objects.create(
                         socio=socio,
@@ -832,8 +837,7 @@ def prestamo_nuevo_bibliotecario(request):
         'ejemplar_titulo': ejemplar_titulo,
     }
     
-    return render(request, 'bibliotecario/prestamo_nuevo.html', context)
-# ========== REGISTRAR DEVOLUCIÓN (PRINCIPAL) ==========
+    return render(request, 'bibliotecario/prestamo_nuevo.html', context)# ========== REGISTRAR DEVOLUCIÓN (PRINCIPAL) ==========
 @staff_member_required
 def registrar_devolucion(request):
     """Registrar devolución de un préstamo desde el panel"""
