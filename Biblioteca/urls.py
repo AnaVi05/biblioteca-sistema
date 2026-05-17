@@ -13,6 +13,7 @@ from datetime import date, timedelta
 from prestamo.models import Prestamo, Reserva, Multa
 from django.contrib.auth.views import LogoutView
 from prestamo.admin import admin_site  # Importa el admin personalizado
+from prestamo.views import configuracion_admin
 
 
 # ========== VISTA PRINCIPAL ==========
@@ -119,6 +120,7 @@ urlpatterns = [
         template_name='registration/password_change_done.html'
     ), name='password_change_done'),
     path('configuracion/', views.configuracion, name='configuracion'),
+    path('admin/configuracion/', configuracion_admin, name='configuracion_admin'),
 ]
 
 

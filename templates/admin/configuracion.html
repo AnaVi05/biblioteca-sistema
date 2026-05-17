@@ -1,0 +1,36 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<div style="padding: 20px; max-width: 600px;">
+    <h1>⚙️ Configuración del Sistema</h1>
+    
+    <form method="post">
+        {% csrf_token %}
+        
+        <div style="margin-bottom: 15px;">
+            <label style="display: block; font-weight: bold;">Días máximos de préstamo</label>
+            <input type="number" name="dias_maximos" value="{{ config.dias_maximos_prestamo }}" 
+                   style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+            <small>Máximo de días que un usuario puede pedir un libro</small>
+        </div>
+        
+        <div style="margin-bottom: 15px;">
+            <label style="display: block; font-weight: bold;">Multa por día (Gs.)</label>
+            <input type="number" name="monto_multa" value="{{ config.monto_multa_dia }}" 
+                   style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+            <small>Monto a cobrar por cada día de atraso</small>
+        </div>
+        
+        <div style="margin-bottom: 15px;">
+            <label style="display: block; font-weight: bold;">Días de expiración de reserva</label>
+            <input type="number" name="dias_reserva" value="{{ config.dias_expiracion_reserva }}" 
+                   style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+            <small>Días para retirar un libro reservado</small>
+        </div>
+        
+        <button type="submit" style="background: #2563eb; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer;">
+            Guardar
+        </button>
+    </form>
+</div>
+{% endblock %}

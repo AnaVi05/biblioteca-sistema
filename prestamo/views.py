@@ -17,6 +17,8 @@ from django.conf import settings
 from django.urls import reverse
 from .models import Multa, Prestamo, Reserva, Notificacion
 from .utils import sumar_dias_habiles, es_dia_habil
+from django.contrib.admin.views.decorators import staff_member_required
+from .models import Configuracion
 
 @login_required
 def api_notificaciones(request):
@@ -1838,3 +1840,19 @@ def usuario_ticket_multa(request, multa_id):
     
     print("Renderizando template...")
     return render(request, 'prestamo/ticket_multa.html', context)
+
+@staff_member_required
+def configuracion_admin(request):
+    config = Configuracion.get_config()
+    
+    if request.method == 'POST':
+        config.dias_maximos_prestamo = request.POST.get('dias_maximos', 5)
+        config.monto_multa_dia = request.POST.get('monto_multa', 1000)
+        config.dias_expiracion_reserva = request.POST.get('dias_reserva', 3)
+        config.save()
+        from django.contrib import messages
+        messages.success(request, 'Configuración guardada')
+        return redirect('configuracion_admin')
+    
+    context = {'config': config}
+    return render(request, 'admin/configuracion.html', context)
