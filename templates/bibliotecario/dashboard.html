@@ -1,4 +1,5 @@
 {% extends 'base/menu_bibliotecario.html' %}
+{% load mis_filtros %}
 
 {% block main_content %}
 <!-- Header dentro del contenido -->
@@ -128,21 +129,21 @@
                             <td>
                                 <strong>{{ prestamo.socio.user.get_full_name|default:prestamo.socio.user.username }}</strong><br>
                                 <small class="text-muted">Cédula: {{ prestamo.socio.cedula }}</small>
-                             </td>
-                             <td>{{ prestamo.ejemplar.libro.titulo }}</td>
+                              </small>
+                             <td>{{ prestamo.ejemplar.libro.titulo }}</small>
                              <td>
                                 <span class="badge bg-secondary">{{ prestamo.ejemplar.codigo_inventario }}</span>
-                             </td>
-                             <td>{{ prestamo.dias_solicitados }} días</td>
-                             <td>{{ prestamo.fecha_prestamo|date:"d/m/Y H:i" }}</td>
+                              </small>
+                             <td>{{ prestamo.dias_solicitados }} días</small>
+                             <td>{{ prestamo.fecha_prestamo|date:"d/m/Y H:i" }}</small>
                              <td>
                                 <span class="badge bg-info">{{ prestamo.fecha_vencimiento|date:"d/m/Y" }}</span>
-                             </td>
+                              </small>
                              <td>
                                 <a href="{% url 'confirmar_prestamo' prestamo.id %}" class="btn btn-sm btn-success">
                                     <i class="fas fa-check"></i> Confirmar entrega
                                 </a>
-                             </td>
+                              </small>
                          </tr>
                         {% endfor %}
                     </tbody>
@@ -274,7 +275,7 @@
                                 <i class="fas fa-upload"></i>
                                 <strong>Nuevo comprobante de pago</strong><br>
                                 <small>{{ notif.mensaje }}</small><br>
-                                <small class="text-muted">Libro: {{ notif.libro }} | Monto: Gs. {{ notif.monto|floatformat:0 }}</small>
+                                <small class="text-muted">Libro: {{ notif.libro }} | Monto: Gs. {{ notif.monto|puntos }}</small>
                             </div>
                             <a href="{% url 'gestionar_multas' %}" class="btn btn-sm btn-primary">
                                 <i class="fas fa-eye"></i> Ver

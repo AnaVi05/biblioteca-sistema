@@ -1,5 +1,6 @@
 {% extends 'base/menu_bibliotecario.html' %}
 {% load static %}
+{% load mis_filtros %}
 
 {% block main_content %}
 <style>
@@ -184,29 +185,29 @@
         <tbody>
             {% for socio in socios_morosos %}
             <tr>
-                <td>{{ forloop.counter }}</td>
-                <td>{{ socio.user.get_full_name }}</td>
-                <td>{{ socio.cedula }}</td>
-                <td>{{ socio.user.email }}</td>
-                <td>{{ socio.telefono|default:"-" }}</td>
-                <td><span class="badge-multa">{{ socio.cantidad_multas }}</span></td>
-                <td class="text-danger fw-bold">Gs. {{ socio.total_multas|floatformat:0 }}</td>
-                <td>{{ socio.total_dias_atraso }} días</td>
+                <td>{{ forloop.counter }}</small>
+                <td>{{ socio.user.get_full_name }}</small>
+                <td>{{ socio.cedula }}</small>
+                <td>{{ socio.user.email }}</small>
+                <td>{{ socio.telefono|default:"-" }}</small>
+                <td><span class="badge-multa">{{ socio.cantidad_multas }}</span></small>
+                <td class="text-danger fw-bold">Gs. {{ socio.total_multas|puntos }}</small>
+                <td>{{ socio.total_dias_atraso }} días</small>
             </tr>
             {% empty %}
             <tr>
-                <td colspan="8">No hay usuarios morosos</td>
+                <td colspan="8">No hay usuarios morosos</small>
             </tr>
             {% endfor %}
         </tbody>
         <tfoot>
             <tr class="total-row">
-                <td colspan="7" style="text-align: right;"><strong>TOTAL DE MULTAS PENDIENTES:</strong></td>
-                <td><strong>Gs. {{ total_general_multas|floatformat:0 }}</strong></td>
+                <td colspan="7" style="text-align: right;"><strong>TOTAL DE MULTAS PENDIENTES:</strong></small>
+                <td><strong>Gs. {{ total_general_multas|puntos }}</strong></small>
             </tr>
             <tr class="total-row">
-                <td colspan="7" style="text-align: right;"><strong>TOTAL DE USUARIOS MOROSOS:</strong></td>
-                <td><strong>{{ total_morosos }}</strong></td>
+                <td colspan="7" style="text-align: right;"><strong>TOTAL DE USUARIOS MOROSOS:</strong></small>
+                <td><strong>{{ total_morosos }}</strong></small>
             </tr>
         </tfoot>
     </table>

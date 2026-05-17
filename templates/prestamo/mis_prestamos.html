@@ -1,5 +1,6 @@
 {% extends 'base/menu_usuario.html' %}
 {% load static %}
+{% load mis_filtros %}
 
 {% block main_content %}
 <style>
@@ -326,7 +327,7 @@
                 </div>
                 <div class="detalle-item" style="color: #dc2626;">
                     <i class="fas fa-money-bill-wave"></i>
-                    <span>Monto: Gs. {{ multa.monto_total|floatformat:0 }}</span>
+                    <span>Monto: Gs. {{ multa.monto_total|puntos }}</span>
                 </div>
             </div>
             

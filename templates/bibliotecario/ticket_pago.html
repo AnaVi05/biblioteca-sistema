@@ -1,3 +1,4 @@
+{% load mis_filtros %}
 <!DOCTYPE html>
 <html>
 <head>
@@ -84,12 +85,12 @@
         <p><strong>ID Multa:</strong> #{{ multa.id }}</p>
         <p><strong>Libro:</strong> {{ multa.prestamo.ejemplar.libro.titulo }}</p>
         <p><strong>Días de atraso:</strong> {{ multa.dias_atraso }}</p>
-        <p><strong>Monto base:</strong> Gs. {{ multa.monto_base|floatformat:0 }}</p>
-        <p><strong>Monto por día:</strong> Gs. {{ multa.monto_por_dia|floatformat:0 }}</p>
+        <p><strong>Monto base:</strong> Gs. {{ multa.monto_base|puntos }}</p>
+        <p><strong>Monto por día:</strong> Gs. {{ multa.monto_por_dia|puntos }}</p>
         
         <div class="monto">
             MONTO TOTAL A PAGAR:<br>
-            Gs. {{ multa.monto_total|floatformat:0 }}
+            Gs. {{ multa.monto_total|puntos }}
         </div>
         
         <div class="instrucciones">

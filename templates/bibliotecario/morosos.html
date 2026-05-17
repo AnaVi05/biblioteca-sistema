@@ -1,4 +1,5 @@
 {% extends 'base/menu_bibliotecario.html' %}
+{% load mis_filtros %}
 
 {% block main_content %}
 <div class="content-header">
@@ -61,7 +62,7 @@
                                     <span class="badge bg-warning">{{ item.cantidad_multas }}</span>
                                 </small>
                                 <td class="text-danger fw-bold">
-                                    Gs. {{ item.total_multas|floatformat:0 }}
+                                    Gs. {{ item.total_multas|puntos }}
                                 </small>
                                 <td>
                                     <a href="?socio_id={{ item.socio.id }}{% if search %}&search={{ search }}{% endif %}" 
@@ -116,12 +117,12 @@
                         <tbody>
                             {% for multa in multas_detalle %}
                             <tr>
-                                <td class="align-middle">#{{ multa.id }}</td>
+                                <td class="align-middle">#{{ multa.id }}</small>
                                 <td class="align-middle">
                                     <small>{{ multa.prestamo.ejemplar.libro.titulo|truncatechars:25 }}</small>
-                                </td>
-                                <td class="align-middle">{{ multa.dias_atraso }} días</td>
-                                <td class="text-danger fw-bold align-middle">Gs. {{ multa.monto_total|floatformat:0 }}</td>
+                                </small>
+                                <td class="align-middle">{{ multa.dias_atraso }} días</small>
+                                <td class="text-danger fw-bold align-middle">Gs. {{ multa.monto_total|puntos }}</small>
                                 
                                 <!-- Columna Comprobante -->
                                 <td class="align-middle">
@@ -132,7 +133,7 @@
                                     {% else %}
                                         <span class="badge bg-secondary">Sin comprobante</span>
                                     {% endif %}
-                                </td>
+                                </small>
                                 
                                 <!-- Columna Ticket -->
                                 <td class="align-middle">
@@ -148,7 +149,7 @@
                                             <i class="fas fa-download"></i> Re-generar Ticket
                                         </a>
                                     {% endif %}
-                                </td>
+                                </small>
                                 
                                 <!-- Columna Verificación (Aprobar/Rechazar) -->
                                 <td class="align-middle">
@@ -172,15 +173,15 @@
                                     {% else %}
                                         <span class="badge bg-secondary w-100 py-2">Esperando comprobante</span>
                                     {% endif %}
-                                </td>
+                                </small>
                             </tr>
                             {% endfor %}
                         </tbody>
                         <tfoot class="table-light">
                             <tr>
-                                <td colspan="3" class="fw-bold">Total a pagar:</td>
-                                <td class="fw-bold text-danger">Gs. {{ total_multas_socio|floatformat:0 }}</td>
-                                <td colspan="3"></td>
+                                <td colspan="3" class="fw-bold">Total a pagar:</small>
+                                <td class="fw-bold text-danger">Gs. {{ total_multas_socio|puntos }}</small>
+                                <td colspan="3"></small>
                             </tr>
                         </tfoot>
                     </table>

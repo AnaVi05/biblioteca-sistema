@@ -1,3 +1,4 @@
+{% load mis_filtros %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -127,13 +128,13 @@
             <p><strong>Fecha préstamo:</strong> {{ multa.prestamo.fecha_prestamo|date:"d/m/Y" }}</p>
             <p><strong>Fecha vencimiento:</strong> {{ multa.prestamo.fecha_vencimiento|date:"d/m/Y" }}</p>
             <p><strong>Días de atraso:</strong> {{ multa.dias_atraso }}</p>
-            <p><strong>Monto base:</strong> Gs. {{ multa.monto_base|floatformat:0 }}</p>
-            <p><strong>Monto por día:</strong> Gs. {{ multa.monto_por_dia|floatformat:0 }}</p>
+            <p><strong>Monto base:</strong> Gs. {{ multa.monto_base|puntos }}</p>
+            <p><strong>Monto por día:</strong> Gs. {{ multa.monto_por_dia|puntos }}</p>
         </div>
         
         <div class="monto">
             <div class="label">MONTO TOTAL A PAGAR</div>
-            <div class="valor">Gs. {{ multa.monto_total|floatformat:0 }}</div>
+            <div class="valor">Gs. {{ multa.monto_total|puntos }}</div>
         </div>
         
         <div class="instrucciones">

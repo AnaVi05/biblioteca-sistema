@@ -1,5 +1,6 @@
 {% extends 'base/menu_bibliotecario.html' %}
 {% load static %}
+{% load mis_filtros %}
 
 {% block main_content %}
 <style>
@@ -189,35 +190,35 @@
         <tbody>
             {% for multa in multas_pagadas %}
             <tr>
-                <td>{{ forloop.counter }}</td>
-                <td>{{ multa.fecha_pago|date:"d/m/Y" }}</td>
-                <td>{{ multa.prestamo.socio.user.get_full_name }}</td>
-                <td>{{ multa.prestamo.socio.cedula }}</td>
-                <td class="hide-on-print">{{ multa.prestamo.ejemplar.libro.titulo|truncatechars:35 }}</td>
-                <td>{{ multa.dias_atraso }} día{{ multa.dias_atraso|pluralize }}</td>
-                <td class="text-success fw-bold">Gs. {{ multa.monto_total|floatformat:0 }}</td>
+                <td>{{ forloop.counter }}</small>
+                <td>{{ multa.fecha_pago|date:"d/m/Y" }}</small>
+                <td>{{ multa.prestamo.socio.user.get_full_name }}</small>
+                <td>{{ multa.prestamo.socio.cedula }}</small>
+                <td class="hide-on-print">{{ multa.prestamo.ejemplar.libro.titulo|truncatechars:35 }}</small>
+                <td>{{ multa.dias_atraso }} día{{ multa.dias_atraso|pluralize }}</small>
+                <td class="text-success fw-bold">Gs. {{ multa.monto_total|puntos }}</small>
                 <td class="hide-on-print">
                     {% if multa.comprobante_imagen %}
                         <span class="badge-registrado">✓ Registrado</span>
                     {% else %}
                         <span class="badge-manual">✎ Manual</span>
                     {% endif %}
-                </td>
+                </small>
             </tr>
             {% empty %}
             <tr>
-                <td colspan="8">No hay pagos registrados en el período seleccionado</td>
+                <td colspan="8">No hay pagos registrados en el período seleccionado</small>
             </tr>
             {% endfor %}
         </tbody>
         <tfoot>
             <tr class="total-row">
-                <td colspan="6" style="text-align: right;"><strong>TOTAL RECAUDADO:</strong></td>
-                <td colspan="2"><strong>Gs. {{ total_pagado|floatformat:0 }}</strong></td>
+                <td colspan="6" style="text-align: right;"><strong>TOTAL RECAUDADO:</strong></small>
+                <td colspan="2"><strong>Gs. {{ total_pagado|puntos }}</strong></small>
             </tr>
             <tr class="total-row">
-                <td colspan="6" style="text-align: right;"><strong>TOTAL DE PAGOS:</strong></td>
-                <td colspan="2"><strong>{{ cantidad_pagos }}</strong></td>
+                <td colspan="6" style="text-align: right;"><strong>TOTAL DE PAGOS:</strong></small>
+                <td colspan="2"><strong>{{ cantidad_pagos }}</strong></small>
             </tr>
         </tfoot>
     </table>

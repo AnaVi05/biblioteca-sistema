@@ -1,3 +1,4 @@
+{% load mis_filtros %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -692,7 +693,7 @@
                     <p>multa{% if multas_pendientes|length != 1 %}s{% endif %}</p>
                     
                     {% if total_multas > 0 %}
-                        <small class="text-danger">Total: Gs. {{ total_multas|floatformat:0 }}</small>
+                        <small class="text-danger">Total: Gs. {{ total_multas|puntos }}</small>
                         
                         <!-- Botón para generar ticket de la primera multa pendiente -->
                         {% with primera_multa=multas_pendientes|first %}
