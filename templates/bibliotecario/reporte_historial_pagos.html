@@ -5,16 +5,28 @@
 {% block main_content %}
 <style>
     @media print {
-        .no-print { display: none !important; }
-        .sidebar { display: none !important; }
-        .main-content { margin-left: 0 !important; padding: 0 !important; }
-        .container { width: 100%; margin: 0; }
-        .filtros { display: none !important; }
-        .btn-print { display: none !important; }
-        .btn-limpiar { display: none !important; }
-        .hide-on-print { display: none !important; }
-        .report-periodo { display: none !important; }
-    }
+    .no-print { display: none !important; }
+    .sidebar { display: none !important; }
+    .main-content { margin-left: 0 !important; padding: 0 !important; }
+    .container { width: 100%; margin: 0; }
+    .filtros { display: none !important; }
+    .btn-print { display: none !important; }
+    .btn-limpiar { display: none !important; }
+    .report-periodo { display: none !important; }
+    
+    /* Ocultar columnas de Libro y Comprobante al imprimir */
+    .hide-on-print { display: none !important; }
+    
+    /* Mostrar solo los totales de impresión, ocultar los de pantalla */
+    .total-pantalla { display: none !important; }
+    .total-impresion { display: table-row !important; }
+}
+
+@media screen {
+    /* En pantalla: mostrar solo totales de pantalla */
+    .total-pantalla { display: table-row !important; }
+    .total-impresion { display: none !important; }
+}
     
     .report-container {
         background: white;
@@ -212,15 +224,26 @@
             {% endfor %}
         </tbody>
         <tfoot>
-            <tr class="total-row">
-                <td colspan="6" style="text-align: right;"><strong>TOTAL RECAUDADO:</strong></small>
-                <td colspan="2"><strong>Gs. {{ total_pagado|puntos }}</strong></small>
-            </tr>
-            <tr class="total-row">
-                <td colspan="6" style="text-align: right;"><strong>TOTAL DE PAGOS:</strong></small>
-                <td colspan="2"><strong>{{ cantidad_pagos }}</strong></small>
-            </tr>
-        </tfoot>
+    <!-- Fila de totales para PANTALLA (8 columnas) -->
+    <tr class="total-row total-pantalla">
+        <td colspan="7" style="text-align: right;"><strong>TOTAL RECAUDADO:</strong></td>
+        <td><strong>Gs. {{ total_pagado|puntos }}</strong></td>
+    </tr>
+    <tr class="total-row total-pantalla">
+        <td colspan="7" style="text-align: right;"><strong>TOTAL DE PAGOS:</strong></td>
+        <td><strong>{{ cantidad_pagos }}</strong></td>
+    </tr>
+
+    <!-- Fila de totales para IMPRESIÓN (6 columnas) -->
+    <tr class="total-row total-impresion">
+        <td colspan="5" style="text-align: right;"><strong>TOTAL RECAUDADO:</strong></td>
+        <td><strong>Gs. {{ total_pagado|puntos }}</strong></td>
+    </tr>
+    <tr class="total-row total-impresion">
+        <td colspan="5" style="text-align: right;"><strong>TOTAL DE PAGOS:</strong></td>
+        <td><strong>{{ cantidad_pagos }}</strong></td>
+    </tr>
+</tfoot>
     </table>
 </div>
 {% endblock %}
