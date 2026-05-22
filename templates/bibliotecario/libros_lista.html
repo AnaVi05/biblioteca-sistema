@@ -91,7 +91,13 @@
                         </td>
                         <td>{{ libro.editorial.nombre }}</td>
                         <td>{{ libro.categoria.nombre }}</td>
-                        <td>{{ libro.cantidad_total }}</td>
+                        <td>
+                            {% if libro.activo %}
+                                {{ libro.cantidad_total }}
+                            {% else %}
+                                <span class="text-muted">N/A</span>
+                            {% endif %}
+                        </td>
                         <td>
                             {% if libro.activo %}
                                 {% if libro.inventario_disponible > 0 %}
@@ -103,20 +109,24 @@
                                 <span class="badge bg-secondary">N/A</span>
                             {% endif %}
                         </td>
-                        <!-- Columna de disponibilidad (si tiene ejemplares para usuarios) -->
+                        <!-- Columna de disponibilidad -->
                         <td>
-                            {% if libro.tiene_ejemplares_disponibles %}
+                            {% if libro.activo and libro.tiene_ejemplares_disponibles %}
                                 <span class="badge bg-success">
-                                    <i class="fas fa-check-circle"></i> {{ libro.ejemplares_disponibles_count }} disponibles
+                                    <i class="fas fa-check-circle"></i> {{ libro.ejemplares_disponibles_count }} disponible{% if libro.ejemplares_disponibles_count != 1 %}s{% endif %}
                                 </span>
                                 <br>
                                 <small class="text-muted">Visible para usuarios</small>
-                            {% else %}
+                            {% elif libro.activo and not libro.tiene_ejemplares_disponibles %}
                                 <span class="badge bg-danger">
                                     <i class="fas fa-exclamation-triangle"></i> Sin ejemplares
                                 </span>
                                 <br>
-                                <small class="text-muted">Agrega ejemplares desde <strong>Gestionar Stock</strong></small>
+                                <small class="text-muted">Agrega ejemplares</small>
+                            {% else %}
+                                <span class="badge bg-secondary">
+                                    <i class="fas fa-ban"></i> No disponible
+                                </span>
                             {% endif %}
                         </td>
                         <td>
@@ -141,10 +151,22 @@
                     <tr>
                         <td colspan="9" class="text-center py-4">
                             <i class="fas fa-inbox fa-2x text-muted mb-2 d-block"></i>
-                            <p class="text-muted mb-0">No hay libros registrados</p>
-                            <a href="{% url 'libro_crear' %}" class="btn btn-sm btn-primary mt-2">
-                                <i class="fas fa-plus"></i> Agregar el primer libro
-                            </a>
+                            <p class="text-muted mb-0">
+                                {% if search %}
+                                    No se encontraron libros que coincidan con "<strong>{{ search }}</strong>"
+                                {% else %}
+                                    No hay libros registrados
+                                {% endif %}
+                            </p>
+                            {% if not search %}
+                                <a href="{% url 'libro_crear' %}" class="btn btn-sm btn-primary mt-2">
+                                    <i class="fas fa-plus"></i> Agregar el primer libro
+                                </a>
+                            {% else %}
+                                <a href="{% url 'gestionar_libros' %}" class="btn btn-sm btn-secondary mt-2">
+                                    <i class="fas fa-undo"></i> Limpiar búsqueda
+                                </a>
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}

@@ -81,17 +81,6 @@ def gestionar_libros(request):
     """Lista de libros para administrar (bibliotecario ve todos)"""
     libros = Libro.objects.all().select_related('editorial', 'categoria').order_by('-activo', 'titulo')
     
-    # Agregar información de ejemplares disponibles
-    for libro in libros:
-        libro.tiene_ejemplares_disponibles = Ejemplar.objects.filter(
-            libro=libro, 
-            disponibilidad='DISPONIBLE'
-        ).exists()
-        libro.ejemplares_disponibles_count = Ejemplar.objects.filter(
-            libro=libro, 
-            disponibilidad='DISPONIBLE'
-        ).count()
-    
     filtro = request.GET.get('filtro', '')
     if filtro == 'activos':
         libros = libros.filter(activo=True)
@@ -102,13 +91,23 @@ def gestionar_libros(request):
     if search:
         libros = libros.filter(titulo__icontains=search)
     
+    # ========== MOVER EL CÁLCULO DE EJEMPLARES DESPUÉS DE LOS FILTROS ==========
+    for libro in libros:
+        libro.tiene_ejemplares_disponibles = Ejemplar.objects.filter(
+            libro=libro, 
+            disponibilidad='DISPONIBLE'
+        ).exists()
+        libro.ejemplares_disponibles_count = Ejemplar.objects.filter(
+            libro=libro, 
+            disponibilidad='DISPONIBLE'
+        ).count()
+    
     context = {
         'libros': libros,
         'search': search,
         'filtro': filtro,
     }
     return render(request, 'bibliotecario/libros_lista.html', context)
-
 
 @staff_member_required
 def libro_crear(request):
