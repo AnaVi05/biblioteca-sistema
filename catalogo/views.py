@@ -91,16 +91,19 @@ def gestionar_libros(request):
     if search:
         libros = libros.filter(titulo__icontains=search)
     
-    # ========== MOVER EL CÁLCULO DE EJEMPLARES DESPUÉS DE LOS FILTROS ==========
+    # Calcular ejemplares disponibles (usando inventario_disponible o calculando en tiempo real)
     for libro in libros:
-        libro.tiene_ejemplares_disponibles = Ejemplar.objects.filter(
-            libro=libro, 
-            disponibilidad='DISPONIBLE'
-        ).exists()
+        # Usar inventario_disponible si está actualizado, o recalcular
         libro.ejemplares_disponibles_count = Ejemplar.objects.filter(
             libro=libro, 
             disponibilidad='DISPONIBLE'
         ).count()
+        libro.tiene_ejemplares_disponibles = libro.ejemplares_disponibles_count > 0
+        
+        # Sincronizar inventario_disponible con el valor real
+        if libro.inventario_disponible != libro.ejemplares_disponibles_count:
+            libro.inventario_disponible = libro.ejemplares_disponibles_count
+            libro.save()
     
     context = {
         'libros': libros,
@@ -108,7 +111,6 @@ def gestionar_libros(request):
         'filtro': filtro,
     }
     return render(request, 'bibliotecario/libros_lista.html', context)
-
 @staff_member_required
 def libro_crear(request):
     """Crear nuevo libro (ejemplar opcional)"""

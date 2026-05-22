@@ -93,15 +93,16 @@
                         <td>{{ libro.categoria.nombre }}</td>
                         <td>
                             {% if libro.activo %}
-                                {{ libro.cantidad_total }}
+                                {{ libro.cantidad_total|default:"0" }}
                             {% else %}
                                 <span class="text-muted">N/A</span>
                             {% endif %}
                         </td>
+                        <!-- Columna Disponibles (usa ejemplares_disponibles_count) -->
                         <td>
                             {% if libro.activo %}
-                                {% if libro.inventario_disponible > 0 %}
-                                    <span class="badge bg-success">{{ libro.inventario_disponible }}</span>
+                                {% if libro.ejemplares_disponibles_count > 0 %}
+                                    <span class="badge bg-success">{{ libro.ejemplares_disponibles_count }}</span>
                                 {% else %}
                                     <span class="badge bg-warning">0</span>
                                 {% endif %}
@@ -109,15 +110,15 @@
                                 <span class="badge bg-secondary">N/A</span>
                             {% endif %}
                         </td>
-                        <!-- Columna de disponibilidad -->
+                        <!-- Columna Disponibilidad (mensaje descriptivo) -->
                         <td>
-                            {% if libro.activo and libro.tiene_ejemplares_disponibles %}
+                            {% if libro.activo and libro.ejemplares_disponibles_count > 0 %}
                                 <span class="badge bg-success">
                                     <i class="fas fa-check-circle"></i> {{ libro.ejemplares_disponibles_count }} disponible{% if libro.ejemplares_disponibles_count != 1 %}s{% endif %}
                                 </span>
                                 <br>
                                 <small class="text-muted">Visible para usuarios</small>
-                            {% elif libro.activo and not libro.tiene_ejemplares_disponibles %}
+                            {% elif libro.activo and libro.ejemplares_disponibles_count == 0 %}
                                 <span class="badge bg-danger">
                                     <i class="fas fa-exclamation-triangle"></i> Sin ejemplares
                                 </span>
