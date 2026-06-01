@@ -195,25 +195,6 @@
         transform: translateY(-2px);
     }
     
-    .btn-reservar-consulta {
-        background: #17a2b8;
-        color: white;
-        border: none;
-        padding: 0.5rem 1.2rem;
-        border-radius: 8px;
-        font-weight: 600;
-        font-size: 0.85rem;
-        transition: all 0.3s;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-    }
-    
-    .btn-reservar-consulta:hover {
-        background: #138496;
-        transform: translateY(-2px);
-    }
-    
     .result-count {
         color: var(--text-light);
         margin-bottom: 1rem;
@@ -273,9 +254,29 @@
         color: #856404;
     }
     
+    .stock-prestado {
+        background: #cfe2ff;
+        color: #084298;
+    }
+    
     .stock-no {
         background: #f8d7da;
         color: #721c24;
+    }
+    
+    .btn-deshabilitado {
+        background: #6c757d;
+        color: white;
+        border: none;
+        padding: 0.5rem 1.2rem;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        opacity: 0.6;
+        cursor: not-allowed;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
     }
 </style>
 
@@ -349,13 +350,23 @@
                 <div class="d-flex justify-content-between align-items-start mb-3">
                     <span class="categoria-badge">{{ libro.categoria.nombre }}</span>
                     
-                    <!-- Stock actualizado en tiempo real -->
-                    {% if libro.ejemplares_disponibles >= 2 %}
-                        <span class="stock-badge stock-disponible">{{ libro.ejemplares_disponibles }} ejemplares disponibles</span>
-                    {% elif libro.ejemplares_disponibles == 1 %}
-                        <span class="stock-badge stock-consulta">1 ejemplar (consulta en sala)</span>
+                    <!-- Stock según total de ejemplares -->
+                    {% if libro.total_ejemplares >= 2 %}
+                        {% if libro.ejemplares_disponibles >= 2 %}
+                            <span class="stock-badge stock-disponible">{{ libro.ejemplares_disponibles }} ejemplares disponibles</span>
+                        {% elif libro.ejemplares_disponibles == 1 %}
+                            <span class="stock-badge stock-prestado">1 disponible (consulta) / {{ libro.total_ejemplares|add:"-1" }} prestado</span>
+                        {% else %}
+                            <span class="stock-badge stock-no">{{ libro.total_ejemplares }} ejemplares (todos prestados)</span>
+                        {% endif %}
+                    {% elif libro.total_ejemplares == 1 %}
+                        {% if libro.ejemplares_disponibles > 0 %}
+                            <span class="stock-badge stock-consulta">1 ejemplar (consulta en sala)</span>
+                        {% else %}
+                            <span class="stock-badge stock-no">1 ejemplar (prestado - reservar)</span>
+                        {% endif %}
                     {% else %}
-                        <span class="stock-badge stock-no">Sin ejemplares disponibles</span>
+                        <span class="stock-badge stock-no">Sin ejemplares</span>
                     {% endif %}
                 </div>
                 
@@ -382,45 +393,52 @@
                     </div>
                 {% endif %}
                 
-                <!-- BOTONES DE ACCIÓN -->
+                <!-- BOTONES DE ACCIÓN - LÓGICA SIMPLIFICADA -->
                 <div class="acciones-container">
                     <a href="{% url 'catalogo_detalle' libro.id %}" class="btn-detalles">
                         <i class="fas fa-info-circle"></i> Detalles
                     </a>
                     
+                    {# Si hay al menos 2 ejemplares disponibles → PRESTAR #}
                     {% if libro.ejemplares_disponibles >= 2 %}
-                        {# 2 o más ejemplares - se puede prestar #}
                         {% if libro.primer_ejemplar_disponible %}
                             <a href="{% url 'registrar_prestamo_usuario' libro.primer_ejemplar_disponible.id %}" class="btn-prestar">
                                 <i class="fas fa-hand-holding-heart"></i> Prestar
                             </a>
                         {% endif %}
-                        
-                    {% elif libro.ejemplares_disponibles == 1 %}
-                        {# Solo 1 ejemplar - consulta en sala #}
-                        <div class="text-end">
-                            <a href="{% url 'reservar_libro' libro.id %}" class="btn-reservar-consulta">
-                                <i class="fas fa-clock"></i> Reservar para más tarde
-                            </a>
-                            <div class="mensaje-consulta">
-                                <i class="fas fa-info-circle"></i>
-                                El único ejemplar disponible es para consulta en sala. Puedes reservarlo para cuando se libere otro ejemplar.
-                            </div>
-                        </div>
-                        
-                    {% elif libro.ejemplares_disponibles == 0 %}
-                        {# No hay ejemplares disponibles - solo reservar #}
+                    
+                    {# Si hay 1 ejemplar disponible pero el libro tiene 2+ en total → RESERVAR #}
+                    {% elif libro.ejemplares_disponibles == 1 and libro.total_ejemplares >= 2 %}
                         <a href="{% url 'reservar_libro' libro.id %}" class="btn-reservar">
-                            <i class="fas fa-bookmark"></i> Reservar
+                            <i class="fas fa-clock"></i> Reservar
                         </a>
-                        
+                    
+                    {# Si no hay ejemplares disponibles pero el libro tiene al menos 1 → RESERVAR #}
+                    {% elif libro.ejemplares_disponibles == 0 and libro.total_ejemplares >= 1 %}
+                        <a href="{% url 'reservar_libro' libro.id %}" class="btn-reservar">
+                            <i class="fas fa-clock"></i> Reservar
+                        </a>
+                    
+                    {# Si es el único ejemplar disponible y libro tiene 1 total → CONSULTA #}
+                    {% elif libro.total_ejemplares == 1 and libro.ejemplares_disponibles == 1 %}
+                        <button class="btn-deshabilitado">
+                            <i class="fas fa-ban"></i> Solo consulta en sala
+                        </button>
+                    
                     {% else %}
-                        {# Sin ejemplares #}
-                        <button class="btn-detalles" disabled style="background: #6c757d; color: white; opacity: 0.6; cursor: not-allowed;">
+                        <button class="btn-deshabilitado">
                             <i class="fas fa-ban"></i> No disponible
                         </button>
                     {% endif %}
                 </div>
+                
+                {# Mensaje adicional para consulta en sala #}
+                {% if libro.total_ejemplares == 1 and libro.ejemplares_disponibles == 1 %}
+                    <div class="mensaje-consulta mt-2">
+                        <i class="fas fa-info-circle"></i>
+                        Este libro tiene un solo ejemplar disponible únicamente para consulta en sala.
+                    </div>
+                {% endif %}
             </div>
         </div>
     {% empty %}

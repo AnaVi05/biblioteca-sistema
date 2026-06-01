@@ -52,8 +52,15 @@
             
             <div class="mb-3">
                 <label class="form-label fw-bold">Ubicación física</label>
-                <input type="text" name="ubicacion" class="form-control" value="{{ ejemplar.ubicacion|default:'' }}">
-                <small class="text-muted">Ej: Estante A3, Sección 5, Sala 2</small>
+                <input type="text" name="ubicacion" class="form-control" value="{% if ejemplar %}{{ ejemplar.ubicacion }}{% else %}{{ ubicacion_por_defecto }}{% endif %}">
+                <small class="text-muted">
+                    <i class="fas fa-info-circle"></i> 
+                    {% if not ejemplar and ubicacion_por_defecto %}
+                        Ubicación sugerida: <strong>{{ ubicacion_por_defecto }}</strong> (del primer ejemplar)
+                    {% else %}
+                        Ej: Estante A3, Sección 5, Sala 2
+                    {% endif %}
+                </small>
             </div>
             
             <div class="d-flex gap-2">

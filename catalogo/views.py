@@ -48,6 +48,7 @@ def catalogo_lista(request):
             'imagen': libro.imagen,
             'ejemplares_totales': total,
             'ejemplares_disponibles': disponibles,
+            'total_ejemplares': total,
             'primer_ejemplar_disponible': Ejemplar.objects.filter(
                 libro=libro, 
                 disponibilidad='DISPONIBLE'
@@ -308,6 +309,10 @@ def ejemplar_crear(request, libro_id):
     """Agregar nuevo ejemplar a un libro"""
     libro = get_object_or_404(Libro, id=libro_id)
     
+    # Obtener la primera ubicación registrada para este libro
+    primer_ejemplar = Ejemplar.objects.filter(libro=libro).first()
+    ubicacion_por_defecto = primer_ejemplar.ubicacion if primer_ejemplar else ''
+    
     if request.method == 'POST':
         try:
             ejemplar = Ejemplar.objects.create(
@@ -315,7 +320,7 @@ def ejemplar_crear(request, libro_id):
                 codigo_inventario=request.POST.get('codigo_inventario'),
                 estado_fisico=request.POST.get('estado_fisico'),
                 disponibilidad=request.POST.get('disponibilidad'),
-                ubicacion=request.POST.get('ubicacion')
+                ubicacion=request.POST.get('ubicacion', ubicacion_por_defecto)
             )
             
             libro.cantidad_total = Ejemplar.objects.filter(libro=libro).count()
@@ -329,9 +334,11 @@ def ejemplar_crear(request, libro_id):
             messages.error(request, f'❌ Error al crear ejemplar: {str(e)}')
     
     context = {
+        'ejemplar': None,
         'libro': libro,
         'estado_fisico_choices': Ejemplar.ESTADO_FISICO_CHOICES,
         'disponibilidad_choices': Ejemplar.DISPONIBILIDAD_CHOICES,
+        'ubicacion_por_defecto': ubicacion_por_defecto,  # <--- Agregar al contexto
     }
     return render(request, 'bibliotecario/ejemplar_form.html', context)
 

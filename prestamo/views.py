@@ -427,17 +427,19 @@ def reservar_libro(request, libro_id):
         )
         return redirect('mis_reservas')
     
-    # Contar ejemplares disponibles
-    ejemplares_disponibles = Ejemplar.objects.filter(
-        libro=libro, 
-        disponibilidad='DISPONIBLE'
-    ).count()
+    # ========== CONTAR TOTAL DE EJEMPLARES DEL LIBRO ==========
+    total_ejemplares = Ejemplar.objects.filter(libro=libro).count()
     
-    # Si hay 2 o más ejemplares, redirigir a préstamo (no a reserva)
-    if ejemplares_disponibles >= 2:
-        messages.info(request, 'Este libro tiene ejemplares disponibles. ¿Querés solicitarlo en préstamo?')
+    # Si el libro tiene solo 1 ejemplar en total, NO se puede reservar (solo consulta en sala)
+    if total_ejemplares == 1:
+        messages.info(
+            request, 
+            f'📚 El libro "{libro.titulo}" tiene solo 1 ejemplar, disponible únicamente para consulta en sala. '
+            f'No es posible reservarlo para préstamo a domicilio.'
+        )
         return redirect('catalogo_lista')
     
+    # Si hay 2 o más ejemplares, continuar con el proceso de reserva
     if request.method == 'POST':
         fecha_limite = request.POST.get('fecha_limite_interes')
         
@@ -488,17 +490,19 @@ def reservar_libro(request, libro_id):
             estado='PENDIENTE'
         )
         
-        # Mensaje según la situación
-        if ejemplares_disponibles == 1:
+        # Mostrar cuántos ejemplares hay en total para informar
+        disponibles_ahora = Ejemplar.objects.filter(libro=libro, disponibilidad='DISPONIBLE').count()
+        if disponibles_ahora > 0:
             messages.success(
                 request, 
-                f'✅ ¡Libro reservado! El único ejemplar disponible es para consulta en sala. '
-                f'Te avisaremos cuando se libere otro ejemplar para préstamo. Estás en la posición {reserva.orden_prioridad} de la cola.'
+                f'✅ ¡Libro reservado! Hay {disponibles_ahora} ejemplar(es) disponible(s) ahora. '
+                f'Estás en la posición {reserva.orden_prioridad} de la cola.'
             )
         else:
             messages.success(
                 request, 
-                f'✅ ¡Libro reservado! Estás en la posición {reserva.orden_prioridad} de la cola.'
+                f'✅ ¡Libro reservado! Todos los ejemplares están prestados. '
+                f'Estás en la posición {reserva.orden_prioridad} de la cola.'
             )
         
         return redirect('mis_reservas')
@@ -506,11 +510,16 @@ def reservar_libro(request, libro_id):
     fecha_min = date.today() + timedelta(days=1)
     fecha_max = date.today() + timedelta(days=30)
     
+    # Para el template, mostrar información útil
+    disponibles_ahora = Ejemplar.objects.filter(libro=libro, disponibilidad='DISPONIBLE').count()
+    total_ejemplares = Ejemplar.objects.filter(libro=libro).count()
+    
     context = {
         'libro': libro,
         'fecha_min': fecha_min.isoformat(),
         'fecha_max': fecha_max.isoformat(),
-        'ejemplares_disponibles': ejemplares_disponibles
+        'disponibles_ahora': disponibles_ahora,
+        'total_ejemplares': total_ejemplares,
     }
     return render(request, 'prestamo/reservar_libro.html', context)
 @login_required

@@ -104,6 +104,15 @@
         color: var(--primary-blue);
         text-decoration: none;
     }
+    
+    .badge-info {
+        display: inline-block;
+        background: #e8f0fe;
+        padding: 5px 10px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        margin-top: 8px;
+    }
 </style>
 
 <div class="container py-5">
@@ -130,13 +139,27 @@
                         {% endfor %}
                     </p>
                     <p><i class="fas fa-tag"></i> {{ libro.categoria.nombre }}</p>
+                    <div class="badge-info">
+                        <i class="fas fa-boxes"></i> Total ejemplares: {{ total_ejemplares }}
+                    </div>
                 </div>
             </div>
             
             <div class="info-box">
                 <i class="fas fa-info-circle"></i>
-                <strong>¿Por qué reservar?</strong>
-                <p class="mb-0 mt-2">Este libro no tiene ejemplares disponibles en este momento. Podés reservarlo y te avisaremos cuando esté listo para retirar.</p>
+                <strong>Información de disponibilidad</strong>
+                <p class="mb-0 mt-2">
+                    📚 <strong>Total de ejemplares:</strong> {{ total_ejemplares }}<br>
+                    {% if disponibles_ahora > 0 %}
+                        ✅ <strong>Disponibles ahora:</strong> {{ disponibles_ahora }} ejemplar(es)
+                    {% else %}
+                        ⏳ <strong>Disponibles ahora:</strong> Todos los ejemplares están prestados
+                    {% endif %}
+                </p>
+                <p class="mb-0 mt-2 small">
+                    <i class="fas fa-clock"></i> 
+                    Podés reservar el libro y te avisaremos cuando esté disponible.
+                </p>
             </div>
             
             <form method="post">
