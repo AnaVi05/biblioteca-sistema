@@ -98,7 +98,7 @@
                                 <span class="text-muted">N/A</span>
                             {% endif %}
                         </td>
-                        <!-- Columna Disponibles (usa ejemplares_disponibles_count) -->
+                        <!-- Columna Disponibles (ya resta 1 por consulta en sala) -->
                         <td>
                             {% if libro.activo %}
                                 {% if libro.ejemplares_disponibles_count > 0 %}
@@ -118,7 +118,13 @@
                                 </span>
                                 <br>
                                 <small class="text-muted">Visible para usuarios</small>
-                            {% elif libro.activo and libro.ejemplares_disponibles_count == 0 %}
+                            {% elif libro.activo and libro.ejemplares_disponibles_count == 0 and libro.cantidad_total > 0 %}
+                                <span class="badge bg-warning">
+                                    <i class="fas fa-clock"></i> Todos prestados
+                                </span>
+                                <br>
+                                <small class="text-muted">Sin ejemplares disponibles</small>
+                            {% elif libro.activo and libro.cantidad_total == 0 %}
                                 <span class="badge bg-danger">
                                     <i class="fas fa-exclamation-triangle"></i> Sin ejemplares
                                 </span>

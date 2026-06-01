@@ -24,8 +24,7 @@ class Socio(models.Model):
     
     ESTADO_SOCIO_CHOICES = [
         ('activo', 'Activo'),
-        ('moroso', 'Moroso'),
-        ('inhabilitado', 'Inhabilitado'),
+        ('inhabilitado', 'Inhabilitado'),  # 'moroso' eliminado
     ]
     
     # Relación 1 a 1 con el usuario de Django
@@ -74,6 +73,12 @@ class Socio(models.Model):
         choices=ESTADO_SOCIO_CHOICES,
         default='activo',
         verbose_name="Estado"
+    )
+    
+    motivo_inhabilitacion = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Motivo de inhabilitación"
     )
     
     fecha_registro = models.DateField(

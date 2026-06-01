@@ -57,6 +57,11 @@
             <i class="fas fa-user-tag"></i>
             <span>Asignar Rol</span>
         </a>
+        <!-- NUEVO: Usuarios Inhabilitados -->
+        <a href="{% url 'admin:usuario_socio_changelist' %}?estado_socio=inhabilitado" class="action-btn">
+            <i class="fas fa-user-slash"></i>
+            <span>Usuarios Inhabilitados</span>
+        </a>
         <a href="{% url 'configuracion_panel' %}" class="action-btn">
             <i class="fas fa-cog"></i>
             <span>Configuración</span>

@@ -92,18 +92,24 @@ def gestionar_libros(request):
     if search:
         libros = libros.filter(titulo__icontains=search)
     
-    # Calcular ejemplares disponibles (usando inventario_disponible o calculando en tiempo real)
+    # Calcular ejemplares disponibles en tiempo real
     for libro in libros:
-        # Usar inventario_disponible si está actualizado, o recalcular
-        libro.ejemplares_disponibles_count = Ejemplar.objects.filter(
-            libro=libro, 
-            disponibilidad='DISPONIBLE'
-        ).count()
-        libro.tiene_ejemplares_disponibles = libro.ejemplares_disponibles_count > 0
+        total = Ejemplar.objects.filter(libro=libro).count()
+        disponibles_reales = Ejemplar.objects.filter(libro=libro, disponibilidad='DISPONIBLE').count()
         
-        # Sincronizar inventario_disponible con el valor real
-        if libro.inventario_disponible != libro.ejemplares_disponibles_count:
-            libro.inventario_disponible = libro.ejemplares_disponibles_count
+        # Para el bibliotecario: mostrar 1 menos si hay al menos 1 ejemplar
+        if total >= 1:
+            # Un ejemplar es de consulta en sala (no se presta)
+            disponibles_para_prestamo = max(0, disponibles_reales - 1)
+        else:
+            disponibles_para_prestamo = 0
+        
+        libro.ejemplares_disponibles_count = disponibles_para_prestamo
+        libro.tiene_ejemplares_disponibles = disponibles_para_prestamo > 0
+        
+        # También actualizar inventario_disponible del libro
+        if libro.inventario_disponible != disponibles_para_prestamo:
+            libro.inventario_disponible = disponibles_para_prestamo
             libro.save()
     
     context = {
@@ -314,13 +320,25 @@ def ejemplar_crear(request, libro_id):
     ubicacion_por_defecto = primer_ejemplar.ubicacion if primer_ejemplar else ''
     
     if request.method == 'POST':
+        codigo_inventario = request.POST.get('codigo_inventario')
+        
+        # Verificar si el código de inventario ya existe
+        if Ejemplar.objects.filter(codigo_inventario=codigo_inventario).exists():
+            messages.error(request, f'❌ El código de inventario "{codigo_inventario}" ya existe. Por favor, ingrese un código único.')
+            return redirect('ejemplar_crear', libro_id=libro.id)
+        
         try:
+            # Si el usuario no ingresó ubicación, usar la del primer ejemplar
+            ubicacion = request.POST.get('ubicacion')
+            if not ubicacion and ubicacion_por_defecto:
+                ubicacion = ubicacion_por_defecto
+            
             ejemplar = Ejemplar.objects.create(
                 libro=libro,
-                codigo_inventario=request.POST.get('codigo_inventario'),
+                codigo_inventario=codigo_inventario,
                 estado_fisico=request.POST.get('estado_fisico'),
                 disponibilidad=request.POST.get('disponibilidad'),
-                ubicacion=request.POST.get('ubicacion', ubicacion_por_defecto)
+                ubicacion=ubicacion
             )
             
             libro.cantidad_total = Ejemplar.objects.filter(libro=libro).count()
@@ -338,11 +356,9 @@ def ejemplar_crear(request, libro_id):
         'libro': libro,
         'estado_fisico_choices': Ejemplar.ESTADO_FISICO_CHOICES,
         'disponibilidad_choices': Ejemplar.DISPONIBILIDAD_CHOICES,
-        'ubicacion_por_defecto': ubicacion_por_defecto,  # <--- Agregar al contexto
+        'ubicacion_por_defecto': ubicacion_por_defecto,
     }
     return render(request, 'bibliotecario/ejemplar_form.html', context)
-
-
 @staff_member_required
 def ejemplar_editar(request, ejemplar_id):
     """Editar ejemplar existente"""

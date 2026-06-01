@@ -1,0 +1,30 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<div style="padding: 20px; max-width: 600px; margin: 0 auto;">
+    <h1>Inhabilitar Usuario</h1>
+    <p><strong>Usuario:</strong> {{ socio.user.get_full_name }}</p>
+    <p><strong>Cédula:</strong> {{ socio.cedula }}</p>
+    <p><strong>Email:</strong> {{ socio.user.email }}</p>
+    
+    <hr>
+    
+    <form method="post">
+        {% csrf_token %}
+        <div style="margin-bottom: 15px;">
+            <label style="display: block; font-weight: bold; margin-bottom: 5px;">Motivo de inhabilitación *</label>
+            <textarea name="motivo" rows="4" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;" required></textarea>
+            <small style="color: #666;">Ej: Devoluciones atrasadas, pérdida de libros, morosidad, etc.</small>
+        </div>
+        
+        <div style="margin-top: 20px;">
+            <button type="submit" style="background: #dc2626; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">
+                <i class="fas fa-ban"></i> Inhabilitar Usuario
+            </button>
+            <a href="{% url 'admin:usuario_socio_changelist' %}" style="margin-left: 10px; padding: 10px 20px; background: #6c757d; color: white; text-decoration: none; border-radius: 5px;">
+                Cancelar
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}

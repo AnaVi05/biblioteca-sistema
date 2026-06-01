@@ -227,6 +227,21 @@ def registrar_prestamo_usuario(request, ejemplar_id):
         messages.error(request, f'El ejemplar {ejemplar.codigo_inventario} no está disponible')
         return redirect('catalogo_lista')
     
+    # ========== VALIDAR QUE NO TENGA EL MISMO LIBRO EN PRÉSTAMO ACTIVO ==========
+    prestamo_activo_mismo_libro = Prestamo.objects.filter(
+        socio=request.user.socio,
+        estado='ACTIVO',
+        ejemplar__libro=ejemplar.libro
+    ).exists()
+    
+    if prestamo_activo_mismo_libro:
+        messages.error(
+            request, 
+            f'❌ Ya tienes un préstamo activo del libro "{ejemplar.libro.titulo}". '
+            f'No puedes solicitar otro ejemplar del mismo libro mientras tengas uno pendiente.'
+        )
+        return redirect('catalogo_lista')
+    
     # ========== VALIDAR MULTAS PENDIENTES ==========
     multas_pendientes = Multa.objects.filter(
         prestamo__socio=request.user.socio,
@@ -277,7 +292,7 @@ def registrar_prestamo_usuario(request, ejemplar_id):
             ejemplar=ejemplar,
             dias_solicitados=dias_solicitados,
             fecha_prestamo=timezone.now(),
-            fecha_vencimiento=sumar_dias_habiles(date.today(), dias_solicitados),  # <--- CAMBIADO
+            fecha_vencimiento=sumar_dias_habiles(date.today(), dias_solicitados),
             estado='SOLICITADO'   
         )
         
@@ -791,6 +806,17 @@ def prestamo_nuevo_bibliotecario(request):
                         messages.error(request, 'El ejemplar ya no está disponible')
                         return redirect('prestamo_nuevo_bibliotecario')
                     
+                    # ========== VALIDAR QUE NO TENGA EL MISMO LIBRO EN PRÉSTAMO ACTIVO ==========
+                    prestamo_activo_mismo_libro = Prestamo.objects.filter(
+                        socio=socio,
+                        estado='ACTIVO',
+                        ejemplar__libro=ejemplar.libro
+                    ).exists()
+                    
+                    if prestamo_activo_mismo_libro:
+                        messages.warning(request, f'⚠️ El socio ya tiene un préstamo activo del libro "{ejemplar.libro.titulo}". No puede tomar otro ejemplar del mismo libro.')
+                        return redirect('prestamo_nuevo_bibliotecario')
+                    
                     # ========== VALIDAR MULTAS PENDIENTES ==========
                     tiene_multas = Multa.objects.filter(
                         prestamo__socio=socio,
@@ -817,7 +843,7 @@ def prestamo_nuevo_bibliotecario(request):
                     from .utils import sumar_dias_habiles
                     
                     fecha_prestamo = timezone.now()
-                    fecha_vencimiento = sumar_dias_habiles(fecha_prestamo.date(), dias)  # <--- CAMBIADO
+                    fecha_vencimiento = sumar_dias_habiles(fecha_prestamo.date(), dias)
                     
                     prestamo = Prestamo.objects.create(
                         socio=socio,
@@ -848,7 +874,7 @@ def prestamo_nuevo_bibliotecario(request):
         'ejemplar_titulo': ejemplar_titulo,
     }
     
-    return render(request, 'bibliotecario/prestamo_nuevo.html', context)# ========== REGISTRAR DEVOLUCIÓN (PRINCIPAL) ==========
+    return render(request, 'bibliotecario/prestamo_nuevo.html', context)
 @staff_member_required
 def registrar_devolucion(request):
     """Registrar devolución de un préstamo desde el panel"""
