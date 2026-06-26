@@ -3,40 +3,47 @@
 
 {% block main_content %}
 <style>
-    @media print {
-        .no-print { display: none !important; }
-        .sidebar { display: none !important; }
-        .main-content { margin-left: 0 !important; padding: 0 !important; }
-        .container { width: 100%; margin: 0; }
-        .filtros { display: none !important; }
-        .btn-print { display: none !important; }
-        .btn-limpiar { display: none !important; }
-        .report-periodo { display: none !important; }
-    }
-    
+    /* ========== ESTILOS PARA PANTALLA ========== */
     .report-container {
         background: white;
         padding: 20px;
         margin: 0 auto;
+        font-family: Arial, sans-serif;
     }
     
     .report-header {
-        text-align: center;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
         margin-bottom: 25px;
-        border-bottom: 2px solid #1e40af;
+        border-bottom: 2px solid #476ce6;
         padding-bottom: 15px;
     }
     
+    .logo-area {
+        flex: 0 0 100px;
+    }
+    
+    .logo-area img {
+        max-width: 120px;
+        max-height: 120px;
+    }
+    
+    .title-area {
+        flex: 1;
+        text-align: center;
+    }
+    
     .report-title {
-        font-size: 28px;
+        font-size: 24px;
         font-weight: 700;
-        color: #1e40af;
+        color: #476ce6;
         text-transform: uppercase;
-        margin-bottom: 8px;
+        margin-bottom: 5px;
     }
     
     .report-subtitle {
-        font-size: 16px;
+        font-size: 14px;
         font-weight: 500;
         color: #444;
         margin-bottom: 5px;
@@ -45,30 +52,51 @@
     .report-fecha {
         font-size: 12px;
         color: #888;
-        margin-top: 5px;
+    }
+    
+    .empty-area {
+        flex: 0 0 100px;
+    }
+    
+    .rango-fechas {
+        background: #476ce6;
+        padding: 8px;
+        text-align: center;
+        margin-bottom: 20px;
+        border-radius: 6px;
+        font-size: 13px;
     }
     
     .filtros {
         background: #f8fafc;
         padding: 15px;
-        border-radius: 12px;
+        border-radius: 10px;
         margin-bottom: 25px;
         border: 1px solid #e2e8f0;
+    }
+    
+    .acciones-botones {
+        margin-top: 15px;
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
     }
     
     .tabla-reporte {
         width: 100%;
         border-collapse: collapse;
         margin-top: 20px;
+        font-size: 14px;
     }
     
     .tabla-reporte th {
-        background: #1e40af;
+        background: #476ce6;
         color: white;
         padding: 10px;
         text-align: center;
         font-weight: 600;
-        border: 1px solid #1e40af;
+        border: 1px solid #476ce6;
+        font-size: 14px;
     }
     
     .tabla-reporte td {
@@ -77,32 +105,43 @@
         border: 1px solid #e2e8f0;
     }
     
+    .tabla-reporte td:nth-child(2) {
+        text-align: left;
+    }
+    
     .total-row {
-        background: #94a5da;
+        background: #476ce6;
         font-weight: bold;
     }
     
     .btn-print {
-        background: #1e40af;
-        color: white;
-        border: none;
-        padding: 10px 20px;
-        border-radius: 8px;
-        cursor: pointer;
-        font-size: 14px;
-    }
-    
-    .btn-print:hover {
-        background: #1e40af;
-    }
-    
-    .btn-limpiar {
-        background: #adb5bd;
+        background: #476ce6;
         color: white;
         border: none;
         padding: 8px 16px;
         border-radius: 6px;
         cursor: pointer;
+        font-size: 14px;
+    }
+    
+    .btn-print-verde {
+        background: #476ce6;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+    }
+    
+    .btn-limpiar {
+        background: #476ce6;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
     }
     
     .porcentaje-bar {
@@ -113,42 +152,108 @@
     }
     
     .porcentaje-fill {
-        background-color: #1e40af;
+        background-color: #476ce6;
         height: 8px;
         border-radius: 10px;
         width: 0%;
+    }
+    
+    /* ========== ESTILOS PARA IMPRESIÓN ========== */
+    @media print {
+        .no-print { display: none !important; }
+        .sidebar { display: none !important; }
+        .main-content { margin-left: 0 !important; padding: 0 !important; }
+        .container { width: 100%; margin: 0; }
+        .filtros { display: none !important; }
+        .btn-print { display: none !important; }
+        .btn-print-verde { display: none !important; }
+        .btn-limpiar { display: none !important; }
+        
+        .report-title {
+            font-size: 14px;
+        }
+        
+        .report-subtitle {
+            font-size: 10px;
+        }
+        
+        .report-fecha {
+            font-size: 8px;
+        }
+        
+        .rango-fechas {
+            font-size: 9px;
+            padding: 4px;
+            margin-bottom: 10px;
+        }
+        
+        .tabla-reporte {
+            font-size: 9px;
+        }
+        
+        .tabla-reporte th {
+            font-size: 9px;
+            padding: 4px;
+        }
+        
+        .tabla-reporte td {
+            padding: 3px 4px;
+        }
+        
+        .logo-area img {
+            max-width: 80px;
+            max-height: 80px;
+        }
+        
+        .porcentaje-bar {
+            display: none;
+        }
     }
 </style>
 
 <div class="report-container">
     <div class="report-header">
-        <div class="report-title">
-            <i class="fas fa-chart-bar"></i> REPORTE DE LIBROS MÁS PRESTADOS
+        <div class="logo-area">
+            <img src="/media/logos/logo_fpuna copy.png" alt="Logo FPUNA">
         </div>
-        <div class="report-subtitle">
-            Biblioteca FPUNA - Análisis de demanda del catálogo
+        <div class="title-area">
+            <div class="report-title">
+                LIBROS MÁS PRESTADOS
+            </div>
+            <div class="report-subtitle">
+                Biblioteca FPUNA - Análisis de demanda del catálogo
+            </div>
+            <div class="report-fecha">
+                Emitido: {{ ahora|date:"d/m/Y H:i" }}
+            </div>
         </div>
-        <div class="report-fecha">
-            Fecha de emisión: {{ ahora|date:"d/m/Y H:i" }}
-        </div>
+        <div class="empty-area"></div>
     </div>
     
-    <!-- Filtros con rango de fechas -->
+    <div class="rango-fechas">
+        📅 Período:
+        {% if fecha_desde and fecha_hasta %}
+            {{ fecha_desde }} al {{ fecha_hasta }}
+        {% elif fecha_desde %}
+            Desde {{ fecha_desde|date:"d/m/Y" }}
+        {% elif fecha_hasta %}
+            Hasta {{ fecha_hasta|date:"d/m/Y" }}
+        {% else %}
+            Últimos 30 días
+        {% endif %}
+    </div>
+    
     <div class="filtros no-print">
-        <h5><i class="fas fa-filter"></i> Filtros de búsqueda</h5>
         <form method="get" class="row g-3">
             <div class="col-md-3">
-                <label class="form-label">Fecha desde</label>
-                <input type="date" name="fecha_desde" class="form-control" value="{{ fecha_desde }}">
+                <input type="date" name="fecha_desde" class="form-control" value="{{ fecha_desde|date:'Y-m-d' }}">
             </div>
             <div class="col-md-3">
-                <label class="form-label">Fecha hasta</label>
-                <input type="date" name="fecha_hasta" class="form-control" value="{{ fecha_hasta }}">
+                <input type="date" name="fecha_hasta" class="form-control" value="{{ fecha_hasta|date:'Y-m-d' }}">
             </div>
             <div class="col-md-3">
-                <label class="form-label">Categoría</label>
                 <select name="categoria" class="form-select">
-                    <option value="">Todas</option>
+                    <option value="">Todas las categorías</option>
                     {% for cat in categorias %}
                         <option value="{{ cat.id }}" {% if categoria_seleccionada|stringformat:"s" == cat.id|stringformat:"s" %}selected{% endif %}>
                             {{ cat.nombre }}
@@ -157,33 +262,25 @@
                 </select>
             </div>
             <div class="col-md-3">
-                <label class="form-label">Buscar libro</label>
-                <input type="text" name="search" class="form-control" placeholder="Título del libro" value="{{ search }}">
+                <input type="text" name="search" class="form-control" placeholder="Buscar libro..." value="{{ search }}">
             </div>
             <div class="col-12">
-                <button type="submit" class="btn-print">
-                    <i class="fas fa-search"></i> Filtrar
-                </button>
-                <a href="{% url 'reporte_libros_demanda' %}" class="btn-limpiar">
-                    <i class="fas fa-undo"></i> Limpiar filtros
-                </a>
-                <button type="button" class="btn-print" onclick="window.print()" style="background: #28a745;">
-                    <i class="fas fa-print"></i> Imprimir Reporte
-                </button>
+                <button type="submit" class="btn-print">Filtrar</button>
+                <a href="{% url 'reporte_libros_demanda' %}" class="btn-limpiar">Limpiar filtros</a>
+                <button type="button" class="btn-print-verde" onclick="window.print()">Imprimir</button>
             </div>
         </form>
     </div>
     
-    <!-- Tabla -->
     <table class="tabla-reporte">
         <thead>
             <tr>
-                <th>#</th>
+                <th>N.º</th>
                 <th>Título</th>
                 <th>Autor(es)</th>
                 <th>Categoría</th>
-                <th>Cantidad Préstamos</th>
-                <th>% del Total</th>
+                <th>Cantidad</th>
+                <th>%</th>
             </tr>
         </thead>
         <tbody>
@@ -205,7 +302,7 @@
                         <div class="porcentaje-fill" data-ancho="{{ libro.porcentaje }}"></div>
                     </div>
                  </td>
-             </tr>
+            </tr>
             {% empty %}
             <tr>
                 <td colspan="6">No hay datos de préstamos en el período seleccionado</td>
@@ -214,7 +311,7 @@
         </tbody>
         <tfoot>
             <tr class="total-row">
-                <td colspan="4" style="text-align: right;"><strong>TOTAL PRÉSTAMOS:</strong></td>
+                <td colspan="4" class="text-end"><strong>TOTAL PRÉSTAMOS:</strong></td>
                 <td colspan="2"><strong>{{ total_prestamos }}</strong></td>
             </tr>
         </tfoot>

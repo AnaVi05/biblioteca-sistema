@@ -3,63 +3,90 @@
 
 {% block main_content %}
 <style>
-    @media print {
-        .no-print { display: none !important; }
-        .sidebar { display: none !important; }
-        .main-content { margin-left: 0 !important; padding: 0 !important; }
-        .container { width: 100%; margin: 0; }
-        .filtros { display: none !important; }
-        .btn-print { display: none !important; }
-        .btn-limpiar { display: none !important; }
-        .report-periodo { display: none !important; }
-    }
-    
+    /* ========== ESTILOS PARA PANTALLA ========== */
     .report-container {
         background: white;
         padding: 20px;
         margin: 0 auto;
+        font-family: Arial, sans-serif;
     }
     
     .report-header {
-        text-align: center;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
         margin-bottom: 25px;
         border-bottom: 2px solid #6c757d;
         padding-bottom: 15px;
     }
     
+    .logo-area {
+        flex: 0 0 100px;
+    }
+    
+    .logo-area img {
+        max-width: 120px;
+        max-height: 120px;
+    }
+    
+    .title-area {
+        flex: 1;
+        text-align: center;
+    }
+    
     .report-title {
-        font-size: 28px;
+        font-size: 24px;
         font-weight: 700;
         color: #6c757d;
         text-transform: uppercase;
-        margin-bottom: 8px;
+        margin-bottom: 5px;
     }
     
     .report-subtitle {
-        font-size: 16px;
+        font-size: 14px;
         font-weight: 500;
         color: #444;
         margin-bottom: 5px;
     }
     
     .report-fecha {
-        font-size: 16px;
+        font-size: 12px;
         color: #888;
-        margin-top: 5px;
+    }
+    
+    .empty-area {
+        flex: 0 0 100px;
+    }
+    
+    .rango-fechas {
+        background: #e9ecef;
+        padding: 8px;
+        text-align: center;
+        margin-bottom: 20px;
+        border-radius: 6px;
+        font-size: 13px;
     }
     
     .filtros {
         background: #f8fafc;
         padding: 15px;
-        border-radius: 12px;
+        border-radius: 10px;
         margin-bottom: 25px;
         border: 1px solid #e2e8f0;
+    }
+    
+    .acciones-botones {
+        margin-top: 15px;
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
     }
     
     .tabla-reporte {
         width: 100%;
         border-collapse: collapse;
         margin-top: 20px;
+        font-size: 14px;
     }
     
     .tabla-reporte th {
@@ -69,6 +96,7 @@
         text-align: center;
         font-weight: 600;
         border: 1px solid #5a6268;
+        font-size: 14px;
     }
     
     .tabla-reporte td {
@@ -82,6 +110,10 @@
         white-space: nowrap;
     }
     
+    .tabla-reporte tr:hover {
+        background-color: #f1f5f9;
+    }
+    
     .total-row {
         background: #e9ecef;
         font-weight: bold;
@@ -91,14 +123,20 @@
         background: #6c757d;
         color: white;
         border: none;
-        padding: 10px 20px;
-        border-radius: 8px;
+        padding: 8px 16px;
+        border-radius: 6px;
         cursor: pointer;
         font-size: 14px;
     }
     
-    .btn-print:hover {
-        background: #5a6268;
+    .btn-print-verde {
+        background: #28a745;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
     }
     
     .btn-limpiar {
@@ -108,69 +146,131 @@
         padding: 8px 16px;
         border-radius: 6px;
         cursor: pointer;
+        font-size: 14px;
     }
     
-    .badge-inhabilitado {
-        background: #e9ecef;
-        color: #495057;
-        padding: 4px 8px;
-        border-radius: 12px;
-        font-size: 0.75rem;
+    /* ========== ESTILOS PARA IMPRESIÓN ========== */
+    @media print {
+        .no-print { display: none !important; }
+        .sidebar { display: none !important; }
+        .main-content { margin-left: 0 !important; padding: 0 !important; }
+        .container { width: 100%; margin: 0; }
+        .filtros { display: none !important; }
+        .btn-print { display: none !important; }
+        .btn-print-verde { display: none !important; }
+        .btn-limpiar { display: none !important; }
+        
+        .report-title {
+            font-size: 14px;
+        }
+        
+        .report-subtitle {
+            font-size: 10px;
+        }
+        
+        .report-fecha {
+            font-size: 8px;
+        }
+        
+        .rango-fechas {
+            font-size: 9px;
+            padding: 4px;
+            margin-bottom: 10px;
+        }
+        
+        .tabla-reporte {
+            font-size: 9px;
+        }
+        
+        .tabla-reporte th {
+            font-size: 9px;
+            padding: 4px;
+        }
+        
+        .tabla-reporte td {
+            padding: 3px 4px;
+        }
+        
+        .logo-area img {
+            max-width: 80px;
+            max-height: 80px;
+        }
     }
 </style>
 
 <div class="report-container">
+    <!-- Header con logo -->
     <div class="report-header">
-        <div class="report-title">
-            <i class="fas fa-user-slash"></i> REPORTE DE USUARIOS INHABILITADOS
+        <div class="logo-area">
+            <img src="/media/logos/logo_fpuna copy.png" alt="Logo FPUNA">
         </div>
-        <div class="report-subtitle">
-            Biblioteca FPUNA - Usuarios sin acceso al sistema
+        <div class="title-area">
+            <div class="report-title">
+                REPORTE DE USUARIOS INHABILITADOS
+            </div>
+            <div class="report-subtitle">
+                Biblioteca FPUNA - Usuarios sin acceso al sistema
+            </div>
+            <div class="report-fecha">
+                Emitido: {{ ahora|date:"d/m/Y H:i" }}
+            </div>
         </div>
-        <div class="report-fecha">
-            Fecha de emisión: {{ ahora|date:"d/m/Y H:i" }}
-        </div>
+        <div class="empty-area"></div>
     </div>
     
+    <!-- Rango de fechas -->
+    <div class="rango-fechas">
+         Período:
+        {% if fecha_desde and fecha_hasta %}
+             {{ fecha_desde }} al {{ fecha_hasta }}
+        {% elif fecha_desde %}
+            Desde {{ fecha_desde|date:"d/m/Y" }}
+        {% elif fecha_hasta %}
+            Hasta {{ fecha_hasta|date:"d/m/Y" }}
+        {% else %}
+            Todos los registros
+        {% endif %}
+    </div>
+    
+    <!-- Filtros (solo en pantalla) -->
     <div class="filtros no-print">
-        <h5><i class="fas fa-filter"></i> Filtros de búsqueda</h5>
         <form method="get" class="row g-3">
-            <div class="col-md-4">
-                <label class="form-label">Fecha desde (registro)</label>
-                <input type="date" name="fecha_desde" class="form-control" value="{{ fecha_desde }}">
+            <div class="col-md-3">
+                <input type="date" name="fecha_desde" class="form-control" placeholder="Fecha desde" value="{{ fecha_desde|date:'Y-m-d' }}">
+            </div>
+            <div class="col-md-3">
+                <input type="date" name="fecha_hasta" class="form-control" placeholder="Fecha hasta" value="{{ fecha_hasta|date:'Y-m-d' }}">
             </div>
             <div class="col-md-4">
-                <label class="form-label">Fecha hasta (registro)</label>
-                <input type="date" name="fecha_hasta" class="form-control" value="{{ fecha_hasta }}">
+                <input type="text" name="search" class="form-control" placeholder="Buscar socio (nombre, cédula)" value="{{ search }}">
             </div>
-            <div class="col-md-4">
-                <label class="form-label">Buscar usuario</label>
-                <input type="text" name="search" class="form-control" placeholder="Nombre, apellido o cédula" value="{{ search }}">
-            </div>
-            <div class="col-12">
-                <button type="submit" class="btn-print">
-                    <i class="fas fa-search"></i> Filtrar
-                </button>
-                <a href="{% url 'reporte_usuarios_inhabilitados' %}" class="btn-limpiar">
-                    <i class="fas fa-undo"></i> Limpiar filtros
-                </a>
-                <button type="button" class="btn-print" onclick="window.print()" style="background: #28a745;">
-                    <i class="fas fa-print"></i> Imprimir Reporte
-                </button>
+            <div class="col-md-2">
+                <button type="submit" class="btn-print w-100">Filtrar</button>
             </div>
         </form>
+        
+        <!-- Botones de acción -->
+        <div class="acciones-botones">
+            <a href="{% url 'reporte_usuarios_inhabilitados' %}" class="btn-limpiar">
+                <i class="fas fa-undo"></i> Limpiar filtros
+            </a>
+            <button type="button" class="btn-print-verde" onclick="window.print()">
+                <i class="fas fa-print"></i> Imprimir Reporte
+            </button>
+        </div>
     </div>
     
+    <!-- Tabla -->
     <table class="tabla-reporte">
         <thead>
             <tr>
-                <th>#</th>
+                <th>N.º</th>
                 <th>Nombre Completo</th>
                 <th>Cédula</th>
                 <th>Correo Electrónico</th>
                 <th>Teléfono</th>
-                <th>Fecha Inhabilitación</th>
                 <th>Motivo</th>
+                <th>Fecha Inhabilitación</th>
             </tr>
         </thead>
         <tbody>
@@ -181,18 +281,18 @@
                 <td>{{ socio.cedula }}</td>
                 <td>{{ socio.user.email }}</td>
                 <td>{{ socio.telefono|default:"-" }}</td>
+                <td>{{ socio.motivo|default:"No especificado" }}</td>
                 <td>{{ socio.fecha_inhabilitacion|date:"d/m/Y" }}</td>
-                <td>{{ socio.motivo }}</td>
             </tr>
             {% empty %}
             <tr>
-                <td colspan="7">No hay usuarios inhabilitados</td>
+                <td colspan="7" class="text-center">No hay usuarios inhabilitados registrados</td>
             </tr>
             {% endfor %}
         </tbody>
         <tfoot>
             <tr class="total-row">
-                <td colspan="6" style="text-align: right;"><strong>TOTAL DE USUARIOS INHABILITADOS:</strong></td>
+                <td colspan="6" class="text-end"><strong>TOTAL DE USUARIOS INHABILITADOS:</strong></td>
                 <td><strong>{{ total_inhabilitados }}</strong></td>
             </tr>
         </tfoot>

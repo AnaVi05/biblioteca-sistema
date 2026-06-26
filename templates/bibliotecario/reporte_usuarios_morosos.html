@@ -1,66 +1,92 @@
 {% extends 'base/menu_bibliotecario.html' %}
 {% load static %}
-{% load mis_filtros %}
 
 {% block main_content %}
 <style>
-    @media print {
-        .no-print { display: none !important; }
-        .sidebar { display: none !important; }
-        .main-content { margin-left: 0 !important; padding: 0 !important; }
-        .container { width: 100%; margin: 0; }
-        .filtros { display: none !important; }
-        .btn-print { display: none !important; }
-        .btn-limpiar { display: none !important; }
-        .report-periodo { display: none !important; }
-    }
-    
+    /* ========== ESTILOS PARA PANTALLA ========== */
     .report-container {
         background: white;
         padding: 20px;
         margin: 0 auto;
+        font-family: Arial, sans-serif;
     }
     
     .report-header {
-        text-align: center;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
         margin-bottom: 25px;
         border-bottom: 2px solid #dc2626;
         padding-bottom: 15px;
     }
     
+    .logo-area {
+        flex: 0 0 100px;
+    }
+    
+    .logo-area img {
+        max-width: 120px;
+        max-height: 120px;
+    }
+    
+    .title-area {
+        flex: 1;
+        text-align: center;
+    }
+    
     .report-title {
-        font-size: 28px;
+        font-size: 24px;
         font-weight: 700;
         color: #dc2626;
         text-transform: uppercase;
-        margin-bottom: 8px;
+        margin-bottom: 5px;
     }
     
     .report-subtitle {
-        font-size: 16px;
+        font-size: 14px;
         font-weight: 500;
         color: #444;
         margin-bottom: 5px;
     }
     
     .report-fecha {
-        font-size: 16px;
+        font-size: 12px;
         color: #888;
-        margin-top: 5px;
+    }
+    
+    .empty-area {
+        flex: 0 0 100px;
+    }
+    
+    .rango-fechas {
+        background: #fee2e2;
+        padding: 8px;
+        text-align: center;
+        margin-bottom: 20px;
+        border-radius: 6px;
+        font-size: 13px;
     }
     
     .filtros {
         background: #f8fafc;
         padding: 15px;
-        border-radius: 12px;
+        border-radius: 10px;
         margin-bottom: 25px;
         border: 1px solid #e2e8f0;
+    }
+    
+    .acciones-botones {
+        margin-top: 15px;
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
     }
     
     .tabla-reporte {
         width: 100%;
         border-collapse: collapse;
         margin-top: 20px;
+        font-size: 14px;
     }
     
     .tabla-reporte th {
@@ -70,6 +96,7 @@
         text-align: center;
         font-weight: 600;
         border: 1px solid #b91c1c;
+        font-size: 14px;
     }
     
     .tabla-reporte td {
@@ -83,10 +110,6 @@
         white-space: nowrap;
     }
     
-    .tabla-reporte tr:hover {
-        background-color: #f1f5f9;
-    }
-    
     .total-row {
         background: #fee2e2;
         font-weight: bold;
@@ -96,14 +119,20 @@
         background: #dc2626;
         color: white;
         border: none;
-        padding: 10px 20px;
-        border-radius: 8px;
+        padding: 8px 16px;
+        border-radius: 6px;
         cursor: pointer;
         font-size: 14px;
     }
     
-    .btn-print:hover {
-        background: #b91c1c;
+    .btn-print-verde {
+        background: #28a745;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
     }
     
     .btn-limpiar {
@@ -113,58 +142,107 @@
         padding: 8px 16px;
         border-radius: 6px;
         cursor: pointer;
+        font-size: 14px;
     }
     
-    .badge-multa {
-        background: #fee2e2;
-        color: #dc2626;
-        padding: 4px 8px;
-        border-radius: 12px;
-        font-size: 0.75rem;
+    /* ========== ESTILOS PARA IMPRESIÓN ========== */
+    @media print {
+        .no-print { display: none !important; }
+        .sidebar { display: none !important; }
+        .main-content { margin-left: 0 !important; padding: 0 !important; }
+        .container { width: 100%; margin: 0; }
+        .filtros { display: none !important; }
+        .btn-print { display: none !important; }
+        .btn-print-verde { display: none !important; }
+        .btn-limpiar { display: none !important; }
+        
+        .report-title {
+            font-size: 14px;
+        }
+        
+        .report-subtitle {
+            font-size: 10px;
+        }
+        
+        .report-fecha {
+            font-size: 8px;
+        }
+        
+        .rango-fechas {
+            font-size: 9px;
+            padding: 4px;
+            margin-bottom: 10px;
+        }
+        
+        .tabla-reporte {
+            font-size: 9px;
+        }
+        
+        .tabla-reporte th {
+            font-size: 9px;
+            padding: 4px;
+        }
+        
+        .tabla-reporte td {
+            padding: 3px 4px;
+        }
+        
+        .logo-area img {
+            max-width: 80px;
+            max-height: 80px;
+        }
     }
 </style>
 
 <div class="report-container">
     <div class="report-header">
-        <div class="report-title">
-            <i class="fas fa-exclamation-triangle"></i> REPORTE DE USUARIOS MOROSOS
+        <div class="logo-area">
+            <img src="/media/logos/logo_fpuna copy.png" alt="Logo FPUNA">
         </div>
-        <div class="report-subtitle">
-            Biblioteca FPUNA - Usuarios con multas pendientes
+        <div class="title-area">
+            <div class="report-title">
+                REPORTE DE USUARIOS MOROSOS
+            </div>
+            <div class="report-subtitle">
+                Biblioteca FPUNA - Usuarios con multas pendientes
+            </div>
+            <div class="report-fecha">
+                Emitido: {{ ahora|date:"d/m/Y H:i" }}
+            </div>
         </div>
-        <div class="report-fecha">
-            Fecha de emisión: {{ ahora|date:"d/m/Y H:i" }}
-        </div>
+        <div class="empty-area"></div>
+    </div>
+    
+    <div class="rango-fechas">
+         Período:
+        {% if fecha_desde and fecha_hasta %}
+             {{ fecha_desde }} al {{ fecha_hasta }}
+        {% elif fecha_desde %}
+            Desde {{ fecha_desde|date:"d/m/Y" }}
+        {% elif fecha_hasta %}
+            Hasta {{ fecha_hasta|date:"d/m/Y" }}
+        {% else %}
+            Todos los registros
+        {% endif %}
     </div>
     
     <div class="filtros no-print">
-        <h5><i class="fas fa-filter"></i> Filtros de búsqueda</h5>
         <form method="get" class="row g-3">
             <div class="col-md-3">
-                <label class="form-label">Fecha desde (multa)</label>
-                <input type="date" name="fecha_desde" class="form-control" value="{{ fecha_desde }}">
+                <input type="date" name="fecha_desde" class="form-control" value="{{ fecha_desde|date:'Y-m-d' }}">
             </div>
             <div class="col-md-3">
-                <label class="form-label">Fecha hasta (multa)</label>
-                <input type="date" name="fecha_hasta" class="form-control" value="{{ fecha_hasta }}">
+                <input type="date" name="fecha_hasta" class="form-control" value="{{ fecha_hasta|date:'Y-m-d' }}">
             </div>
             <div class="col-md-4">
-                <label class="form-label">Buscar socio</label>
-                <input type="text" name="search" class="form-control" placeholder="Nombre, apellido o cédula" value="{{ search }}">
+                <input type="text" name="search" class="form-control" placeholder="Buscar socio..." value="{{ search }}">
             </div>
             <div class="col-md-2">
-                <label class="form-label">&nbsp;</label>
-                <button type="submit" class="btn-print w-100">
-                    <i class="fas fa-search"></i> Filtrar
-                </button>
+                <button type="submit" class="btn-print w-100">Filtrar</button>
             </div>
             <div class="col-12">
-                <a href="{% url 'reporte_usuarios_morosos' %}" class="btn-limpiar">
-                    <i class="fas fa-undo"></i> Limpiar filtros
-                </a>
-                <button type="button" class="btn-print" onclick="window.print()" style="background: #28a745;">
-                    <i class="fas fa-print"></i> Imprimir Reporte
-                </button>
+                <a href="{% url 'reporte_usuarios_morosos' %}" class="btn-limpiar">Limpiar filtros</a>
+                <button type="button" class="btn-print-verde" onclick="window.print()">Imprimir</button>
             </div>
         </form>
     </div>
@@ -172,10 +250,10 @@
     <table class="tabla-reporte">
         <thead>
             <tr>
-                <th>#</th>
-                <th>Nombre Completo</th>
+                <th>N.º</th>
+                <th>Socio</th>
                 <th>Cédula</th>
-                <th>Correo Electrónico</th>
+                <th>Email</th>
                 <th>Teléfono</th>
                 <th>Multas</th>
                 <th>Total Deuda</th>
@@ -185,29 +263,29 @@
         <tbody>
             {% for socio in socios_morosos %}
             <tr>
-                <td>{{ forloop.counter }}</small>
-                <td>{{ socio.user.get_full_name }}</small>
-                <td>{{ socio.cedula }}</small>
-                <td>{{ socio.user.email }}</small>
-                <td>{{ socio.telefono|default:"-" }}</small>
-                <td><span class="badge-multa">{{ socio.cantidad_multas }}</span></small>
-                <td class="text-danger fw-bold">Gs. {{ socio.total_multas|puntos }}</small>
-                <td>{{ socio.total_dias_atraso }} días</small>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ socio.user.get_full_name }}</td>
+                <td>{{ socio.cedula }}</td>
+                <td>{{ socio.user.email }}</td>
+                <td>{{ socio.telefono|default:"-" }}</td>
+                <td>{{ socio.cantidad_multas }}</td>
+                <td class="text-danger">Gs. {{ socio.total_multas|floatformat:0 }}</td>
+                <td>{{ socio.total_dias_atraso }} días</td>
             </tr>
             {% empty %}
             <tr>
-                <td colspan="8">No hay usuarios morosos</small>
+                <td colspan="8">No hay usuarios morosos</td>
             </tr>
             {% endfor %}
         </tbody>
         <tfoot>
             <tr class="total-row">
-                <td colspan="7" style="text-align: right;"><strong>TOTAL DE MULTAS PENDIENTES:</strong></small>
-                <td><strong>Gs. {{ total_general_multas|puntos }}</strong></small>
+                <td colspan="7" class="text-end"><strong>TOTAL MULTAS:</strong></td>
+                <td><strong>Gs. {{ total_general_multas|floatformat:0 }}</strong></td>
             </tr>
             <tr class="total-row">
-                <td colspan="7" style="text-align: right;"><strong>TOTAL DE USUARIOS MOROSOS:</strong></small>
-                <td><strong>{{ total_morosos }}</strong></small>
+                <td colspan="7" class="text-end"><strong>TOTAL MOROSOS:</strong></td>
+                <td><strong>{{ total_morosos }}</strong></td>
             </tr>
         </tfoot>
     </table>
