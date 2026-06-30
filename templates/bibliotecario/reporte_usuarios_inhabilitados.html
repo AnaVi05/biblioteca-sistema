@@ -281,7 +281,7 @@
                 <td>{{ socio.cedula }}</td>
                 <td>{{ socio.user.email }}</td>
                 <td>{{ socio.telefono|default:"-" }}</td>
-                <td>{{ socio.motivo|default:"No especificado" }}</td>
+                <td>{{ socio.motivo_inhabilitacion|default:"No especificado" }}</td>
                 <td>{{ socio.fecha_inhabilitacion|date:"d/m/Y" }}</td>
             </tr>
             {% empty %}

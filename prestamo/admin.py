@@ -355,9 +355,9 @@ class LibroAdmin(admin.ModelAdmin):
 
 @admin.register(Socio, site=admin_site)
 class SocioAdmin(admin.ModelAdmin):
-    list_display = ['id', 'user', 'cedula', 'tipo_usuario', 'estado_socio', 'fecha_registro']
+    list_display = ['id', 'user', 'cedula', 'tipo_usuario', 'estado_socio', 'motivo_corto', 'boton_accion']
     list_filter = ['estado_socio', 'tipo_usuario']
-    search_fields = ['user__username', 'user__first_name', 'user__last_name', 'cedula']
+    search_fields = ['user__username', 'user__first_name', 'user__last_name', 'cedula', 'motivo_inhabilitacion']
     list_per_page = 20
     readonly_fields = ['fecha_registro']
     
@@ -368,10 +368,73 @@ class SocioAdmin(admin.ModelAdmin):
         ('Clasificación', {
             'fields': ('tipo_usuario', 'estado_socio', 'nivel_acceso')
         }),
+        ('Inhabilitación', {
+            'fields': ('motivo_inhabilitacion',),
+            'classes': ('collapse',),
+        }),
         ('Registro', {
             'fields': ('fecha_registro',)
         }),
     )
+    
+    def motivo_corto(self, obj):
+        if obj.motivo_inhabilitacion:
+            if len(obj.motivo_inhabilitacion) > 50:
+                return obj.motivo_inhabilitacion[:50] + '...'
+            return obj.motivo_inhabilitacion
+        return '-'
+    motivo_corto.short_description = 'Motivo'
+    
+    def boton_accion(self, obj):
+        if obj.estado_socio == 'activo':
+            url = reverse('admin:usuario_socio_inhabilitar', args=[obj.id])
+            return format_html(
+                '<a class="button" href="{}" style="background: #dc2626; color: white; padding: 5px 10px; border-radius: 4px; text-decoration: none;">Inhabilitar</a>',
+                url
+            )
+        else:
+            url = reverse('admin:usuario_socio_habilitar', args=[obj.id])
+            return format_html(
+                '<a class="button" href="{}" style="background: #16a34a; color: white; padding: 5px 10px; border-radius: 4px; text-decoration: none;">Habilitar</a>',
+                url
+            )
+    boton_accion.short_description = 'Acción'
+    
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path('inhabilitar/<int:socio_id>/', self.admin_site.admin_view(self.inhabilitar_usuario), name='usuario_socio_inhabilitar'),
+            path('habilitar/<int:socio_id>/', self.admin_site.admin_view(self.habilitar_usuario), name='usuario_socio_habilitar'),
+        ]
+        return custom_urls + urls
+    
+    def inhabilitar_usuario(self, request, socio_id):
+        socio = Socio.objects.get(id=socio_id)
+        
+        if request.method == 'POST':
+            motivo = request.POST.get('motivo', '').strip()
+            if motivo:
+                socio.estado_socio = 'inhabilitado'
+                socio.motivo_inhabilitacion = motivo
+                socio.save()
+                messages.success(request, f'✅ Usuario {socio.user.get_full_name()} inhabilitado correctamente.')
+                return redirect('admin:usuario_socio_changelist')
+            else:
+                messages.error(request, '❌ Debes especificar un motivo para inhabilitar.')
+        
+        context = {
+            'socio': socio,
+            'title': 'Inhabilitar Usuario',
+        }
+        return render(request, 'admin/inhabilitar_usuario.html', context)
+    
+    def habilitar_usuario(self, request, socio_id):
+        socio = Socio.objects.get(id=socio_id)
+        socio.estado_socio = 'activo'
+        socio.motivo_inhabilitacion = ''
+        socio.save()
+        messages.success(request, f'✅ Usuario {socio.user.get_full_name()} habilitado correctamente.')
+        return redirect('admin:usuario_socio_changelist')
 
 
 @admin.register(Ejemplar, site=admin_site)

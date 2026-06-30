@@ -6,7 +6,7 @@ from django.utils import timezone
 from datetime import date, timedelta
 from .models import Prestamo, Multa, Reserva
 from catalogo.models import Ejemplar, Libro, Categoria
-from django.db.models import Count, Sum
+from django.db.models import Count, Q, Sum
 from usuario.models import Socio 
 from django.db import transaction
 from django.http import JsonResponse
@@ -1027,6 +1027,19 @@ def gestionar_reservas(request):
                 
                 if accion == 'confirmar':
                     with transaction.atomic():
+                        ejemplares_disponibles = Ejemplar.objects.filter(
+                            libro=reserva.libro,
+                            disponibilidad='DISPONIBLE'
+                        ).count()
+                        
+                        if ejemplares_disponibles < 2:
+                            messages.warning(
+                                request,
+                                f'⚠️ El libro "{reserva.libro.titulo}" tiene solo {ejemplares_disponibles} ejemplar(es) disponible(s) '
+                                f'y no puede ser prestado a domicilio. Está disponible únicamente para consulta en sala.'
+                            )
+                            return redirect('gestionar_reservas')
+                        
                         ejemplar_disponible = Ejemplar.objects.filter(
                             libro=reserva.libro,
                             disponibilidad='DISPONIBLE'
@@ -1091,6 +1104,9 @@ def gestionar_reservas(request):
         # ========== OBTENER RESERVAS ==========
         reservas = Reserva.objects.select_related(
             'socio__user', 'libro', 'ejemplar_asignado'
+        ).annotate(
+            total_ejemplares=Count('libro__ejemplares'),
+            ejemplares_disponibles=Count('libro__ejemplares', filter=Q(libro__ejemplares__disponibilidad='DISPONIBLE'))
         ).order_by('-fecha_reserva')
         
         if search:
@@ -1623,9 +1639,9 @@ def reporte_usuarios_inhabilitados(request):
             Q(cedula__icontains=search)
         )
     
-    # Agregar motivo (si no hay campo, usar texto por defecto)
+    # Usar el campo motivo_inhabilitacion de la base de datos
     for socio in socios:
-        socio.motivo = getattr(socio, 'observaciones', 'No especificado')
+        socio.motivo = socio.motivo_inhabilitacion or 'No especificado'
         socio.fecha_inhabilitacion = socio.fecha_registro
     
     context = {

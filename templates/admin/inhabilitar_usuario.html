@@ -1,27 +1,29 @@
 {% extends "admin/base_site.html" %}
+{% load static %}
 
 {% block content %}
 <div style="padding: 20px; max-width: 600px; margin: 0 auto;">
     <h1>Inhabilitar Usuario</h1>
-    <p><strong>Usuario:</strong> {{ socio.user.get_full_name }}</p>
-    <p><strong>Cédula:</strong> {{ socio.cedula }}</p>
-    <p><strong>Email:</strong> {{ socio.user.email }}</p>
-    
-    <hr>
+    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+        <p><strong>Usuario:</strong> {{ socio.user.get_full_name }}</p>
+        <p><strong>Cédula:</strong> {{ socio.cedula }}</p>
+        <p><strong>Email:</strong> {{ socio.user.email }}</p>
+        <p><strong>Tipo:</strong> {{ socio.get_tipo_usuario_display }}</p>
+    </div>
     
     <form method="post">
         {% csrf_token %}
         <div style="margin-bottom: 15px;">
             <label style="display: block; font-weight: bold; margin-bottom: 5px;">Motivo de inhabilitación *</label>
             <textarea name="motivo" rows="4" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;" required></textarea>
-            <small style="color: #666;">Ej: Devoluciones atrasadas, pérdida de libros, morosidad, etc.</small>
+            <small style="color: #666;">Describe el motivo por el cual se inhabilita al usuario (ej: deudas pendientes, pérdida de libros, etc.)</small>
         </div>
         
-        <div style="margin-top: 20px;">
-            <button type="submit" style="background: #dc2626; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">
+        <div style="margin-top: 20px; display: flex; gap: 10px;">
+            <button type="submit" style="background: #dc2626; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 14px;">
                 <i class="fas fa-ban"></i> Inhabilitar Usuario
             </button>
-            <a href="{% url 'admin:usuario_socio_changelist' %}" style="margin-left: 10px; padding: 10px 20px; background: #6c757d; color: white; text-decoration: none; border-radius: 5px;">
+            <a href="{% url 'admin:usuario_socio_changelist' %}" style="padding: 10px 20px; background: #6c757d; color: white; text-decoration: none; border-radius: 5px; font-size: 14px;">
                 Cancelar
             </a>
         </div>
