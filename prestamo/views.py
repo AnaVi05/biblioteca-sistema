@@ -213,10 +213,19 @@ def marcar_extraviado(request, pk):
 
 
 # ========== VISTAS PARA USUARIOS ==========
-
 @login_required
 def registrar_prestamo_usuario(request, ejemplar_id):
     """Usuario registra su propio préstamo (desde catálogo)"""
+    
+    # ========== VALIDAR QUE EL USUARIO ESTÉ ACTIVO ==========
+    try:
+        if request.user.socio.estado_socio != 'activo':
+            messages.error(request, '❌ Tu cuenta está inhabilitada. No puedes solicitar préstamos.')
+            return redirect('catalogo_lista')
+    except:
+        messages.error(request, '❌ No tienes un perfil de socio completo. Contacta al bibliotecario.')
+        return redirect('catalogo_lista')
+    
     try:
         ejemplar = Ejemplar.objects.get(id=ejemplar_id)
     except Ejemplar.DoesNotExist:
@@ -804,6 +813,11 @@ def prestamo_nuevo_bibliotecario(request):
                     
                     if ejemplar.disponibilidad != 'DISPONIBLE':
                         messages.error(request, 'El ejemplar ya no está disponible')
+                        return redirect('prestamo_nuevo_bibliotecario')
+                    
+                    # ========== VALIDAR QUE EL SOCIO ESTÉ ACTIVO ==========
+                    if socio.estado_socio != 'activo':
+                        messages.warning(request, f'⚠️ El socio "{socio.user.get_full_name()}" está inhabilitado. No puede recibir préstamos.')
                         return redirect('prestamo_nuevo_bibliotecario')
                     
                     # ========== VALIDAR QUE NO TENGA EL MISMO LIBRO EN PRÉSTAMO ACTIVO ==========
