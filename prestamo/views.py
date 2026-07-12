@@ -421,6 +421,9 @@ def cancelar_solicitud(request, prestamo_id):
 @login_required
 def reservar_libro(request, libro_id):
     """Permite al usuario reservar un libro"""
+    if request.user.socio.estado_socio != 'activo':
+        messages.error(request, '❌ Tu cuenta está inhabilitada. No puedes realizar reservas.')
+        return redirect('catalogo_lista')
     libro = get_object_or_404(Libro, id=libro_id)
     
     # ========== VALIDAR MULTAS PENDIENTES ==========
