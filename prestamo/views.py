@@ -259,9 +259,17 @@ def registrar_prestamo_usuario(request, ejemplar_id):
     
     if multas_pendientes.exists():
         total_multa = sum(multa.monto_total for multa in multas_pendientes)
+        cantidad = multas_pendientes.count()
+    
+        # Plural automático
+        if cantidad == 1:
+            mensaje_multa = '1 multa pendiente'
+        else:
+            mensaje_multa = f'{cantidad} multas pendientes'
+        
         messages.error(
             request, 
-            f'❌ No puedes solicitar préstamos porque tienes {multas_pendientes.count()} multa(s) pendiente(s) por un total de Gs. {total_multa:,.0f}. '
+            f'❌ No puedes solicitar préstamos porque tienes {mensaje_multa} por un total de Gs. {total_multa:,.0f}. '
             f'Debes pagar tu deuda para continuar.'
         )
         return redirect('catalogo_lista')
@@ -275,9 +283,17 @@ def registrar_prestamo_usuario(request, ejemplar_id):
     )
     
     if prestamos_vencidos.exists():
+        cantidad = prestamos_vencidos.count()
+    
+        # Plural automático
+        if cantidad == 1:
+            mensaje_prestamo = '1 préstamo vencido'
+        else:
+            mensaje_prestamo = f'{cantidad} préstamos vencidos'
+        
         messages.error(
             request, 
-            f'❌ No puedes solicitar préstamos porque tienes {prestamos_vencidos.count()} préstamo(s) vencido(s) sin regularizar. '
+            f'❌ No puedes solicitar préstamos porque tienes {mensaje_prestamo} sin regularizar. '
             f'Debes pagar las multas correspondientes para continuar.'
         )
         return redirect('catalogo_lista')
@@ -415,9 +431,17 @@ def reservar_libro(request, libro_id):
     
     if multas_pendientes.exists():
         total_multa = sum(multa.monto_total for multa in multas_pendientes)
+        cantidad = multas_pendientes.count()
+        
+        # Plural automático
+        if cantidad == 1:
+            mensaje_multa = '1 multa pendiente'
+        else:
+            mensaje_multa = f'{cantidad} multas pendientes'
+        
         messages.error(
             request, 
-            f'❌ No puedes reservar libros porque tienes {multas_pendientes.count()} multa(s) pendiente(s) por un total de Gs. {total_multa:,.0f}. '
+            f'❌ No puedes reservar libros porque tienes {mensaje_multa} por un total de Gs. {total_multa:,.0f}. '
             f'Debes pagar tu deuda para continuar.'
         )
         return redirect('catalogo_lista')
@@ -431,9 +455,17 @@ def reservar_libro(request, libro_id):
     )
     
     if prestamos_vencidos.exists():
+        cantidad = prestamos_vencidos.count()
+        
+        # Plural automático
+        if cantidad == 1:
+            mensaje_prestamo = '1 préstamo vencido'
+        else:
+            mensaje_prestamo = f'{cantidad} préstamos vencidos'
+        
         messages.error(
             request, 
-            f'❌ No puedes reservar libros porque tienes {prestamos_vencidos.count()} préstamo(s) vencido(s) sin devolver. '
+            f'❌ No puedes reservar libros porque tienes {mensaje_prestamo} sin devolver. '
             f'Debes devolver los libros atrasados para continuar.'
         )
         return redirect('catalogo_lista')
@@ -519,7 +551,7 @@ def reservar_libro(request, libro_id):
         if disponibles_ahora > 0:
             messages.success(
                 request, 
-                f'✅ ¡Libro reservado! Hay {disponibles_ahora} ejemplar(es) disponible(s) ahora. '
+                f'✅ ¡Libro reservado!'
                 f'Estás en la posición {reserva.orden_prioridad} de la cola.'
             )
         else:
