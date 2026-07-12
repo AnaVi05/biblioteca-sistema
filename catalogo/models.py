@@ -15,6 +15,8 @@ class Autor(models.Model):
     @property
     def nombre_completo(self):
         return f"{self.nombre} {self.apellido}"
+
+
 class Editorial(models.Model):
     """Editoriales de los libros"""
     nombre = models.CharField(
@@ -29,6 +31,8 @@ class Editorial(models.Model):
     
     def __str__(self):
         return self.nombre
+
+
 class Categoria(models.Model):
     """Categorías para clasificar los libros"""
     nombre = models.CharField(
@@ -44,12 +48,17 @@ class Categoria(models.Model):
     
     def __str__(self):
         return self.nombre
-    
 
 
 class Libro(models.Model):
-    activo = models.BooleanField(default=True, verbose_name="Activo")
     """Libros del catálogo"""
+    activo = models.BooleanField(default=True, verbose_name="Activo")
+    motivo_baja = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Motivo de baja"
+    )
+    
     isbn = models.CharField(
         max_length=20, 
         unique=True, 
@@ -150,7 +159,6 @@ class LibroAutor(models.Model):
         return f"{self.libro.titulo} - {self.autor.nombre_completo}"
 
 
-
 class Ejemplar(models.Model):
     """Ejemplares físicos de los libros"""
     
@@ -201,7 +209,6 @@ class Ejemplar(models.Model):
         verbose_name="Ubicación física",
         help_text="Ej: Estante A3, Sección 5, Sala 2, etc."
     )
-
 
     class Meta:
         db_table = 'Ejemplar' 

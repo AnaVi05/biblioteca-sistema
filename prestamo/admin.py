@@ -277,9 +277,9 @@ class ConfiguracionAdmin(admin.ModelAdmin):
 @admin.register(Libro, site=admin_site)
 class LibroAdmin(admin.ModelAdmin):
     form = LibroAdminForm
-    list_display = ['id', 'isbn', 'titulo', 'editorial', 'categoria', 'cantidad_total', 'inventario_disponible', 'estado_activo', 'acciones']
+    list_display = ['id', 'isbn', 'titulo', 'editorial', 'categoria', 'cantidad_total', 'inventario_disponible', 'estado_activo', 'acciones','motivo_baja' ]
     list_filter = ['editorial', 'categoria', 'activo']
-    search_fields = ['titulo', 'isbn']
+    search_fields = ['titulo', 'isbn', 'motivo_baja']
     list_per_page = 20
     
     fieldsets = (
@@ -293,7 +293,8 @@ class LibroAdmin(admin.ModelAdmin):
             'fields': ('cantidad_total', 'inventario_disponible', 'imagen')
         }),
         ('Estado', {
-            'fields': ('activo',)
+             'fields': ('activo', 'motivo_baja'),  # <--- AGREGAR motivo_baja AQUÍ
+            'description': '⚠️ Al desactivar "Activo", debe especificar un motivo de baja.'
         }),
         ('Ejemplar Inicial (Opcional)', {
             'fields': ('codigo_inventario', 'estado_fisico', 'disponibilidad', 'ubicacion'),
@@ -301,6 +302,15 @@ class LibroAdmin(admin.ModelAdmin):
             'description': 'Completa estos campos SOLO SI quieres crear un ejemplar ahora. De lo contrario, puedes agregarlo después.'
         }),
     )
+
+    def ver_motivo_baja(self, obj):
+        if obj.motivo_baja:
+            if len(obj.motivo_baja) > 50:
+                return obj.motivo_baja[:50] + '...'
+            return obj.motivo_baja
+        return '-'
+    ver_motivo_baja.short_description = 'Motivo de baja'
+    ver_motivo_baja.allow_tags = True
     
     def estado_activo(self, obj):
         if obj.activo:
